@@ -30,7 +30,7 @@ struct SettingsView: View {
                 .padding()
                 .tabItem { Label("About", systemImage: "info.circle") }
         }
-        .frame(width: 640, height: 500)
+        .frame(width: 760, height: 540)
         .onAppear {
             tokenFieldFocused = false
             Task {
@@ -137,19 +137,22 @@ struct SettingsView: View {
                 }
             }
             Section("Metric cards") {
-                ForEach(settings.metricOrder) { metric in
-                    MetricOrderRow(metric: metric, isEnabled: metricEnabledBinding(metric))
-                        .onDrag {
-                            draggedMetric = metric
-                            return NSItemProvider(object: metric.rawValue as NSString)
-                        }
-                        .onDrop(
-                            of: [.plainText],
-                            delegate: MetricDropDelegate(
-                                targetMetric: metric,
-                                settings: settings,
-                                draggedMetric: $draggedMetric))
+                LazyVGrid(columns: metricCardColumns, alignment: .leading, spacing: 8) {
+                    ForEach(settings.metricOrder) { metric in
+                        MetricOrderRow(metric: metric, isEnabled: metricEnabledBinding(metric))
+                            .onDrag {
+                                draggedMetric = metric
+                                return NSItemProvider(object: metric.rawValue as NSString)
+                            }
+                            .onDrop(
+                                of: [.plainText],
+                                delegate: MetricDropDelegate(
+                                    targetMetric: metric,
+                                    settings: settings,
+                                    draggedMetric: $draggedMetric))
+                    }
                 }
+                .padding(.vertical, 3)
             }
             Text("Refresh is driven by display-link ticks so requests pause while the display is asleep.")
                 .font(.caption)
@@ -222,6 +225,12 @@ struct SettingsView: View {
         .padding(.top, 8)
         .padding(.horizontal, 28)
         .padding(.bottom, 24)
+    }
+
+    private var metricCardColumns: [GridItem] {
+        [
+            GridItem(.adaptive(minimum: 210, maximum: 250), spacing: 10, alignment: .topLeading),
+        ]
     }
 
     private var appVersionString: String {
@@ -402,13 +411,17 @@ private struct MetricOrderRow: View {
 
             Toggle(isOn: $isEnabled) {
                 Label(metric.label, systemImage: metric.symbolName)
+                    .lineLimit(1)
             }
             .toggleStyle(.checkbox)
 
             Spacer(minLength: 0)
         }
         .contentShape(Rectangle())
-        .padding(.vertical, 2)
+        .padding(.vertical, 5)
+        .padding(.horizontal, 7)
+        .frame(maxWidth: .infinity, minHeight: 30, alignment: .leading)
+        .background(Color(nsColor: .controlBackgroundColor), in: RoundedRectangle(cornerRadius: 6))
     }
 }
 
