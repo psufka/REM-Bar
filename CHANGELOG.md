@@ -6,6 +6,7 @@
 
 - Added `Scripts/package_app.sh` to build `dist/REM-Bar.app` and `dist/REM-Bar-v0.1.0.zip` from SwiftPM release products, bundling `RemBarMCP` at the documented MCP path.
 - Replaced the README with a CodexBar-style public draft covering install, first run, token sources, MCP setup, privacy, and source builds.
+- Replaced the README screenshot placeholder with a real REM-Bar popover screenshot.
 - Expanded the menu-bar metric model from five metrics to thirteen, adding Activity, Deep Sleep, Total Sleep, body temperature deviation, sleep efficiency, daily stress, resilience, and cardiovascular age.
 - Expanded the metric model from thirteen cards to twenty-six, adding Light Sleep, Awake Time, Time in Bed, Sleep Latency, Breath Rate, HRV Balance, Sleep Balance, Sleep Regularity, Average SpO2, Breathing Disturbance, VO2 Max, Optimal Bedtime, and Sleep Time Recommendation.
 - Added Settings toggles for metric cards with the v0.1 defaults: sleep score, REM, HRV, RHR, readiness, and activity enabled; optional metrics disabled.
@@ -43,6 +44,7 @@
 - Popover cards now use 1-4 columns by enabled-card count and scroll at a capped height when many cards are active.
 - Popover sizing now uses the actual space below the menu-bar button so active cards can grow closer to the bottom of the display before scrolling.
 - Popover card sizing is now deterministic across the controller, grid, and card views so the last row is not partially clipped before scrolling starts.
+- README now clarifies that the bundled MCP server can be used by Claude Code, Codex, or any other MCP-capable LLM client.
 - Refresh now skips endpoint fetches when every metric driven by that endpoint is disabled, and the snapshot builder omits disabled metric series.
 - Time-series OuraClient calls default to `latest=true` when no date-time range is supplied.
 - Added offline tests for `TokenValidator`, metric color thresholds, and `SettingsStore` persistence.

@@ -7,9 +7,9 @@
 [![MCP](https://img.shields.io/badge/MCP-bundled-16d3b4?style=flat-square)](#mcp-server)
 [![License: MIT](https://img.shields.io/badge/license-MIT-6e5aff?style=flat-square)](LICENSE)
 
-<img src="docs/screenshot-placeholder.svg" alt="REM-Bar screenshot placeholder" width="640" />
+<img src="docs/rem-bar-screenshot.png" alt="REM-Bar menu-bar popover showing Oura metric cards" width="520" />
 
-Tiny native macOS 14+ menu-bar app for Oura Ring data. REM-Bar shows sleep, readiness, activity, recovery, SpO2, VO2 max, bedtime guidance, and related trends as configurable menu-bar cards. It also ships a small read-only MCP server so Claude Code can query the same Oura data locally.
+Tiny native macOS 14+ menu-bar app for Oura Ring data. REM-Bar shows sleep, readiness, activity, recovery, SpO2, VO2 max, bedtime guidance, and related trends as configurable menu-bar cards. It also ships a small read-only MCP server so Claude Code, Codex, or any other MCP-capable LLM client can query the same Oura data locally.
 
 ## Why
 
@@ -27,7 +27,7 @@ Tiny native macOS 14+ menu-bar app for Oura Ring data. REM-Bar shows sleep, read
 
 ### GitHub Releases
 
-Download `REM-Bar-v0.1.0.zip` from [GitHub Releases](https://github.com/psufka/REM-Bar/releases), unzip it, and move `REM-Bar.app` to `/Applications`.
+**How to install:** Download `REM-Bar-v0.1.0.zip` from [GitHub Releases](https://github.com/psufka/REM-Bar/releases), unzip it, and move `REM-Bar.app` to `/Applications`.
 
 The v0.1 release is unsigned and not notarized. If macOS blocks the first launch, run:
 
@@ -58,12 +58,18 @@ Settings → Account shows which source is active. If `OURA_TOKEN` is set, it wi
 
 ## MCP Server
 
-REM-Bar bundles `RemBarMCP`, a small stdio JSON-RPC MCP server. It is read-only and uses the same token discovery path as the app.
+REM-Bar bundles `RemBarMCP`, a small stdio JSON-RPC MCP server for Claude Code, Codex, or any other MCP-capable LLM client. It is read-only and uses the same token discovery path as the app.
 
 After moving the app to `/Applications`, install it for Claude Code with:
 
 ```bash
 claude mcp add rem-bar /Applications/REM-Bar.app/Contents/MacOS/RemBarMCP
+```
+
+For Codex or another MCP client, point the client at the same executable path:
+
+```text
+/Applications/REM-Bar.app/Contents/MacOS/RemBarMCP
 ```
 
 The server exposes these tools:
