@@ -4,6 +4,7 @@ struct PopoverView: View {
     let snapshot: DashboardSnapshot
     let enabledMetrics: Set<BarMetric>
     let metricOrder: [BarMetric]
+    let temperatureUnit: TemperatureUnit
     let lastError: String?
     let tokenNeedsUpdate: Bool
     let lastRefresh: Date?
@@ -19,7 +20,7 @@ struct PopoverView: View {
                     if metric.isCategorical {
                         CategoricalMetricCardView(series: series)
                     } else {
-                        MetricCardView(series: series)
+                        MetricCardView(series: series, temperatureUnit: temperatureUnit)
                     }
                 }
             }

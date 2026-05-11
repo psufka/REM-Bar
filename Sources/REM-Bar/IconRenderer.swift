@@ -141,6 +141,10 @@ enum BarMetric: String, CaseIterable, Codable, Identifiable {
     }
 
     var unit: String {
+        unit(temperatureUnit: .celsius)
+    }
+
+    func unit(temperatureUnit: TemperatureUnit) -> String {
         switch self {
         case .sleepScore, .readiness, .activity, .sleepEfficiency, .hrvBalance, .sleepBalance, .sleepRegularity, .breathingDisturbance:
             return ""
@@ -153,7 +157,7 @@ enum BarMetric: String, CaseIterable, Codable, Identifiable {
         case .averageBreath:
             return "rpm"
         case .bodyTemperatureDeviation:
-            return "C"
+            return temperatureUnit.symbol
         case .dailyStress, .resilience:
             return ""
         case .cardiovascularAge:
@@ -187,15 +191,16 @@ enum BarMetric: String, CaseIterable, Codable, Identifiable {
         }
     }
 
-    func formattedValue(_ value: Double) -> String {
+    func formattedValue(_ value: Double, temperatureUnit: TemperatureUnit = .celsius) -> String {
         switch self {
         case .sleepScore, .readiness, .activity, .rem, .deepSleep, .totalSleep, .lightSleep, .awakeTime, .timeInBed, .sleepLatency, .hrv, .rhr, .sleepEfficiency, .hrvBalance, .sleepBalance, .sleepRegularity, .breathingDisturbance, .cardiovascularAge:
             return "\(Int(value.rounded()))\(unit)"
         case .averageBreath, .averageSpO2, .vo2Max:
             return "\(String(format: "%.1f", value))\(unit)"
         case .bodyTemperatureDeviation:
-            let prefix = value >= 0 ? "+" : ""
-            return "\(prefix)\(String(format: "%.1f", value))\(unit)"
+            let converted = temperatureUnit.convertDeviationFromCelsius(value)
+            let prefix = converted >= 0 ? "+" : ""
+            return "\(prefix)\(String(format: "%.1f", converted))\(unit(temperatureUnit: temperatureUnit))"
         case .dailyStress:
             return stressLabel(for: value)
         case .resilience:
@@ -205,14 +210,15 @@ enum BarMetric: String, CaseIterable, Codable, Identifiable {
         }
     }
 
-    func formattedDelta(_ value: Double) -> String {
+    func formattedDelta(_ value: Double, temperatureUnit: TemperatureUnit = .celsius) -> String {
         switch self {
         case .sleepScore, .readiness, .activity, .rem, .deepSleep, .totalSleep, .lightSleep, .awakeTime, .timeInBed, .sleepLatency, .hrv, .rhr, .sleepEfficiency, .hrvBalance, .sleepBalance, .sleepRegularity, .breathingDisturbance, .cardiovascularAge:
             return "\(Int(value.rounded()))\(unit)"
         case .averageBreath, .averageSpO2, .vo2Max:
             return "\(String(format: "%.1f", value))\(unit)"
         case .bodyTemperatureDeviation:
-            return "\(String(format: "%.1f", value))\(unit)"
+            let converted = temperatureUnit.convertDeviationFromCelsius(value)
+            return "\(String(format: "%.1f", converted))\(unit(temperatureUnit: temperatureUnit))"
         case .dailyStress, .resilience, .optimalBedtime, .sleepTimeRecommendation:
             return "\(Int(value.rounded()))"
         }

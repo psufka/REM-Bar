@@ -2,6 +2,7 @@ import SwiftUI
 
 struct MetricCardView: View {
     let series: MetricSeries
+    let temperatureUnit: TemperatureUnit
 
     var body: some View {
         VStack(alignment: .leading, spacing: 6) {
@@ -10,13 +11,14 @@ struct MetricCardView: View {
                     .font(.caption)
                     .foregroundStyle(.secondary)
                 Spacer(minLength: 4)
-                if !series.formattedDelta.isEmpty {
-                    Text(series.formattedDelta)
+                let formattedDelta = series.formattedDelta(using: temperatureUnit)
+                if !formattedDelta.isEmpty {
+                    Text(formattedDelta)
                         .font(.caption2.weight(.medium))
                         .foregroundStyle(deltaColor)
                 }
             }
-            Text(series.formattedCurrentValue)
+            Text(series.formattedCurrentValue(using: temperatureUnit))
                 .font(.title2.weight(.semibold))
                 .foregroundStyle(Color(nsColor: ColorThresholds.color(
                     for: series.currentValue,
@@ -33,7 +35,7 @@ struct MetricCardView: View {
                 SparklineView(points: series.points)
                     .frame(height: 42)
                     .opacity(series.points.isEmpty ? 0.25 : 1)
-                Text("7-day avg \(series.average.map(series.metric.formattedValue) ?? "?")")
+                Text("7-day avg \(series.average.map { series.metric.formattedValue($0, temperatureUnit: temperatureUnit) } ?? "?")")
                     .font(.caption2)
                     .foregroundStyle(.secondary)
             }

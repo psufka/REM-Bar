@@ -32,6 +32,7 @@
 - Settings now shows the exact active token source and can save a detected ambient token into the REM-Bar Keychain.
 - Settings now lays out metric-card options in a fixed three-column grid inside a wider Display tab so all 26 options are visible with less scrolling.
 - Settings now organizes metric cards into Active and Inactive drag-and-drop sections instead of checkbox toggles; the Active section order is the popover card order.
+- Added a Display setting for Celsius vs Fahrenheit and applied it to Body Temp in the menu bar, card value, card delta, and 7-day average.
 - Refresh now skips endpoint fetches when every metric driven by that endpoint is disabled, and the snapshot builder omits disabled metric series.
 - Time-series OuraClient calls default to `latest=true` when no date-time range is supplied.
 - Added offline tests for `TokenValidator`, metric color thresholds, and `SettingsStore` persistence.

@@ -22,6 +22,7 @@ struct SettingsStoreTests {
 
         let store = SettingsStore(userDefaults: defaults)
         store.refreshCadence = .fifteen
+        store.temperatureUnit = .fahrenheit
         store.setMetric(.dailyStress, enabled: true)
         store.selectedMetric = .dailyStress
         store.setMetric(.activity, enabled: false)
@@ -29,9 +30,17 @@ struct SettingsStoreTests {
         let reloaded = SettingsStore(userDefaults: defaults)
 
         #expect(reloaded.refreshCadence == .fifteen)
+        #expect(reloaded.temperatureUnit == .fahrenheit)
         #expect(reloaded.selectedMetric == .dailyStress)
         #expect(reloaded.enabledMetrics.contains(.dailyStress))
         #expect(!reloaded.enabledMetrics.contains(.activity))
+    }
+
+    @Test func temperatureFormattingConvertsDeviationUnits() {
+        #expect(BarMetric.bodyTemperatureDeviation.formattedValue(0.5, temperatureUnit: .celsius) == "+0.5C")
+        #expect(BarMetric.bodyTemperatureDeviation.formattedValue(0.5, temperatureUnit: .fahrenheit) == "+0.9F")
+        #expect(BarMetric.bodyTemperatureDeviation.formattedDelta(-0.5, temperatureUnit: .fahrenheit) == "-0.9F")
+        #expect(BarMetric.sleepScore.formattedValue(87, temperatureUnit: .fahrenheit) == "87")
     }
 
     @Test func roundTripsMetricOrder() {

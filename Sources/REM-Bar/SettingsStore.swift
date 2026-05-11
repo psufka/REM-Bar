@@ -1,6 +1,40 @@
 import Foundation
 import OuraKit
 
+enum TemperatureUnit: String, CaseIterable, Identifiable {
+    case celsius
+    case fahrenheit
+
+    var id: String { rawValue }
+
+    var label: String {
+        switch self {
+        case .celsius:
+            return "Celsius"
+        case .fahrenheit:
+            return "Fahrenheit"
+        }
+    }
+
+    var symbol: String {
+        switch self {
+        case .celsius:
+            return "C"
+        case .fahrenheit:
+            return "F"
+        }
+    }
+
+    func convertDeviationFromCelsius(_ value: Double) -> Double {
+        switch self {
+        case .celsius:
+            return value
+        case .fahrenheit:
+            return value * 9.0 / 5.0
+        }
+    }
+}
+
 @MainActor
 final class SettingsStore: ObservableObject {
     static let shared = SettingsStore()
@@ -33,6 +67,12 @@ final class SettingsStore: ObservableObject {
     @Published var refreshCadence: RefreshCadence {
         didSet {
             userDefaults.set(refreshCadence.rawValue, forKey: Keys.refreshCadence)
+        }
+    }
+
+    @Published var temperatureUnit: TemperatureUnit {
+        didSet {
+            userDefaults.set(temperatureUnit.rawValue, forKey: Keys.temperatureUnit)
         }
     }
 
@@ -83,6 +123,8 @@ final class SettingsStore: ObservableObject {
         self.enabledMetrics = enabledMetrics
         let rawCadence = userDefaults.integer(forKey: Keys.refreshCadence)
         self.refreshCadence = RefreshCadence(rawValue: rawCadence) ?? .five
+        let rawTemperatureUnit = userDefaults.string(forKey: Keys.temperatureUnit) ?? TemperatureUnit.celsius.rawValue
+        self.temperatureUnit = TemperatureUnit(rawValue: rawTemperatureUnit) ?? .celsius
         let rawMetric = userDefaults.string(forKey: Keys.selectedMetric) ?? BarMetric.sleepScore.rawValue
         let selectedMetric = BarMetric(rawValue: rawMetric) ?? .sleepScore
         self.selectedMetric = enabledMetrics.contains(selectedMetric)
@@ -157,6 +199,7 @@ final class SettingsStore: ObservableObject {
         static let selectedMetric = "selectedMetric"
         static let enabledMetrics = "enabledMetrics"
         static let metricOrder = "metricOrder"
+        static let temperatureUnit = "temperatureUnit"
     }
 
     static let defaultEnabledMetrics: Set<BarMetric> = [

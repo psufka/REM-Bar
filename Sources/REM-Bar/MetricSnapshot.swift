@@ -45,19 +45,27 @@ struct MetricSeries: Identifiable, Equatable {
     }
 
     var formattedCurrentValue: String {
+        formattedCurrentValue(using: .celsius)
+    }
+
+    func formattedCurrentValue(using temperatureUnit: TemperatureUnit) -> String {
         if availabilityMessage != nil { return "N/A" }
         if let categoryValue {
             return metric.formattedCategory(categoryValue)
         }
         guard let currentValue else { return "?" }
-        return metric.formattedValue(currentValue)
+        return metric.formattedValue(currentValue, temperatureUnit: temperatureUnit)
     }
 
     var formattedDelta: String {
+        formattedDelta(using: .celsius)
+    }
+
+    func formattedDelta(using temperatureUnit: TemperatureUnit) -> String {
         if metric.isCategorical || availabilityMessage != nil { return "" }
         guard let delta else { return "0" }
         let prefix = delta >= 0 ? "+" : ""
-        return "\(prefix)\(metric.formattedDelta(delta))"
+        return "\(prefix)\(metric.formattedDelta(delta, temperatureUnit: temperatureUnit))"
     }
 }
 

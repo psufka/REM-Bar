@@ -40,7 +40,7 @@ final class StatusItemController: NSObject, NSWindowDelegate {
         if series.availabilityMessage != nil {
             button.title = " N/A"
         } else if let value {
-            button.title = " \(metric.formattedValue(value))"
+            button.title = " \(metric.formattedValue(value, temperatureUnit: settings.temperatureUnit))"
         } else if let categoryValue = series.categoryValue {
             button.title = " \(metric.formattedCategory(categoryValue))"
         } else {
@@ -59,6 +59,7 @@ final class StatusItemController: NSObject, NSWindowDelegate {
             snapshot: refreshCoordinator.snapshot,
             enabledMetrics: settings.enabledMetrics,
             metricOrder: settings.metricOrder,
+            temperatureUnit: settings.temperatureUnit,
             lastError: refreshCoordinator.lastError,
             tokenNeedsUpdate: refreshCoordinator.tokenNeedsUpdate,
             lastRefresh: refreshCoordinator.lastRefresh,
@@ -89,7 +90,7 @@ final class StatusItemController: NSObject, NSWindowDelegate {
         window.styleMask = [.titled, .closable, .miniaturizable]
         window.isReleasedWhenClosed = false
         window.delegate = self
-        window.setContentSize(NSSize(width: 640, height: 500))
+        window.setContentSize(NSSize(width: 1120, height: 700))
         window.center()
         return window
     }

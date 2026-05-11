@@ -154,6 +154,20 @@ struct SettingsView: View {
                             .frame(width: 280)
                             Spacer(minLength: 0)
                         }
+
+                        HStack {
+                            Text("Temperature")
+                                .frame(width: 130, alignment: .leading)
+                            Picker("Temperature", selection: $settings.temperatureUnit) {
+                                ForEach(TemperatureUnit.allCases) { unit in
+                                    Text(unit.label).tag(unit)
+                                }
+                            }
+                            .labelsHidden()
+                            .pickerStyle(.segmented)
+                            .frame(width: 240)
+                            Spacer(minLength: 0)
+                        }
                     }
                 }
 
