@@ -83,7 +83,7 @@ struct PopoverView: View {
                 .foregroundStyle(.secondary)
         }
         .padding(14)
-        .frame(width: popoverWidth)
+        .frame(width: 540)
         .background(.regularMaterial)
     }
 
@@ -97,19 +97,13 @@ struct PopoverView: View {
 
     private var gridColumnCount: Int {
         switch visibleMetrics.count {
-        case ...2:
+        case ...1:
             return 1
-        case 3...8:
+        case 2:
             return 2
-        case 9...14:
-            return 3
         default:
-            return 4
+            return 3
         }
-    }
-
-    private var popoverWidth: CGFloat {
-        CGFloat(gridColumnCount) * 170 + 28 + CGFloat(max(0, gridColumnCount - 1)) * 10
     }
 
     private var lastRefreshText: String {
