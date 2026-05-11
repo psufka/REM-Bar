@@ -1,0 +1,59 @@
+import Foundation
+import Testing
+@testable import REMBar
+
+@MainActor
+struct SettingsStoreTests {
+    @Test func defaultsEnableFirstSixMetrics() {
+        let defaults = makeDefaults()
+        defer { defaults.removePersistentDomain(forName: defaultsSuiteName(defaults)) }
+
+        let store = SettingsStore(userDefaults: defaults)
+
+        #expect(store.enabledMetrics == SettingsStore.defaultEnabledMetrics)
+        #expect(store.orderedEnabledMetrics == [.sleepScore, .rem, .hrv, .rhr, .readiness, .activity])
+        #expect(store.selectedMetric == .sleepScore)
+    }
+
+    @Test func roundTripsCadenceSelectedMetricAndEnabledMetrics() {
+        let defaults = makeDefaults()
+        defer { defaults.removePersistentDomain(forName: defaultsSuiteName(defaults)) }
+
+        let store = SettingsStore(userDefaults: defaults)
+        store.refreshCadence = .fifteen
+        store.setMetric(.dailyStress, enabled: true)
+        store.selectedMetric = .dailyStress
+        store.setMetric(.activity, enabled: false)
+
+        let reloaded = SettingsStore(userDefaults: defaults)
+
+        #expect(reloaded.refreshCadence == .fifteen)
+        #expect(reloaded.selectedMetric == .dailyStress)
+        #expect(reloaded.enabledMetrics.contains(.dailyStress))
+        #expect(!reloaded.enabledMetrics.contains(.activity))
+    }
+
+    @Test func disablingSelectedMetricSwapsToFirstEnabledMetric() {
+        let defaults = makeDefaults()
+        defer { defaults.removePersistentDomain(forName: defaultsSuiteName(defaults)) }
+
+        let store = SettingsStore(userDefaults: defaults)
+        store.selectedMetric = .activity
+        store.setMetric(.activity, enabled: false)
+
+        #expect(store.selectedMetric == .sleepScore)
+        #expect(!store.enabledMetrics.contains(.activity))
+    }
+
+    private func makeDefaults() -> UserDefaults {
+        let suiteName = "REMBarTests-\(UUID().uuidString)"
+        let defaults = UserDefaults(suiteName: suiteName)!
+        defaults.removePersistentDomain(forName: suiteName)
+        defaults.set(suiteName, forKey: "__suiteName")
+        return defaults
+    }
+
+    private func defaultsSuiteName(_ defaults: UserDefaults) -> String {
+        defaults.string(forKey: "__suiteName")!
+    }
+}

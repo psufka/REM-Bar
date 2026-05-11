@@ -30,8 +30,10 @@ struct SettingsView: View {
         }
         .frame(width: 640, height: 500)
         .onAppear {
-            reloadTokenState()
             tokenFieldFocused = false
+            Task {
+                await reloadTokenState()
+            }
         }
     }
 
@@ -238,19 +240,25 @@ struct SettingsView: View {
         validationMessage = ""
         Task {
             let result = await validator.validate(token: proposedToken)
+            var didSave = false
             await MainActor.run {
                 isValidating = false
                 if result.isValid {
                     do {
                         try keychain.saveToken(proposedToken.trimmingCharacters(in: .whitespacesAndNewlines))
                         validationMessage = "Token saved."
-                        reloadTokenState()
-                        NotificationCenter.default.post(name: .remBarTokenDidChange, object: nil)
+                        didSave = true
                     } catch {
                         validationMessage = error.localizedDescription
                     }
                 } else {
                     validationMessage = result.message ?? "Token invalid."
+                }
+            }
+            if didSave {
+                await reloadTokenState()
+                await MainActor.run {
+                    NotificationCenter.default.post(name: .remBarTokenDidChange, object: nil)
                 }
             }
         }
@@ -266,25 +274,34 @@ struct SettingsView: View {
         do {
             try keychain.deleteToken()
             validationMessage = "Keychain token removed."
-            reloadTokenState()
-            NotificationCenter.default.post(name: .remBarTokenDidChange, object: nil)
+            Task {
+                await reloadTokenState()
+                await MainActor.run {
+                    NotificationCenter.default.post(name: .remBarTokenDidChange, object: nil)
+                }
+            }
         } catch {
             validationMessage = error.localizedDescription
         }
     }
 
-    private func reloadTokenState() {
-        let keychainToken = try? keychain.readToken()?.trimmingCharacters(in: .whitespacesAndNewlines)
-        let discovery = OuraTokenDiscovery(keychainToken: {
-            keychainToken
-        })
-        let resolved = try? discovery.resolve()
-        let summaries = (try? discovery.sourceSummaries()) ?? []
+    private func reloadTokenState() async {
+        let keychain = keychain
+        let loadedState = await Task.detached(priority: .userInitiated) {
+            let keychainToken = try? keychain.readToken()?.trimmingCharacters(in: .whitespacesAndNewlines)
+            let discovery = OuraTokenDiscovery(keychainToken: {
+                keychainToken
+            })
+            return LoadedTokenState(
+                keychainToken: keychainToken,
+                resolved: try? discovery.resolve(),
+                summaries: (try? discovery.sourceSummaries()) ?? [])
+        }.value
 
-        token = keychainToken ?? ""
-        tokenSource = TokenSource(resolved: resolved)
-        sourceSummaries = summaries
-        if let resolved, !resolved.source.isKeychain {
+        token = loadedState.keychainToken ?? ""
+        tokenSource = TokenSource(resolved: loadedState.resolved)
+        sourceSummaries = loadedState.summaries
+        if let resolved = loadedState.resolved, !resolved.source.isKeychain {
             detectedTokenForImport = resolved.token
         } else {
             detectedTokenForImport = nil
@@ -359,6 +376,12 @@ private struct AboutLinkRow: View {
         .contentShape(Rectangle())
         .onHover { hovering = $0 }
     }
+}
+
+private struct LoadedTokenState: Sendable {
+    let keychainToken: String?
+    let resolved: OuraResolvedToken?
+    let summaries: [OuraTokenSourceSummary]
 }
 
 private enum TokenSource: Equatable {

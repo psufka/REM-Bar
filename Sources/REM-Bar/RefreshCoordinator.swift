@@ -7,6 +7,7 @@ final class RefreshCoordinator: ObservableObject {
     @Published private(set) var snapshot: DashboardSnapshot = .empty
     @Published private(set) var lastRefresh: Date?
     @Published private(set) var lastError: String?
+    @Published private(set) var tokenNeedsUpdate = false
 
     private let settings: SettingsStore
     private let client: OuraClient
@@ -40,6 +41,7 @@ final class RefreshCoordinator: ObservableObject {
 
     func tokenDidChange() {
         cachedPersonalInfo = nil
+        tokenNeedsUpdate = false
         refresh()
     }
 
@@ -82,28 +84,52 @@ final class RefreshCoordinator: ObservableObject {
                 async let dailyCardiovascularAge = fetchIfNeeded("daily_cardiovascular_age", enabledMetrics: enabledMetrics, requiredMetrics: [.cardiovascularAge]) {
                     (try await self.client.dailyCardiovascularAge(startDate: startDate, endDate: endDate)).data
                 }
-                let snapshot = try await DashboardSnapshotBuilder.make(
-                    dailySleep: dailySleep.data,
-                    sleep: sleep.data,
-                    readiness: readiness.data,
-                    activity: activity.data,
-                    dailyStress: dailyStress.data,
-                    dailyResilience: dailyResilience.data,
-                    dailyCardiovascularAge: dailyCardiovascularAge.data,
+                let dailySleepResult = try await dailySleep
+                let sleepResult = try await sleep
+                let readinessResult = try await readiness
+                let activityResult = try await activity
+                let dailyStressResult = try await dailyStress
+                let dailyResilienceResult = try await dailyResilience
+                let dailyCardiovascularAgeResult = try await dailyCardiovascularAge
+                let failures = [
+                    dailySleepResult.failure,
+                    sleepResult.failure,
+                    readinessResult.failure,
+                    activityResult.failure,
+                    dailyStressResult.failure,
+                    dailyResilienceResult.failure,
+                    dailyCardiovascularAgeResult.failure,
+                ].compactMap { $0 }
+                let snapshot = DashboardSnapshotBuilder.make(
+                    dailySleep: dailySleepResult.data,
+                    sleep: sleepResult.data,
+                    readiness: readinessResult.data,
+                    activity: activityResult.data,
+                    dailyStress: dailyStressResult.data,
+                    dailyResilience: dailyResilienceResult.data,
+                    dailyCardiovascularAge: dailyCardiovascularAgeResult.data,
                     personalInfo: personalInfo,
                     enabledMetrics: enabledMetrics)
                 await MainActor.run {
                     self.snapshot = snapshot
                     self.lastRefresh = Date()
-                    self.lastError = nil
+                    self.lastError = Self.partialFailureMessage(for: failures)
+                    self.tokenNeedsUpdate = false
                 }
             } catch OuraError.missingToken {
                 await MainActor.run {
                     self.lastError = "No Oura token configured."
+                    self.tokenNeedsUpdate = false
+                }
+            } catch OuraError.invalidToken {
+                await MainActor.run {
+                    self.lastError = "Oura token is invalid. Open Settings to update it."
+                    self.tokenNeedsUpdate = true
                 }
             } catch {
                 await MainActor.run {
                     self.lastError = error.localizedDescription
+                    self.tokenNeedsUpdate = false
                 }
             }
         }
@@ -114,14 +140,22 @@ final class RefreshCoordinator: ObservableObject {
         enabledMetrics: Set<BarMetric>,
         requiredMetrics: Set<BarMetric>,
         operation: () async throws -> [Element])
-        async throws -> OuraCollection<Element>
+        async throws -> EndpointFetch<Element>
         where Element: Codable & Equatable & Sendable
     {
         guard enabledMetrics.containsAny(requiredMetrics) else {
             logger.debug("Skipping \(endpointName, privacy: .public) fetch because dependent metrics are disabled.")
-            return OuraCollection(data: [])
+            return EndpointFetch(data: [])
         }
-        return OuraCollection(data: try await operation())
+        do {
+            return EndpointFetch(data: try await operation())
+        } catch OuraError.missingToken {
+            throw OuraError.missingToken
+        } catch OuraError.invalidToken {
+            throw OuraError.invalidToken
+        } catch {
+            return EndpointFetch(data: [], failure: EndpointFailure(endpointName: endpointName, error: error))
+        }
     }
 
     private func personalInfoForRefresh() async -> PersonalInfo? {
@@ -146,10 +180,42 @@ final class RefreshCoordinator: ObservableObject {
     static func localDateString(_ date: Date) -> String {
         dayFormatter.string(from: date)
     }
+
+    private static func partialFailureMessage(for failures: [EndpointFailure]) -> String? {
+        guard !failures.isEmpty else { return nil }
+        let unavailable = failures.filter(\.isUnavailable)
+        if unavailable.count == failures.count {
+            return "\(failures.count) endpoint\(failures.count == 1 ? "" : "s") not available on your ring."
+        }
+        let names = failures.map(\.endpointName).joined(separator: ", ")
+        return "\(failures.count) endpoint\(failures.count == 1 ? "" : "s") unavailable: \(names)."
+    }
 }
 
 private extension Set where Element == BarMetric {
     func containsAny(_ metrics: Set<BarMetric>) -> Bool {
         !isDisjoint(with: metrics)
+    }
+}
+
+private struct EndpointFetch<Element: Codable & Equatable & Sendable> {
+    let data: [Element]
+    let failure: EndpointFailure?
+
+    init(data: [Element], failure: EndpointFailure? = nil) {
+        self.data = data
+        self.failure = failure
+    }
+}
+
+private struct EndpointFailure {
+    let endpointName: String
+    let error: Error
+
+    var isUnavailable: Bool {
+        if case let OuraError.badStatus(status, _) = error {
+            return status == 403 || status == 404
+        }
+        return false
     }
 }

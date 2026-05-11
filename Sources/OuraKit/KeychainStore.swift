@@ -29,7 +29,10 @@ public final class KeychainStore: @unchecked Sendable {
         guard let data = item as? Data else {
             return nil
         }
-        return String(data: data, encoding: .utf8)
+        guard let token = String(data: data, encoding: .utf8) else {
+            throw OuraError.decode("Keychain token is not valid UTF-8")
+        }
+        return token
     }
 
     public func saveToken(_ token: String) throws {

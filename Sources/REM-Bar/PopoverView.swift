@@ -4,6 +4,7 @@ struct PopoverView: View {
     let snapshot: DashboardSnapshot
     let enabledMetrics: Set<BarMetric>
     let lastError: String?
+    let tokenNeedsUpdate: Bool
     let lastRefresh: Date?
     let refresh: () -> Void
     let openSettings: () -> Void
@@ -29,10 +30,25 @@ struct PopoverView: View {
             }
 
             if let lastError {
-                Text(lastError)
-                    .font(.caption)
-                    .foregroundStyle(.red)
-                    .lineLimit(2)
+                if tokenNeedsUpdate {
+                    HStack(alignment: .center, spacing: 8) {
+                        Image(systemName: "exclamationmark.triangle.fill")
+                            .foregroundStyle(.red)
+                        Text(lastError)
+                            .font(.caption)
+                            .foregroundStyle(.red)
+                            .fixedSize(horizontal: false, vertical: true)
+                        Spacer(minLength: 0)
+                        Button("Settings", action: openSettings)
+                    }
+                    .padding(8)
+                    .background(Color.red.opacity(0.12), in: RoundedRectangle(cornerRadius: 8))
+                } else {
+                    Text(lastError)
+                        .font(.caption)
+                        .foregroundStyle(.red)
+                        .lineLimit(2)
+                }
             }
 
             Divider()

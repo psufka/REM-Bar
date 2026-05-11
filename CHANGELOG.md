@@ -16,12 +16,17 @@
 - Prevented overlapping manual/display-link refreshes by ignoring refresh requests while one refresh task is already in flight.
 - Cleared the retained Settings window when it closes via `NSWindowDelegate`.
 - Stopped discarding fetched daily activity data by promoting Activity to a first-class card metric.
+- Reported invalid Oura tokens as a popover banner with a Settings action.
+- Made invalid UTF-8 Keychain token data throw an explicit decode error.
+- Preserved partial dashboard data when individual Oura endpoints fail and summarized endpoint failures in the popover.
+- Moved token-source discovery for Settings off the UI path.
 
 ### Changed
 
 - Added ambient Oura token discovery after explicit sources: process `OURA_TOKEN`, REM-Bar Keychain, `~/.oura-mcp/config.json`, `launchctl getenv OURA_TOKEN`, and common shell/dotenv files such as `~/.zshrc`.
 - Settings now shows the exact active token source and can save a detected ambient token into the REM-Bar Keychain.
 - Refresh now skips endpoint fetches when every metric driven by that endpoint is disabled, and the snapshot builder omits disabled metric series.
+- Added offline tests for `TokenValidator`, metric color thresholds, and `SettingsStore` persistence.
 
 ### Build-time decisions
 

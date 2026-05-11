@@ -59,6 +59,7 @@ final class StatusItemController: NSObject, NSWindowDelegate {
             snapshot: refreshCoordinator.snapshot,
             enabledMetrics: settings.enabledMetrics,
             lastError: refreshCoordinator.lastError,
+            tokenNeedsUpdate: refreshCoordinator.tokenNeedsUpdate,
             lastRefresh: refreshCoordinator.lastRefresh,
             refresh: { [weak self] in self?.refreshNow() },
             openSettings: { [weak self] in self?.openSettings() },
