@@ -54,12 +54,14 @@ final class StatusItemController: NSObject, NSWindowDelegate {
             popover.performClose(nil)
             return
         }
-        popover.contentSize = NSSize(width: 430, height: 380)
+        let layout = popoverLayout(for: settings.orderedEnabledMetrics.count, relativeTo: button)
+        popover.contentSize = layout.contentSize
         popover.contentViewController = NSHostingController(rootView: PopoverView(
             snapshot: refreshCoordinator.snapshot,
             enabledMetrics: settings.enabledMetrics,
             metricOrder: settings.metricOrder,
             temperatureUnit: settings.temperatureUnit,
+            gridMaxHeight: layout.gridMaxHeight,
             lastError: refreshCoordinator.lastError,
             tokenNeedsUpdate: refreshCoordinator.tokenNeedsUpdate,
             lastRefresh: refreshCoordinator.lastRefresh,
@@ -72,6 +74,31 @@ final class StatusItemController: NSObject, NSWindowDelegate {
 
     @objc private func refreshNow() {
         refreshCoordinator.refresh()
+    }
+
+    private func popoverLayout(for visibleMetricCount: Int, relativeTo button: NSStatusBarButton) -> PopoverLayout {
+        let columns: Int
+        switch visibleMetricCount {
+        case ...1:
+            columns = 1
+        case 2:
+            columns = 2
+        default:
+            columns = 3
+        }
+
+        let rows = max(1, Int(ceil(Double(visibleMetricCount) / Double(columns))))
+        let cardHeight: CGFloat = 126
+        let cardSpacing: CGFloat = 10
+        let desiredGridHeight = CGFloat(rows) * cardHeight + CGFloat(max(0, rows - 1)) * cardSpacing
+        let footerAndPaddingHeight: CGFloat = 116
+        let screenHeight = button.window?.screen?.visibleFrame.height ?? 760
+        let maxHeight = max(380, screenHeight - 12)
+        let gridMaxHeight = max(126, maxHeight - footerAndPaddingHeight)
+        let gridHeight = min(desiredGridHeight, gridMaxHeight)
+        return PopoverLayout(
+            contentSize: NSSize(width: 540, height: gridHeight + footerAndPaddingHeight),
+            gridMaxHeight: gridMaxHeight)
     }
 
     @objc private func openSettings() {
@@ -104,4 +131,9 @@ final class StatusItemController: NSObject, NSWindowDelegate {
     @objc private func quit() {
         NSApp.terminate(nil)
     }
+}
+
+private struct PopoverLayout {
+    let contentSize: NSSize
+    let gridMaxHeight: CGFloat
 }

@@ -5,6 +5,7 @@ struct PopoverView: View {
     let enabledMetrics: Set<BarMetric>
     let metricOrder: [BarMetric]
     let temperatureUnit: TemperatureUnit
+    let gridMaxHeight: CGFloat
     let lastError: String?
     let tokenNeedsUpdate: Bool
     let lastRefresh: Date?
@@ -26,7 +27,7 @@ struct PopoverView: View {
                     }
                 }
             }
-            .frame(maxHeight: 600)
+            .frame(maxHeight: gridMaxHeight)
 
             if snapshot.metrics.values.allSatisfy({ $0.points.isEmpty && $0.categoryValue == nil && $0.availabilityMessage == nil }), lastError == nil {
                 Text("No Oura data loaded yet. Add a token in Settings or refresh after saving one.")
