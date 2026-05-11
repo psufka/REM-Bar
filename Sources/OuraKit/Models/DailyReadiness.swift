@@ -18,6 +18,7 @@ public struct DailyReadiness: Codable, Equatable, Sendable, Identifiable {
         public let recoveryIndex: Int?
         public let restingHeartRate: Int?
         public let sleepBalance: Int?
+        public let sleepRegularity: Int?
 
         enum CodingKeys: String, CodingKey {
             case activityBalance = "activity_balance"
@@ -28,6 +29,7 @@ public struct DailyReadiness: Codable, Equatable, Sendable, Identifiable {
             case recoveryIndex = "recovery_index"
             case restingHeartRate = "resting_heart_rate"
             case sleepBalance = "sleep_balance"
+            case sleepRegularity = "sleep_regularity"
         }
     }
 

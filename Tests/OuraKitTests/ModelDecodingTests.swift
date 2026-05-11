@@ -25,6 +25,7 @@ struct ModelDecodingTests {
         let response = try decode(OuraCollection<DailyReadiness>.self, fixture: "daily_readiness")
         #expect(response.data.first?.score == 84)
         #expect(response.data.first?.contributors?.hrvBalance == 79)
+        #expect(response.data.first?.contributors?.sleepRegularity == 81)
     }
 
     @Test func dailyActivityFixtureDecodes() throws {
@@ -49,6 +50,49 @@ struct ModelDecodingTests {
         let response = try decode(OuraCollection<DailyCardiovascularAge>.self, fixture: "daily_cardiovascular_age")
         #expect(response.data.first?.vascularAge == 39)
         #expect(response.data.first?.day == "2026-05-08")
+    }
+
+    @Test func dailySpO2FixtureDecodes() throws {
+        let response = try decode(OuraCollection<DailySpO2>.self, fixture: "daily_spo2")
+        #expect(response.data.first?.spo2Percentage?.average == 97.2)
+        #expect(response.data.first?.breathingDisturbanceIndex == 2)
+    }
+
+    @Test func vo2MaxFixtureDecodes() throws {
+        let response = try decode(OuraCollection<VO2Max>.self, fixture: "vo2_max")
+        #expect(response.data.first?.vo2Max == 42.6)
+        #expect(response.data.first?.day == "2026-05-08")
+    }
+
+    @Test func sleepTimeFixtureDecodes() throws {
+        let response = try decode(OuraCollection<SleepTime>.self, fixture: "sleep_time")
+        #expect(response.data.first?.optimalBedtime?.startOffset == 81000)
+        #expect(response.data.first?.recommendation == "follow_optimal_bedtime")
+    }
+
+    @Test func timeSeriesFixturesDecode() throws {
+        let heartRate = try decode(OuraCollection<HeartRateSample>.self, fixture: "heart_rate")
+        #expect(heartRate.data.first?.bpm == 58)
+
+        let battery = try decode(OuraCollection<RingBatteryLevel>.self, fixture: "ring_battery_level")
+        #expect(battery.data.first?.level == 84)
+    }
+
+    @Test func activityRecordFixturesDecode() throws {
+        let workout = try decode(OuraCollection<Workout>.self, fixture: "workout")
+        #expect(workout.data.first?.activity == "running")
+
+        let session = try decode(OuraCollection<Session>.self, fixture: "session")
+        #expect(session.data.first?.type == "breathing")
+
+        let restMode = try decode(OuraCollection<RestModePeriod>.self, fixture: "rest_mode_period")
+        #expect(restMode.data.first?.startDay == "2026-05-08")
+
+        let tag = try decode(OuraCollection<OuraTag>.self, fixture: "tag")
+        #expect(tag.data.first?.tags == ["caffeine"])
+
+        let enhancedTag = try decode(OuraCollection<EnhancedTag>.self, fixture: "enhanced_tag")
+        #expect(enhancedTag.data.first?.customName == "Caffeine")
     }
 
     @Test func nullableOuraFieldsDecode() throws {
@@ -106,7 +150,8 @@ struct ModelDecodingTests {
                 "previous_night": null,
                 "recovery_index": null,
                 "resting_heart_rate": null,
-                "sleep_balance": null
+                "sleep_balance": null,
+                "sleep_regularity": null
               },
               "day": "2026-05-09",
               "score": null,

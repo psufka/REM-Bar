@@ -31,6 +31,31 @@ struct ClientTests {
         #expect(components.queryItems?.contains(URLQueryItem(name: "end_date", value: "2026-05-08")) == true)
     }
 
+    @Test func timeSeriesEndpointsDefaultToLatest() async throws {
+        StubURLProtocol.enqueue(status: 200, body: #"{"data":[]}"#)
+        let client = makeClient(token: "test-token")
+
+        _ = try await client.heartRate()
+
+        let requestURL = try #require(StubURLProtocol.requests.first?.url)
+        let components = try #require(URLComponents(url: requestURL, resolvingAgainstBaseURL: false))
+        #expect(requestURL.path == "/v2/usercollection/heartrate")
+        #expect(components.queryItems?.contains(URLQueryItem(name: "latest", value: "true")) == true)
+    }
+
+    @Test func newDateRangeEndpointAddsDateQueryItems() async throws {
+        StubURLProtocol.enqueue(status: 200, body: #"{"data":[]}"#)
+        let client = makeClient(token: "test-token")
+
+        _ = try await client.dailySpO2(startDate: "2026-05-01", endDate: "2026-05-08")
+
+        let requestURL = try #require(StubURLProtocol.requests.first?.url)
+        let components = try #require(URLComponents(url: requestURL, resolvingAgainstBaseURL: false))
+        #expect(requestURL.path == "/v2/usercollection/daily_spo2")
+        #expect(components.queryItems?.contains(URLQueryItem(name: "start_date", value: "2026-05-01")) == true)
+        #expect(components.queryItems?.contains(URLQueryItem(name: "end_date", value: "2026-05-08")) == true)
+    }
+
     @Test func unauthorizedResponseReReadsTokenAndRetriesOnce() async throws {
         let provider = TokenCounter()
         StubURLProtocol.enqueue(status: 401, body: #"{"status":401,"title":"Invalid Access Token"}"#)

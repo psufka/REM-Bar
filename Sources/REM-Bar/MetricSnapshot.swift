@@ -54,7 +54,7 @@ struct MetricSeries: Identifiable, Equatable {
     }
 
     var formattedDelta: String {
-        if metric == .resilience || availabilityMessage != nil { return "" }
+        if metric.isCategorical || availabilityMessage != nil { return "" }
         guard let delta else { return "0" }
         let prefix = delta >= 0 ? "+" : ""
         return "\(prefix)\(metric.formattedDelta(delta))"
@@ -81,6 +81,9 @@ enum DashboardSnapshotBuilder {
         dailyStress: [DailyStress] = [],
         dailyResilience: [DailyResilience] = [],
         dailyCardiovascularAge: [DailyCardiovascularAge] = [],
+        dailySpO2: [DailySpO2] = [],
+        vo2Max: [VO2Max] = [],
+        sleepTime: [SleepTime] = [],
         personalInfo: PersonalInfo? = nil,
         enabledMetrics: Set<BarMetric> = Set(BarMetric.allCases))
         -> DashboardSnapshot
@@ -95,6 +98,8 @@ enum DashboardSnapshotBuilder {
         let activityByDay = latestByDay(activity, day: \.day)
         let stressByDay = latestByDay(dailyStress, day: \.day)
         let cardiovascularAgeByDay = latestByDay(dailyCardiovascularAge, day: \.day)
+        let spo2ByDay = latestByDay(dailySpO2, day: \.day)
+        let vo2MaxByDay = latestByDay(vo2Max, day: \.day)
         let days = Set(
             dailySleep.map(\.day)
                 + sleep.map(\.day)
@@ -102,7 +107,10 @@ enum DashboardSnapshotBuilder {
                 + activity.map(\.day)
                 + dailyStress.map(\.day)
                 + dailyResilience.map(\.day)
-                + dailyCardiovascularAge.map(\.day))
+                + dailyCardiovascularAge.map(\.day)
+                + dailySpO2.map(\.day)
+                + vo2Max.map(\.day)
+                + sleepTime.map(\.day))
             .sorted()
 
         func point(day: String, value: Double?) -> MetricPoint? {
@@ -124,6 +132,16 @@ enum DashboardSnapshotBuilder {
                     return point(day: day, value: detail?.deepSleepDuration.map { Double($0) / 60.0 })
                 case .totalSleep:
                     return point(day: day, value: detail?.totalSleepDuration.map { Double($0) / 60.0 })
+                case .lightSleep:
+                    return point(day: day, value: detail?.lightSleepDuration.map { Double($0) / 60.0 })
+                case .awakeTime:
+                    return point(day: day, value: detail?.awakeTime.map { Double($0) / 60.0 })
+                case .timeInBed:
+                    return point(day: day, value: detail?.timeInBed.map { Double($0) / 60.0 })
+                case .sleepLatency:
+                    return point(day: day, value: detail?.latency.map { Double($0) / 60.0 })
+                case .averageBreath:
+                    return point(day: day, value: detail?.averageBreath)
                 case .hrv:
                     return point(day: day, value: detail?.averageHrv.map(Double.init))
                 case .rhr:
@@ -133,6 +151,12 @@ enum DashboardSnapshotBuilder {
                     return point(day: day, value: detail?.averageHeartRate)
                 case .readiness:
                     return point(day: day, value: readinessByDay[day]?.score.map(Double.init))
+                case .hrvBalance:
+                    return point(day: day, value: readinessByDay[day]?.contributors?.hrvBalance.map(Double.init))
+                case .sleepBalance:
+                    return point(day: day, value: readinessByDay[day]?.contributors?.sleepBalance.map(Double.init))
+                case .sleepRegularity:
+                    return point(day: day, value: readinessByDay[day]?.contributors?.sleepRegularity.map(Double.init))
                 case .activity:
                     return point(day: day, value: activityByDay[day]?.score.map(Double.init))
                 case .bodyTemperatureDeviation:
@@ -145,6 +169,14 @@ enum DashboardSnapshotBuilder {
                     return nil
                 case .cardiovascularAge:
                     return point(day: day, value: cardiovascularAgeByDay[day]?.vascularAge.map(Double.init))
+                case .averageSpO2:
+                    return point(day: day, value: spo2ByDay[day]?.spo2Percentage?.average)
+                case .breathingDisturbance:
+                    return point(day: day, value: spo2ByDay[day]?.breathingDisturbanceIndex.map(Double.init))
+                case .vo2Max:
+                    return point(day: day, value: vo2MaxByDay[day]?.vo2Max)
+                case .optimalBedtime, .sleepTimeRecommendation:
+                    return nil
                 }
             }
             let sorted = points.sorted { $0.date < $1.date }
@@ -152,13 +184,32 @@ enum DashboardSnapshotBuilder {
                 for: metric,
                 dailyStress: dailyStress,
                 dailyResilience: dailyResilience,
-                dailyCardiovascularAge: dailyCardiovascularAge)
+                dailyCardiovascularAge: dailyCardiovascularAge,
+                dailySpO2: dailySpO2,
+                vo2Max: vo2Max,
+                sleepTime: sleepTime)
             if metric == .resilience {
                 let level = dailyResilience.sorted { $0.day < $1.day }.last?.level?.rawValue
                 return (metric, MetricSeries(
                     metric: metric,
                     points: [],
                     categoryValue: level,
+                    availabilityMessage: unavailableMessage))
+            }
+            if metric == .optimalBedtime {
+                let window = sleepTime.sorted { $0.day < $1.day }.last?.optimalBedtime
+                return (metric, MetricSeries(
+                    metric: metric,
+                    points: [],
+                    categoryValue: bedtimeWindowString(from: window),
+                    availabilityMessage: unavailableMessage))
+            }
+            if metric == .sleepTimeRecommendation {
+                let recommendation = sleepTime.sorted { $0.day < $1.day }.last?.recommendation
+                return (metric, MetricSeries(
+                    metric: metric,
+                    points: [],
+                    categoryValue: recommendation,
                     availabilityMessage: unavailableMessage))
             }
             let categoryValue: String?
@@ -193,15 +244,23 @@ enum DashboardSnapshotBuilder {
         for metric: BarMetric,
         dailyStress: [DailyStress],
         dailyResilience: [DailyResilience],
-        dailyCardiovascularAge: [DailyCardiovascularAge])
+        dailyCardiovascularAge: [DailyCardiovascularAge],
+        dailySpO2: [DailySpO2],
+        vo2Max: [VO2Max],
+        sleepTime: [SleepTime])
         -> String?
     {
         switch metric {
         case .dailyStress where dailyStress.isEmpty,
              .resilience where dailyResilience.isEmpty,
-             .cardiovascularAge where dailyCardiovascularAge.isEmpty:
+             .cardiovascularAge where dailyCardiovascularAge.isEmpty,
+             .averageSpO2 where dailySpO2.isEmpty,
+             .breathingDisturbance where dailySpO2.isEmpty,
+             .vo2Max where vo2Max.isEmpty,
+             .optimalBedtime where sleepTime.isEmpty,
+             .sleepTimeRecommendation where sleepTime.isEmpty:
             return "Not available on your ring"
-        case .sleepScore, .rem, .deepSleep, .totalSleep, .hrv, .rhr, .readiness, .activity, .bodyTemperatureDeviation, .sleepEfficiency, .dailyStress, .resilience, .cardiovascularAge:
+        case .sleepScore, .rem, .deepSleep, .totalSleep, .lightSleep, .awakeTime, .timeInBed, .sleepLatency, .averageBreath, .hrv, .rhr, .readiness, .activity, .hrvBalance, .sleepBalance, .sleepRegularity, .bodyTemperatureDeviation, .sleepEfficiency, .dailyStress, .resilience, .cardiovascularAge, .averageSpO2, .breathingDisturbance, .vo2Max, .optimalBedtime, .sleepTimeRecommendation:
             return nil
         }
     }
@@ -229,5 +288,22 @@ enum DashboardSnapshotBuilder {
         details.first { $0.type == "long_sleep" } ?? details.max {
             ($0.totalSleepDuration ?? 0) < ($1.totalSleepDuration ?? 0)
         }
+    }
+
+    private static func bedtimeWindowString(from window: SleepTime.OptimalBedtimeWindow?) -> String? {
+        guard let startOffset = window?.startOffset,
+              let endOffset = window?.endOffset
+        else {
+            return nil
+        }
+        return "\(clockTime(from: startOffset))-\(clockTime(from: endOffset))"
+    }
+
+    private static func clockTime(from offset: Int) -> String {
+        let secondsInDay = 24 * 60 * 60
+        let normalized = ((offset % secondsInDay) + secondsInDay) % secondsInDay
+        let hours = normalized / 3600
+        let minutes = (normalized % 3600) / 60
+        return String(format: "%02d:%02d", hours, minutes)
     }
 }

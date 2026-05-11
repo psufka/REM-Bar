@@ -1,0 +1,12 @@
+{
+  "data": [
+    {
+      "timestamp": "2026-05-08T08:30:00-05:00",
+      "timestamp_unix": 1778247000,
+      "level": 84,
+      "charging": false,
+      "in_charger": false
+    }
+  ],
+  "next_token": null
+}

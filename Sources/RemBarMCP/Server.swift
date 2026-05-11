@@ -20,6 +20,16 @@ final class Server {
             DailyStressTool(client: client),
             DailyResilienceTool(client: client),
             DailyCardiovascularAgeTool(client: client),
+            DailySpO2Tool(client: client),
+            VO2MaxTool(client: client),
+            SleepTimeTool(client: client),
+            HeartRateTool(client: client),
+            RingBatteryLevelTool(client: client),
+            WorkoutTool(client: client),
+            SessionTool(client: client),
+            RestModePeriodTool(client: client),
+            TagTool(client: client),
+            EnhancedTagTool(client: client),
             PersonalInfoTool(client: client),
         ]
         toolsByName = Dictionary(uniqueKeysWithValues: tools.map { ($0.definition.name, $0) })

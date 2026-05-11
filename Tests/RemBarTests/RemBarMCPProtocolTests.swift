@@ -54,6 +54,16 @@ struct RemBarMCPProtocolTests {
             "oura_daily_stress",
             "oura_daily_resilience",
             "oura_daily_cardiovascular_age",
+            "oura_daily_spo2",
+            "oura_vo2_max",
+            "oura_sleep_time",
+            "oura_heart_rate",
+            "oura_ring_battery_level",
+            "oura_workout",
+            "oura_session",
+            "oura_rest_mode_period",
+            "oura_tag",
+            "oura_enhanced_tag",
             "oura_personal_info",
         ])
 

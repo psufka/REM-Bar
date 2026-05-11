@@ -66,10 +66,10 @@ final class RefreshCoordinator: ObservableObject {
                 async let dailySleep = fetchIfNeeded("daily_sleep", enabledMetrics: enabledMetrics, requiredMetrics: [.sleepScore]) {
                     (try await self.client.dailySleep(startDate: startDate, endDate: endDate)).data
                 }
-                async let sleep = fetchIfNeeded("sleep", enabledMetrics: enabledMetrics, requiredMetrics: [.rem, .deepSleep, .totalSleep, .hrv, .rhr, .sleepEfficiency]) {
+                async let sleep = fetchIfNeeded("sleep", enabledMetrics: enabledMetrics, requiredMetrics: [.rem, .deepSleep, .totalSleep, .lightSleep, .awakeTime, .timeInBed, .sleepLatency, .averageBreath, .hrv, .rhr, .sleepEfficiency]) {
                     (try await self.client.sleep(startDate: startDate, endDate: endDate)).data
                 }
-                async let readiness = fetchIfNeeded("daily_readiness", enabledMetrics: enabledMetrics, requiredMetrics: [.readiness, .bodyTemperatureDeviation]) {
+                async let readiness = fetchIfNeeded("daily_readiness", enabledMetrics: enabledMetrics, requiredMetrics: [.readiness, .hrvBalance, .sleepBalance, .sleepRegularity, .bodyTemperatureDeviation]) {
                     (try await self.client.dailyReadiness(startDate: startDate, endDate: endDate)).data
                 }
                 async let activity = fetchIfNeeded("daily_activity", enabledMetrics: enabledMetrics, requiredMetrics: [.activity]) {
@@ -84,6 +84,15 @@ final class RefreshCoordinator: ObservableObject {
                 async let dailyCardiovascularAge = fetchIfNeeded("daily_cardiovascular_age", enabledMetrics: enabledMetrics, requiredMetrics: [.cardiovascularAge]) {
                     (try await self.client.dailyCardiovascularAge(startDate: startDate, endDate: endDate)).data
                 }
+                async let dailySpO2 = fetchIfNeeded("daily_spo2", enabledMetrics: enabledMetrics, requiredMetrics: [.averageSpO2, .breathingDisturbance]) {
+                    (try await self.client.dailySpO2(startDate: startDate, endDate: endDate)).data
+                }
+                async let vo2Max = fetchIfNeeded("vO2_max", enabledMetrics: enabledMetrics, requiredMetrics: [.vo2Max]) {
+                    (try await self.client.vo2Max(startDate: startDate, endDate: endDate)).data
+                }
+                async let sleepTime = fetchIfNeeded("sleep_time", enabledMetrics: enabledMetrics, requiredMetrics: [.optimalBedtime, .sleepTimeRecommendation]) {
+                    (try await self.client.sleepTime(startDate: startDate, endDate: endDate)).data
+                }
                 let dailySleepResult = try await dailySleep
                 let sleepResult = try await sleep
                 let readinessResult = try await readiness
@@ -91,6 +100,9 @@ final class RefreshCoordinator: ObservableObject {
                 let dailyStressResult = try await dailyStress
                 let dailyResilienceResult = try await dailyResilience
                 let dailyCardiovascularAgeResult = try await dailyCardiovascularAge
+                let dailySpO2Result = try await dailySpO2
+                let vo2MaxResult = try await vo2Max
+                let sleepTimeResult = try await sleepTime
                 let failures = [
                     dailySleepResult.failure,
                     sleepResult.failure,
@@ -99,6 +111,9 @@ final class RefreshCoordinator: ObservableObject {
                     dailyStressResult.failure,
                     dailyResilienceResult.failure,
                     dailyCardiovascularAgeResult.failure,
+                    dailySpO2Result.failure,
+                    vo2MaxResult.failure,
+                    sleepTimeResult.failure,
                 ].compactMap { $0 }
                 let snapshot = DashboardSnapshotBuilder.make(
                     dailySleep: dailySleepResult.data,
@@ -108,6 +123,9 @@ final class RefreshCoordinator: ObservableObject {
                     dailyStress: dailyStressResult.data,
                     dailyResilience: dailyResilienceResult.data,
                     dailyCardiovascularAge: dailyCardiovascularAgeResult.data,
+                    dailySpO2: dailySpO2Result.data,
+                    vo2Max: vo2MaxResult.data,
+                    sleepTime: sleepTimeResult.data,
                     personalInfo: personalInfo,
                     enabledMetrics: enabledMetrics)
                 await MainActor.run {

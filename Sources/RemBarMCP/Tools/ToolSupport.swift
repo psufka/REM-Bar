@@ -84,6 +84,56 @@ struct DateRange {
     }()
 }
 
+struct TimeSeriesRange {
+    let startDateTime: String?
+    let endDateTime: String?
+    let latest: Bool?
+
+    static func parse(_ arguments: [String: Any]) throws -> TimeSeriesRange {
+        let allowedKeys = Set(["start_datetime", "end_datetime", "latest"])
+        let unknownKeys = Set(arguments.keys).subtracting(allowedKeys)
+        guard unknownKeys.isEmpty else {
+            throw ToolInputError("Unknown argument(s): \(unknownKeys.sorted().joined(separator: ", ")).")
+        }
+
+        let startDateTime = try optionalString(arguments["start_datetime"], name: "start_datetime")
+        let endDateTime = try optionalString(arguments["end_datetime"], name: "end_datetime")
+        let requestedLatest = try optionalBool(arguments["latest"], name: "latest")
+        try validateDateTime(startDateTime, name: "start_datetime")
+        try validateDateTime(endDateTime, name: "end_datetime")
+        let latest = requestedLatest ?? (startDateTime == nil && endDateTime == nil ? true : nil)
+
+        return TimeSeriesRange(startDateTime: startDateTime, endDateTime: endDateTime, latest: latest)
+    }
+
+    private static func optionalString(_ value: Any?, name: String) throws -> String? {
+        guard let value, !(value is NSNull) else {
+            return nil
+        }
+        guard let string = value as? String else {
+            throw ToolInputError("\(name) must be an ISO 8601 date-time string.")
+        }
+        return string
+    }
+
+    private static func optionalBool(_ value: Any?, name: String) throws -> Bool? {
+        guard let value, !(value is NSNull) else {
+            return nil
+        }
+        guard let bool = value as? Bool else {
+            throw ToolInputError("\(name) must be a boolean.")
+        }
+        return bool
+    }
+
+    private static func validateDateTime(_ value: String?, name: String) throws {
+        guard let value else { return }
+        guard value.range(of: #"^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}"#, options: .regularExpression) != nil else {
+            throw ToolInputError("\(name) must be an ISO 8601 date-time string.")
+        }
+    }
+}
+
 struct ToolInputError: Error, LocalizedError {
     let message: String
 
@@ -106,6 +156,25 @@ let dateRangeInputSchema: [String: Any] = [
         "end_date": [
             "type": "string",
             "description": "YYYY-MM-DD. Defaults to start_date, or today when both dates are omitted.",
+        ],
+    ],
+    "additionalProperties": false,
+]
+
+let timeSeriesInputSchema: [String: Any] = [
+    "type": "object",
+    "properties": [
+        "start_datetime": [
+            "type": "string",
+            "description": "ISO 8601 date-time. When omitted with end_datetime, latest defaults to true.",
+        ],
+        "end_datetime": [
+            "type": "string",
+            "description": "ISO 8601 date-time. Optional upper bound for time-series endpoints.",
+        ],
+        "latest": [
+            "type": "boolean",
+            "description": "Return only the latest sample. Defaults to true when start_datetime and end_datetime are omitted.",
         ],
     ],
     "additionalProperties": false,

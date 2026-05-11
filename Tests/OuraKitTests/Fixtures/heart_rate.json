@@ -1,0 +1,11 @@
+{
+  "data": [
+    {
+      "timestamp": "2026-05-08T08:30:00-05:00",
+      "timestamp_unix": 1778247000,
+      "bpm": 58,
+      "source": "awake"
+    }
+  ],
+  "next_token": null
+}

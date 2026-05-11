@@ -1,0 +1,12 @@
+{
+  "data": [
+    {
+      "id": "tag-2026-05-08",
+      "day": "2026-05-08",
+      "text": "Late caffeine",
+      "timestamp": "2026-05-08T14:00:00-05:00",
+      "tags": ["caffeine"]
+    }
+  ],
+  "next_token": null
+}

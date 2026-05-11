@@ -2,7 +2,7 @@
 
 ## Context
 
-REM-Bar is a personal macOS menu-bar app that surfaces Oura Ring data live in the menu bar — Steipete-pattern: small, single-purpose, native Swift, screenshot-worthy. v0.1 ships 13 toggleable Oura metrics: sleep score, REM, HRV, RHR, readiness, activity, deep sleep, total sleep, body temperature deviation, sleep efficiency, daily stress, resilience, and cardiovascular age. Open-source from day 1 at `psufka/REM-Bar` under MIT. The project is the pathfinder for a family of six menu-bar apps (InboxBar, wRVUBar, CMEBar, PaBar, OnCallBar) — REM-Bar ships first, and the shared shell is YAGNI'd until the second app forces the abstraction.
+REM-Bar is a personal macOS menu-bar app that surfaces Oura Ring data live in the menu bar — Steipete-pattern: small, single-purpose, native Swift, screenshot-worthy. v0.1 ships 26 toggleable Oura metrics across sleep, readiness, activity, recovery, SpO2, VO2 max, and bedtime guidance. Open-source from day 1 at `psufka/REM-Bar` under MIT. The project is the pathfinder for a family of six menu-bar apps (InboxBar, wRVUBar, CMEBar, PaBar, OnCallBar) — REM-Bar ships first, and the shared shell is YAGNI'd until the second app forces the abstraction.
 
 The build forks the *shell* of `steipete/CodexBar` (StatusItemController, SettingsStore pattern, DisplayLink-driven refresh, Settings tabs) and ports the *auth + retry pattern* of `daveremy/oura-mcp` (TS) into Swift. Per user direction, v0.1 bundles an MCP wrapper (`RemBarMCP`) from day 1 so REM-Bar doubles as the canonical "menu-bar app + MCP server" template for the siblings.
 
@@ -13,19 +13,19 @@ Hardware: personal Mac on Sequoia, Apple Silicon, Xcode latest. Zero contact wit
 | # | Question | Decision |
 |---|---|---|
 | 1 | Default bar metric | **Sleep Score**, color-coded (green ≥85, amber 70–84, red <70) |
-| 2 | Popover | **13 toggleable metrics**; numeric cards use 7-day Swift Charts sparklines + ±delta vs 7-day avg, while Resilience is categorical with no sparkline |
+| 2 | Popover | **26 toggleable, reorderable metrics**; numeric cards use 7-day Swift Charts sparklines + ±delta vs 7-day avg, while Resilience, Optimal Bedtime, and Sleep Time Recommendation are categorical with no sparkline |
 | 3 | Auth | **Personal Access Token** validated against `/v2/usercollection/personal_info`; token discovery cascade is env `OURA_TOKEN` → REM-Bar Keychain → `~/.oura-mcp/config.json` → launchctl → shell init files / `.env`; Settings shows the active source |
 | 4 | Refresh | **5-min default**, configurable 1/5/15/30/60; auto-pause on screen sleep via `NSScreen.displayLink()` |
 | 5 | Bar mode | **Fixed metric**, swappable in Settings (no click-to-cycle) |
 | 6 | Min macOS | **macOS 14 Sonoma** (matches CodexBar; gets modern displayLink API) |
-| 7 | Icon | **13 BarMetric cases**: sleep score, REM, HRV, RHR, readiness, activity + optional deep sleep, total sleep, body temp deviation, sleep efficiency, stress, resilience, cardiovascular age; each maps to its own SF Symbol; per-metric enable toggles in Settings; cards 1–6 default on, 7–13 default off |
+| 7 | Icon | **26 BarMetric cases**: sleep score, REM, HRV, RHR, readiness, activity + optional sleep-stage, sleep-timing, readiness-contributor, SpO2, VO2 max, stress, resilience, cardiovascular age, and bedtime-guidance cards; each maps to its own SF Symbol; per-metric enable toggles and drag ordering in Settings; cards 1–6 default on, 7–26 default off |
 | 8 | Distribution | **Unsigned for v0.1 internal builds**; README documents `xattr -dr com.apple.quarantine`. Codesign + notarize deferred to v1 |
 | 9 | README | **Steipete-style**: one screenshot, install, 4 lines of how-it-works, MCP usage block |
 | 10 | Synthetic mode | **Skip** — blur real numbers in screenshots manually |
 | 11 | Shared shell | **YAGNI** — extract `BarAppKit` when InboxBar starts. Sample size of 1 makes the abstraction shape guessing |
-| 12 | Scope cut | **All-in v0.1**: menu-bar app + 8-tool MCP server bundled from day 1 |
+| 12 | Scope cut | **All-in v0.1**: menu-bar app + 18-tool MCP server bundled from day 1 |
 | 13 | Port-vs-build | See matrix below |
-| 14 | MCP surface | **Full surface — 1 tool per endpoint** (8 tools), read-only |
+| 14 | MCP surface | **Full surface — 1 tool per endpoint** (18 tools), read-only |
 | 15 | Fetch gating | **Per-metric enable toggles in Settings gate both UI rendering and network fetch** |
 
 ## Architecture
@@ -40,7 +40,7 @@ Hardware: personal Mac on Sequoia, Apple Silicon, Xcode latest. Zero contact wit
             │           ┌──────────────────────────┐
             │           │   PopoverView (SwiftUI)  │
             │           │   ┌──────┐  ┌──────┐    │
-            │           │   │Sleep │  │ REM  │    │  ←  13 toggleable cards
+            │           │   │Sleep │  │ REM  │    │  ←  26 toggleable cards
             │           │   │  87  │  │ 94m  │    │     numeric cards sparkline
             │           │   │ ↑3   │  │ ↓12  │    │     + delta vs 7d avg
             │           │   │ ╱╲╱╲ │  │ ╲╱╲╱ │    │
@@ -92,7 +92,7 @@ Hardware: personal Mac on Sequoia, Apple Silicon, Xcode latest. Zero contact wit
                    │  │ JSON-RPC stdio server                  │  │
                    │  │ Reads same Keychain token as the app   │  │
                    │  ├────────────────────────────────────────┤  │
-                   │  │ Tools (8):                             │  │
+                   │  │ Tools (18):                            │  │
                    │  │  • oura_daily_sleep(start, end)        │  │
                    │  │  • oura_sleep_detail(start, end)       │  │
                    │  │  • oura_daily_readiness(start, end)    │  │
@@ -100,6 +100,12 @@ Hardware: personal Mac on Sequoia, Apple Silicon, Xcode latest. Zero contact wit
                    │  │  • oura_daily_stress(start, end)       │  │
                    │  │  • oura_daily_resilience(start, end)   │  │
                    │  │  • oura_daily_cardiovascular_age(...)  │  │
+                   │  │  • oura_daily_spo2(start, end)         │  │
+                   │  │  • oura_vo2_max(start, end)            │  │
+                   │  │  • oura_sleep_time(start, end)         │  │
+                   │  │  • oura_heart_rate(...)                │  │
+                   │  │  • oura_ring_battery_level(...)        │  │
+                   │  │  • oura_workout/session/rest/tag/...   │  │
                    │  │  • oura_personal_info()                │  │
                    │  └────────────────────────────────────────┘  │
                    └──────────────────────────────────────────────┘
@@ -135,7 +141,7 @@ Hardware: personal Mac on Sequoia, Apple Silicon, Xcode latest. Zero contact wit
 │   │   ├── RemBarApp.swift             # @main
 │   │   ├── AppDelegate.swift           # NSApplicationDelegateAdaptor
 │   │   ├── StatusItemController.swift  # NSStatusItem + click → menu
-│   │   ├── PopoverView.swift           # SwiftUI menu content (13 toggleable cards)
+│   │   ├── PopoverView.swift           # SwiftUI menu content (26 toggleable cards)
 │   │   ├── MetricCardView.swift        # one card: value + delta + sparkline
 │   │   ├── SparklineView.swift         # Swift Charts 7-day sparkline
 │   │   ├── SettingsView.swift          # token, cadence, metric, link to ouraring.com tokens
@@ -147,7 +153,7 @@ Hardware: personal Mac on Sequoia, Apple Silicon, Xcode latest. Zero contact wit
 │   │       └── Assets.xcassets
 │   ├── OuraKit/                        # shared library (app + MCP both consume)
 │   │   ├── OuraClient.swift            # URLSession, async/await, 401 retry
-│   │   ├── Endpoint.swift              # enum: dailySleep, sleep, dailyReadiness, dailyActivity, stress, resilience, cardiovascularAge, personalInfo
+│   │   ├── Endpoint.swift              # enum: Oura v2 usercollection endpoints used by app + MCP
 │   │   ├── Models/
 │   │   │   ├── DailySleep.swift
 │   │   │   ├── Sleep.swift
@@ -156,6 +162,11 @@ Hardware: personal Mac on Sequoia, Apple Silicon, Xcode latest. Zero contact wit
 │   │   │   ├── DailyStress.swift
 │   │   │   ├── DailyResilience.swift
 │   │   │   ├── DailyCardiovascularAge.swift
+│   │   │   ├── DailySpO2.swift
+│   │   │   ├── VO2Max.swift
+│   │   │   ├── SleepTime.swift
+│   │   │   ├── TimeSeriesModels.swift
+│   │   │   ├── ActivityRecordModels.swift
 │   │   │   └── PersonalInfo.swift
 │   │   ├── KeychainStore.swift         # Security.framework, kSecAttrAccessibleAfterFirstUnlock
 │   │   ├── TokenValidator.swift        # GET /personal_info, 200/401 → bool + error
@@ -171,6 +182,7 @@ Hardware: personal Mac on Sequoia, Apple Silicon, Xcode latest. Zero contact wit
 │           ├── DailyStressTool.swift
 │           ├── DailyResilienceTool.swift
 │           ├── DailyCardiovascularAgeTool.swift
+│           ├── AdditionalEndpointTools.swift
 │           └── PersonalInfoTool.swift
 └── Tests/
     ├── OuraKitTests/
@@ -192,8 +204,18 @@ v0.1 reads these Oura API v2 endpoints:
 - `/v2/usercollection/daily_stress`
 - `/v2/usercollection/daily_resilience`
 - `/v2/usercollection/daily_cardiovascular_age`
+- `/v2/usercollection/daily_spo2`
+- `/v2/usercollection/vO2_max`
+- `/v2/usercollection/sleep_time`
+- `/v2/usercollection/heartrate`
+- `/v2/usercollection/ring_battery_level`
+- `/v2/usercollection/workout`
+- `/v2/usercollection/session`
+- `/v2/usercollection/rest_mode_period`
+- `/v2/usercollection/tag`
+- `/v2/usercollection/enhanced_tag`
 
-Daily stress, daily resilience, and daily cardiovascular age require a Gen3+ ring or Ring 4 plus active Oura Membership for the underlying features. REM-Bar treats 200-empty responses and unavailable endpoint failures as "Not available on your ring" card states.
+Daily stress, daily resilience, daily cardiovascular age, daily SpO2, VO2 max, and sleep time can require a Gen3+ ring or Ring 4 plus active Oura Membership for the underlying features. REM-Bar treats 200-empty responses and unavailable endpoint failures as "Not available on your ring" card states.
 
 ## Phased scope
 
@@ -207,13 +229,13 @@ Daily stress, daily resilience, and daily cardiovascular age require a Gen3+ rin
 - Sleep score in bar, color-coded; no popover, no charts
 
 ### v0.1 — pre-release internal cut
-- Popover with 13 toggleable metric cards; numeric cards show delta + 7-day Swift Charts sparkline, Resilience is categorical
-- 8 Oura API endpoints in `OuraClient`; all Codable models with fixtures
+- Popover with 26 toggleable, reorderable metric cards; numeric cards show delta + 7-day Swift Charts sparkline, Resilience and sleep-time guidance cards are categorical
+- 18 Oura API endpoints in `OuraClient`; all Codable models with fixtures
 - `IconRenderer` swaps SF Symbol when bar metric changes
 - Settings: cadence picker (1/5/15/30/60), bar-metric picker, metric card toggles, active token source display
 - Per-metric fetch gating so disabled cards do not burn endpoint requests
 - `RefreshCoordinator` uses `NSScreen.displayLink()` on macOS 15+ and `CVDisplayLink` fallback on macOS 14
-- `RemBarMCP` executable with 8 stdio tools, sharing OuraKit + Keychain
+- `RemBarMCP` executable with 18 stdio tools, sharing OuraKit + Keychain
 - GitHub Actions CI (swiftformat lint + swift build + swift test on macOS 14)
 - README: screenshot, install with `xattr -dr com.apple.quarantine` step, how-it-works, MCP install one-liner
 

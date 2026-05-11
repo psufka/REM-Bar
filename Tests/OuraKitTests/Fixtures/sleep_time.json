@@ -1,0 +1,16 @@
+{
+  "data": [
+    {
+      "id": "sleep-time-2026-05-08",
+      "day": "2026-05-08",
+      "optimal_bedtime": {
+        "day_tz": -18000,
+        "start_offset": 81000,
+        "end_offset": 84600
+      },
+      "recommendation": "follow_optimal_bedtime",
+      "status": "optimal_bedtime_found"
+    }
+  ],
+  "next_token": null
+}

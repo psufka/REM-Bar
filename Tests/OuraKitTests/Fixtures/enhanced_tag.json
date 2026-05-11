@@ -1,0 +1,15 @@
+{
+  "data": [
+    {
+      "id": "enhanced-tag-2026-05-08",
+      "tag_type_code": "custom",
+      "start_time": "2026-05-08T14:00:00-05:00",
+      "end_time": null,
+      "start_day": "2026-05-08",
+      "end_day": null,
+      "comment": "Late caffeine",
+      "custom_name": "Caffeine"
+    }
+  ],
+  "next_token": null
+}

@@ -20,14 +20,14 @@
 ## Built
 
 - SwiftPM workspace with three products: `REM-Bar`, `OuraKit`, and `RemBarMCP`.
-- Native macOS menu-bar app with configurable Oura metric, SF Symbol status item, Keychain token settings, display-link refresh pause behavior, and a SwiftUI popover with thirteen toggleable Oura metric cards.
-- Numeric cards show seven-day sparklines and deltas vs seven-day average; Resilience is categorical with no sparkline.
-- Shared `OuraKit` library with Oura API v2 endpoints for personal info, daily sleep, sleep detail, daily readiness, daily activity, daily stress, daily resilience, and daily cardiovascular age.
+- Native macOS menu-bar app with configurable Oura metric, SF Symbol status item, Keychain token settings, display-link refresh pause behavior, and a SwiftUI popover with twenty-six toggleable, reorderable Oura metric cards.
+- Numeric cards show seven-day sparklines and deltas vs seven-day average; Resilience, Optimal Bedtime, and Sleep Time Recommendation are categorical with no sparkline.
+- Shared `OuraKit` library with Oura API v2 endpoints for personal info, daily sleep, sleep detail, daily readiness, daily activity, daily stress, daily resilience, daily cardiovascular age, daily SpO2, VO2 max, sleep time, heart rate, ring battery level, workout, session, rest mode period, tag, and enhanced tag.
 - Keychain token storage using service `com.psufka.REM-Bar` and `kSecAttrAccessibleAfterFirstUnlock`.
 - Ambient token discovery for `OURA_TOKEN`, launchctl, oura-mcp config, and common shell/dotenv files.
 - Serialized 401 retry gate for token re-resolution.
 - Per-metric fetch gating so disabled cards do not request their backing endpoints.
-- Bundled `RemBarMCP` executable with a self-contained stdio JSON-RPC server and eight read-only Oura tools.
+- Bundled `RemBarMCP` executable with a self-contained stdio JSON-RPC server and eighteen read-only Oura tools.
 - Offline tests with Oura fixtures and URLProtocol stubs.
 - README, MIT LICENSE with CodexBar attribution, CHANGELOG, CI workflow, root icon, screenshot placeholder, scripts, and git history checkpoints.
 
@@ -38,12 +38,14 @@
 - `OURA_TOKEN` overrides Keychain/config for development; Keychain remains the app/MCP shared default; `~/.oura-mcp/config.json` is a compatibility fallback.
 - macOS 14 refresh pause uses `CVDisplayLink`; `NSScreen.displayLink` is used on macOS 15+ because the current SDK marks it macOS 15+.
 - Test targets add a CommandLineTools `Testing.framework` search path when needed because this machine's selected CLT SwiftPM does not auto-discover XCTest or Swift Testing, and Xcode.app is blocked by unaccepted license terms.
-- New daily stress, resilience, and cardiovascular age models were based on Oura's OpenAPI spec at `/v2/static/json/openapi-1.29.json`; no real Oura API calls were made.
+- New daily stress, resilience, cardiovascular age, SpO2, VO2 max, sleep time, heart rate, battery, workout, session, rest, tag, and enhanced tag models were based on Oura's OpenAPI spec at `/v2/static/json/openapi-1.29.json`; no real Oura API calls were made.
+- Optimal Bedtime is displayed as a local 24-hour `HH:mm-HH:mm` window derived from Oura's `start_offset` and `end_offset`.
+- The Oura tag model is named `OuraTag` to avoid a collision with Swift Testing's `Tag` type.
 
 ## Left For Paul
 
 - Paste a real Oura Personal Access Token in Settings.
-- Run a manual smoke test with real Oura data: token save, refresh, metric toggles, invalid-token banner, and MCP `tools/list`.
+- Run a manual smoke test with real Oura data: token save, refresh, metric toggles and ordering, the newly added optional cards, invalid-token banner, and MCP `tools/list`.
 - Create the GitHub repo and push when ready.
 - Decide the future public-push/release strategy before tagging anything.
 - Build the first public release zip from the SwiftPM products when v1 scope is ready.

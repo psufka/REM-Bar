@@ -96,6 +96,46 @@ public final class OuraClient: @unchecked Sendable {
         try await collection(endpoint: .dailyCardiovascularAge, startDate: startDate, endDate: endDate, responseType: DailyCardiovascularAge.self)
     }
 
+    public func dailySpO2(startDate: String, endDate: String) async throws -> OuraCollection<DailySpO2> {
+        try await collection(endpoint: .dailySpO2, startDate: startDate, endDate: endDate, responseType: DailySpO2.self)
+    }
+
+    public func vo2Max(startDate: String, endDate: String) async throws -> OuraCollection<VO2Max> {
+        try await collection(endpoint: .vo2Max, startDate: startDate, endDate: endDate, responseType: VO2Max.self)
+    }
+
+    public func sleepTime(startDate: String, endDate: String) async throws -> OuraCollection<SleepTime> {
+        try await collection(endpoint: .sleepTime, startDate: startDate, endDate: endDate, responseType: SleepTime.self)
+    }
+
+    public func workout(startDate: String, endDate: String) async throws -> OuraCollection<Workout> {
+        try await collection(endpoint: .workout, startDate: startDate, endDate: endDate, responseType: Workout.self)
+    }
+
+    public func session(startDate: String, endDate: String) async throws -> OuraCollection<Session> {
+        try await collection(endpoint: .session, startDate: startDate, endDate: endDate, responseType: Session.self)
+    }
+
+    public func restModePeriod(startDate: String, endDate: String) async throws -> OuraCollection<RestModePeriod> {
+        try await collection(endpoint: .restModePeriod, startDate: startDate, endDate: endDate, responseType: RestModePeriod.self)
+    }
+
+    public func tag(startDate: String, endDate: String) async throws -> OuraCollection<OuraTag> {
+        try await collection(endpoint: .tag, startDate: startDate, endDate: endDate, responseType: OuraTag.self)
+    }
+
+    public func enhancedTag(startDate: String, endDate: String) async throws -> OuraCollection<EnhancedTag> {
+        try await collection(endpoint: .enhancedTag, startDate: startDate, endDate: endDate, responseType: EnhancedTag.self)
+    }
+
+    public func heartRate(startDateTime: String? = nil, endDateTime: String? = nil, latest: Bool? = nil) async throws -> OuraCollection<HeartRateSample> {
+        try await timeSeries(endpoint: .heartRate, startDateTime: startDateTime, endDateTime: endDateTime, latest: latest, responseType: HeartRateSample.self)
+    }
+
+    public func ringBatteryLevel(startDateTime: String? = nil, endDateTime: String? = nil, latest: Bool? = nil) async throws -> OuraCollection<RingBatteryLevel> {
+        try await timeSeries(endpoint: .ringBatteryLevel, startDateTime: startDateTime, endDateTime: endDateTime, latest: latest, responseType: RingBatteryLevel.self)
+    }
+
     private func collection<T: Codable & Equatable & Sendable>(
         endpoint: Endpoint,
         startDate: String,
@@ -110,6 +150,28 @@ public final class OuraClient: @unchecked Sendable {
                 URLQueryItem(name: "end_date", value: endDate),
             ],
             responseType: OuraCollection<T>.self)
+    }
+
+    private func timeSeries<T: Codable & Equatable & Sendable>(
+        endpoint: Endpoint,
+        startDateTime: String?,
+        endDateTime: String?,
+        latest: Bool?,
+        responseType _: T.Type)
+        async throws -> OuraCollection<T>
+    {
+        var queryItems: [URLQueryItem] = []
+        if let startDateTime {
+            queryItems.append(URLQueryItem(name: "start_datetime", value: startDateTime))
+        }
+        if let endDateTime {
+            queryItems.append(URLQueryItem(name: "end_datetime", value: endDateTime))
+        }
+        let resolvedLatest = latest ?? (startDateTime == nil && endDateTime == nil ? true : nil)
+        if let resolvedLatest {
+            queryItems.append(URLQueryItem(name: "latest", value: resolvedLatest ? "true" : "false"))
+        }
+        return try await request(endpoint: endpoint, queryItems: queryItems, responseType: OuraCollection<T>.self)
     }
 
     private func request<T: Decodable>(

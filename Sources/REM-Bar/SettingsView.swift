@@ -177,7 +177,7 @@ struct SettingsView: View {
                         .font(.footnote.weight(.semibold))
                         .foregroundStyle(.secondary)
                 }
-                Text("Keep Oura sleep, REM, HRV, RHR, and readiness in view.")
+                Text("Keep Oura sleep, recovery, activity, and readiness in view.")
                     .font(.footnote.weight(.semibold))
                     .foregroundStyle(.secondary)
                     .padding(.top, 5)

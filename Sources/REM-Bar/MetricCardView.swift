@@ -69,7 +69,7 @@ struct CategoricalMetricCardView: View {
                     metric: series.metric,
                     category: series.categoryValue)))
 
-            Text(series.availabilityMessage ?? "Long-term resilience level")
+            Text(series.availabilityMessage ?? series.metric.categoricalDescription)
                 .font(.caption2)
                 .foregroundStyle(.secondary)
                 .fixedSize(horizontal: false, vertical: true)

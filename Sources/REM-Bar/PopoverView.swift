@@ -16,7 +16,7 @@ struct PopoverView: View {
             LazyVGrid(columns: gridColumns, spacing: 10) {
                 ForEach(visibleMetrics) { metric in
                     let series = snapshot.series(for: metric)
-                    if metric == .resilience {
+                    if metric.isCategorical {
                         CategoricalMetricCardView(series: series)
                     } else {
                         MetricCardView(series: series)
@@ -24,7 +24,7 @@ struct PopoverView: View {
                 }
             }
 
-            if snapshot.metrics.values.allSatisfy(\.points.isEmpty), lastError == nil {
+            if snapshot.metrics.values.allSatisfy({ $0.points.isEmpty && $0.categoryValue == nil && $0.availabilityMessage == nil }), lastError == nil {
                 Text("No Oura data loaded yet. Add a token in Settings or refresh after saving one.")
                     .font(.caption)
                     .foregroundStyle(.secondary)
