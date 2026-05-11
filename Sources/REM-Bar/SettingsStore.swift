@@ -64,9 +64,42 @@ final class SettingsStore: ObservableObject {
         }
     }
 
+    enum AverageWindow: Int, CaseIterable, Identifiable {
+        case three = 3
+        case seven = 7
+        case fourteen = 14
+        case thirty = 30
+
+        var id: Int { rawValue }
+        var dayCount: Int { rawValue }
+
+        var label: String {
+            switch self {
+            case .three:
+                return "3 days"
+            case .seven:
+                return "7 days"
+            case .fourteen:
+                return "14 days"
+            case .thirty:
+                return "30 days"
+            }
+        }
+
+        var averageLabel: String {
+            "\(dayCount)-day avg"
+        }
+    }
+
     @Published var refreshCadence: RefreshCadence {
         didSet {
             userDefaults.set(refreshCadence.rawValue, forKey: Keys.refreshCadence)
+        }
+    }
+
+    @Published var averageWindow: AverageWindow {
+        didSet {
+            userDefaults.set(averageWindow.rawValue, forKey: Keys.averageWindow)
         }
     }
 
@@ -123,6 +156,8 @@ final class SettingsStore: ObservableObject {
         self.enabledMetrics = enabledMetrics
         let rawCadence = userDefaults.integer(forKey: Keys.refreshCadence)
         self.refreshCadence = RefreshCadence(rawValue: rawCadence) ?? .five
+        let rawAverageWindow = userDefaults.integer(forKey: Keys.averageWindow)
+        self.averageWindow = AverageWindow(rawValue: rawAverageWindow) ?? .seven
         let rawTemperatureUnit = userDefaults.string(forKey: Keys.temperatureUnit) ?? TemperatureUnit.celsius.rawValue
         self.temperatureUnit = TemperatureUnit(rawValue: rawTemperatureUnit) ?? .celsius
         let rawMetric = userDefaults.string(forKey: Keys.selectedMetric) ?? BarMetric.sleepScore.rawValue
@@ -196,6 +231,7 @@ final class SettingsStore: ObservableObject {
 
     private enum Keys {
         static let refreshCadence = "refreshCadence"
+        static let averageWindow = "averageWindow"
         static let selectedMetric = "selectedMetric"
         static let enabledMetrics = "enabledMetrics"
         static let metricOrder = "metricOrder"
@@ -204,11 +240,32 @@ final class SettingsStore: ObservableObject {
 
     static let defaultEnabledMetrics: Set<BarMetric> = [
         .sleepScore,
-        .rem,
-        .hrv,
-        .rhr,
         .readiness,
-        .activity,
+        .hrv,
+        .totalSleep,
+        .deepSleep,
+        .rem,
+        .cardiovascularAge,
+        .rhr,
+        .hrvBalance,
+        .bodyTemperatureDeviation,
+        .vo2Max,
+        .averageSpO2,
+    ]
+
+    static let defaultMetricOrder: [BarMetric] = [
+        .sleepScore,
+        .readiness,
+        .hrv,
+        .totalSleep,
+        .deepSleep,
+        .rem,
+        .cardiovascularAge,
+        .rhr,
+        .hrvBalance,
+        .bodyTemperatureDeviation,
+        .vo2Max,
+        .averageSpO2,
     ]
 
     private static func orderedMetrics(in metrics: Set<BarMetric>, metricOrder: [BarMetric]) -> [BarMetric] {
@@ -219,7 +276,7 @@ final class SettingsStore: ObservableObject {
         guard let data = userDefaults.data(forKey: Keys.metricOrder),
               let rawValues = try? JSONDecoder().decode([String].self, from: data)
         else {
-            return Array(BarMetric.allCases)
+            return repairedMetricOrder(defaultMetricOrder)
         }
         return repairedMetricOrder(rawValues.compactMap(BarMetric.init(rawValue:)))
     }

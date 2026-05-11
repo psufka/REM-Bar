@@ -5,11 +5,15 @@ CONF=${1:-release}
 ROOT=$(cd "$(dirname "$0")/.." && pwd)
 cd "$ROOT"
 
-source "$ROOT/version.env"
-
 APP_NAME="REM-Bar"
 MCP_NAME="RemBarMCP"
 BUNDLE_ID="com.psufka.REM-Bar"
+VERSION_FILE="$ROOT/Sources/OuraKit/RemBarVersion.swift"
+REM_BAR_VERSION=$(sed -nE 's/.*static let current = "([^"]+)".*/\1/p' "$VERSION_FILE" | head -n 1)
+if [[ -z "$REM_BAR_VERSION" ]]; then
+  echo "ERROR: Could not read REM-Bar version from $VERSION_FILE" >&2
+  exit 1
+fi
 DIST="$ROOT/dist"
 APP="$DIST/${APP_NAME}.app"
 ZIP="$DIST/${APP_NAME}-v${REM_BAR_VERSION}.zip"

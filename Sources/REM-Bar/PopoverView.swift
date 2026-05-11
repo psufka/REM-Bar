@@ -1,3 +1,4 @@
+import OuraKit
 import SwiftUI
 
 struct PopoverView: View {
@@ -5,6 +6,7 @@ struct PopoverView: View {
     let enabledMetrics: Set<BarMetric>
     let metricOrder: [BarMetric]
     let temperatureUnit: TemperatureUnit
+    let averageWindow: SettingsStore.AverageWindow
     let gridViewportHeight: CGFloat
     let lastError: String?
     let tokenNeedsUpdate: Bool
@@ -22,7 +24,10 @@ struct PopoverView: View {
                         if metric.isCategorical {
                             CategoricalMetricCardView(series: series)
                         } else {
-                            MetricCardView(series: series, temperatureUnit: temperatureUnit)
+                            MetricCardView(
+                                series: series,
+                                temperatureUnit: temperatureUnit,
+                                averageWindow: averageWindow)
                         }
                     }
                 }
@@ -79,9 +84,16 @@ struct PopoverView: View {
             }
             .buttonStyle(.borderless)
 
-            Text(lastRefreshText)
-                .font(.caption2)
-                .foregroundStyle(.secondary)
+            HStack(alignment: .firstTextBaseline, spacing: 8) {
+                Text(lastRefreshText)
+                    .font(.caption2)
+                    .foregroundStyle(.secondary)
+                Spacer(minLength: 8)
+                Text(appFooterText)
+                    .font(.caption2)
+                    .foregroundStyle(.secondary)
+                    .multilineTextAlignment(.trailing)
+            }
         }
         .padding(PopoverLayoutMetrics.contentPadding)
         .frame(width: PopoverLayoutMetrics.popoverWidth)
@@ -105,5 +117,13 @@ struct PopoverView: View {
         let formatter = RelativeDateTimeFormatter()
         formatter.unitsStyle = .short
         return "Updated \(formatter.localizedString(for: lastRefresh, relativeTo: Date()))"
+    }
+
+    private var appFooterText: String {
+        "REM-Bar \(appVersion)"
+    }
+
+    private var appVersion: String {
+        Bundle.main.object(forInfoDictionaryKey: "CFBundleShortVersionString") as? String ?? RemBarVersion.current
     }
 }

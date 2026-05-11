@@ -61,6 +61,7 @@ final class StatusItemController: NSObject, NSWindowDelegate {
             enabledMetrics: settings.enabledMetrics,
             metricOrder: settings.metricOrder,
             temperatureUnit: settings.temperatureUnit,
+            averageWindow: settings.averageWindow,
             gridViewportHeight: layout.gridViewportHeight,
             lastError: refreshCoordinator.lastError,
             tokenNeedsUpdate: refreshCoordinator.tokenNeedsUpdate,

@@ -2,6 +2,19 @@
 
 ## Unreleased
 
+## 0.1.2 - 2026-05-11
+
+### Added
+
+- Added a Display setting for 3-day, 7-day, 14-day, or 30-day metric averages; 7 days remains the default.
+- Added a popover footer with the app name and version.
+
+### Changed
+
+- Centralized REM-Bar version metadata so the app, About pane, popover footer, MCP server, and package script read the same version value.
+- Moved the copyright line into the About pane.
+- Updated first-install active cards to Sleep Score, Readiness, HRV, Total Sleep, Deep Sleep, REM, Cardio Age, RHR, HRV Balance, Body Temp, VO2 Max, and Average SpO2.
+
 ## 0.1.1 - 2026-05-11
 
 ### Fixed

@@ -53,6 +53,7 @@ final class RefreshCoordinator: ObservableObject {
     func refresh() {
         guard refreshTask == nil else { return }
         let enabledMetrics = settings.enabledMetrics
+        let averageWindow = settings.averageWindow
         nextRefreshAfter = Date().addingTimeInterval(TimeInterval(settings.refreshCadence.rawValue))
         refreshTask = Task { [weak self] in
             guard let self else { return }
@@ -60,7 +61,10 @@ final class RefreshCoordinator: ObservableObject {
                 self.refreshTask = nil
             }
             let endDate = Self.localDateString(Date())
-            let startDate = Self.localDateString(Calendar.current.date(byAdding: .day, value: -6, to: Date()) ?? Date())
+            let startDate = Self.localDateString(Calendar.current.date(
+                byAdding: .day,
+                value: -(averageWindow.dayCount - 1),
+                to: Date()) ?? Date())
             let personalInfo = await self.personalInfoForRefresh()
             do {
                 async let dailySleep = fetchIfNeeded("daily_sleep", enabledMetrics: enabledMetrics, requiredMetrics: [.sleepScore]) {

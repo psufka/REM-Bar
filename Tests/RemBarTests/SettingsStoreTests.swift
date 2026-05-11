@@ -4,16 +4,17 @@ import XCTest
 
 @MainActor
 final class SettingsStoreTests: XCTestCase {
-    func testDefaultsEnableFirstSixMetrics() {
+    func testDefaultsEnableConfiguredMetrics() {
         let defaults = makeDefaults()
         defer { defaults.removePersistentDomain(forName: defaultsSuiteName(defaults)) }
 
         let store = SettingsStore(userDefaults: defaults)
 
         XCTAssertEqual(store.enabledMetrics, SettingsStore.defaultEnabledMetrics)
-        XCTAssertEqual(store.metricOrder, Array(BarMetric.allCases))
-        XCTAssertEqual(store.orderedEnabledMetrics, [.sleepScore, .rem, .hrv, .rhr, .readiness, .activity])
+        XCTAssertEqual(Array(store.metricOrder.prefix(SettingsStore.defaultMetricOrder.count)), SettingsStore.defaultMetricOrder)
+        XCTAssertEqual(store.orderedEnabledMetrics, SettingsStore.defaultMetricOrder)
         XCTAssertEqual(store.selectedMetric, .sleepScore)
+        XCTAssertEqual(store.averageWindow, .seven)
     }
 
     func testRoundTripsCadenceSelectedMetricAndEnabledMetrics() {
@@ -22,6 +23,7 @@ final class SettingsStoreTests: XCTestCase {
 
         let store = SettingsStore(userDefaults: defaults)
         store.refreshCadence = .fifteen
+        store.averageWindow = .fourteen
         store.temperatureUnit = .fahrenheit
         store.setMetric(.dailyStress, enabled: true)
         store.selectedMetric = .dailyStress
@@ -30,10 +32,18 @@ final class SettingsStoreTests: XCTestCase {
         let reloaded = SettingsStore(userDefaults: defaults)
 
         XCTAssertEqual(reloaded.refreshCadence, .fifteen)
+        XCTAssertEqual(reloaded.averageWindow, .fourteen)
         XCTAssertEqual(reloaded.temperatureUnit, .fahrenheit)
         XCTAssertEqual(reloaded.selectedMetric, .dailyStress)
         XCTAssertTrue(reloaded.enabledMetrics.contains(.dailyStress))
         XCTAssertFalse(reloaded.enabledMetrics.contains(.activity))
+    }
+
+    func testAverageWindowLabels() {
+        XCTAssertEqual(SettingsStore.AverageWindow.three.averageLabel, "3-day avg")
+        XCTAssertEqual(SettingsStore.AverageWindow.seven.averageLabel, "7-day avg")
+        XCTAssertEqual(SettingsStore.AverageWindow.fourteen.averageLabel, "14-day avg")
+        XCTAssertEqual(SettingsStore.AverageWindow.thirty.averageLabel, "30-day avg")
     }
 
     func testTemperatureFormattingConvertsDeviationUnits() {
@@ -57,12 +67,12 @@ final class SettingsStoreTests: XCTestCase {
         defer { defaults.removePersistentDomain(forName: defaultsSuiteName(defaults)) }
 
         let store = SettingsStore(userDefaults: defaults)
-        store.moveMetric(.activity, to: .sleepScore)
+        store.moveMetric(.readiness, to: .sleepScore)
 
         let reloaded = SettingsStore(userDefaults: defaults)
 
-        XCTAssertEqual(reloaded.metricOrder.first, .activity)
-        XCTAssertEqual(reloaded.orderedEnabledMetrics.first, .activity)
+        XCTAssertEqual(reloaded.metricOrder.first, .readiness)
+        XCTAssertEqual(reloaded.orderedEnabledMetrics.first, .readiness)
     }
 
     func testMovingInactiveMetricToActiveEnablesAndOrdersIt() {
@@ -70,10 +80,10 @@ final class SettingsStoreTests: XCTestCase {
         defer { defaults.removePersistentDomain(forName: defaultsSuiteName(defaults)) }
 
         let store = SettingsStore(userDefaults: defaults)
-        store.moveMetric(.dailyStress, before: .rem, enabled: true)
+        store.moveMetric(.dailyStress, before: .readiness, enabled: true)
 
         XCTAssertTrue(store.enabledMetrics.contains(.dailyStress))
-        XCTAssertEqual(Array(store.orderedEnabledMetrics.prefix(3)), [.sleepScore, .dailyStress, .rem])
+        XCTAssertEqual(Array(store.orderedEnabledMetrics.prefix(3)), [.sleepScore, .dailyStress, .readiness])
         XCTAssertFalse(store.orderedInactiveMetrics.contains(.dailyStress))
     }
 
@@ -82,11 +92,11 @@ final class SettingsStoreTests: XCTestCase {
         defer { defaults.removePersistentDomain(forName: defaultsSuiteName(defaults)) }
 
         let store = SettingsStore(userDefaults: defaults)
-        store.moveMetric(.activity, before: .deepSleep, enabled: false)
+        store.moveMetric(.readiness, before: .lightSleep, enabled: false)
 
-        XCTAssertFalse(store.enabledMetrics.contains(.activity))
-        XCTAssertEqual(store.orderedEnabledMetrics, [.sleepScore, .rem, .hrv, .rhr, .readiness])
-        XCTAssertEqual(Array(store.orderedInactiveMetrics.prefix(2)), [.activity, .deepSleep])
+        XCTAssertFalse(store.enabledMetrics.contains(.readiness))
+        XCTAssertEqual(store.orderedEnabledMetrics, SettingsStore.defaultMetricOrder.filter { $0 != .readiness })
+        XCTAssertEqual(Array(store.orderedInactiveMetrics.prefix(3)), [.activity, .readiness, .lightSleep])
     }
 
     func testCannotMoveOnlyActiveMetricToInactive() {

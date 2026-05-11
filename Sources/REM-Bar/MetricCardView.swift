@@ -3,6 +3,7 @@ import SwiftUI
 struct MetricCardView: View {
     let series: MetricSeries
     let temperatureUnit: TemperatureUnit
+    let averageWindow: SettingsStore.AverageWindow
 
     var body: some View {
         VStack(alignment: .leading, spacing: 4) {
@@ -39,7 +40,7 @@ struct MetricCardView: View {
                 SparklineView(points: series.points)
                     .frame(height: 34)
                     .opacity(series.points.isEmpty ? 0.25 : 1)
-                Text("7-day avg \(series.average.map { series.metric.formattedValue($0, temperatureUnit: temperatureUnit) } ?? "?")")
+                Text("\(averageWindow.averageLabel) \(series.average.map { series.metric.formattedValue($0, temperatureUnit: temperatureUnit) } ?? "?")")
                     .font(.caption2)
                     .foregroundStyle(.secondary)
                     .lineLimit(1)

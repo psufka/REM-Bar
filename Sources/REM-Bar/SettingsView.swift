@@ -153,6 +153,20 @@ struct SettingsView: View {
                         }
 
                         HStack {
+                            Text("Average window")
+                                .frame(width: 130, alignment: .leading)
+                            Picker("Average window", selection: $settings.averageWindow) {
+                                ForEach(SettingsStore.AverageWindow.allCases) { window in
+                                    Text(window.label).tag(window)
+                                }
+                            }
+                            .labelsHidden()
+                            .pickerStyle(.segmented)
+                            .frame(width: 300)
+                            Spacer(minLength: 0)
+                        }
+
+                        HStack {
                             Text("Menu-bar metric")
                                 .frame(width: 130, alignment: .leading)
                             Picker("Menu-bar metric", selection: $settings.selectedMetric) {
@@ -265,6 +279,9 @@ struct SettingsView: View {
                     .font(.footnote.weight(.semibold))
                     .foregroundStyle(.secondary)
                     .padding(.top, 5)
+                Text(RemBarVersion.copyright)
+                    .font(.footnote.weight(.semibold))
+                    .foregroundStyle(.secondary)
             }
             .multilineTextAlignment(.center)
 
@@ -313,7 +330,7 @@ struct SettingsView: View {
     }
 
     private var appVersionString: String {
-        let version = Bundle.main.object(forInfoDictionaryKey: "CFBundleShortVersionString") as? String ?? "0.1.0"
+        let version = Bundle.main.object(forInfoDictionaryKey: "CFBundleShortVersionString") as? String ?? RemBarVersion.current
         let build = Bundle.main.object(forInfoDictionaryKey: "CFBundleVersion") as? String
         return build.map { "\(version) (\($0))" } ?? version
     }
