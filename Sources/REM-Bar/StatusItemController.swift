@@ -92,8 +92,14 @@ final class StatusItemController: NSObject, NSWindowDelegate {
         let cardSpacing: CGFloat = 10
         let desiredGridHeight = CGFloat(rows) * cardHeight + CGFloat(max(0, rows - 1)) * cardSpacing
         let footerAndPaddingHeight: CGFloat = 116
-        let screenHeight = button.window?.screen?.visibleFrame.height ?? 760
-        let maxHeight = max(380, screenHeight - 12)
+        let screenFrame = button.window?.screen?.frame
+        let buttonFrame = button.window.flatMap { window in
+            Optional(window.convertToScreen(button.convert(button.bounds, to: nil)))
+        }
+        let availableBelowButton = buttonFrame.map { frame in
+            frame.minY - (screenFrame?.minY ?? 0) - 8
+        } ?? ((screenFrame?.height ?? 760) - 32)
+        let maxHeight = max(380, availableBelowButton)
         let gridMaxHeight = max(126, maxHeight - footerAndPaddingHeight)
         let gridHeight = min(desiredGridHeight, gridMaxHeight)
         return PopoverLayout(

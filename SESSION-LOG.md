@@ -1,5 +1,28 @@
 # REM-Bar Session Log
 
+## GitHub release prep (2026-05-11)
+
+- Drafted a CodexBar-style public README with install instructions, first-run token setup, token source order, MCP server setup, feature summary, privacy notes, source build commands, credits, and license information.
+- Added `Scripts/package_app.sh` to build `dist/REM-Bar.app` and `dist/REM-Bar-v0.1.0.zip` from SwiftPM release products.
+- The app bundle now includes `Contents/MacOS/REM-Bar`, `Contents/MacOS/RemBarMCP`, `Contents/Resources/Icon.icns`, `Contents/Info.plist`, and the SwiftPM resource bundle needed by `Bundle.module`.
+- Verified the packaged MCP server from `dist/REM-Bar.app/Contents/MacOS/RemBarMCP` with `initialize` and `tools/list`; it reports all 18 read-only Oura tools.
+- Adjusted popover sizing to use the actual space below the menu-bar button so cards can extend closer to the bottom of the display before the grid scrolls.
+
+### Build-time decisions
+
+- The README assumes the public GitHub repo will be `psufka/REM-Bar`, matching the existing bundle/keychain naming. Update the badge and release links before pushing if the repo owner or name changes.
+- The first package script intentionally does not sign or notarize the app; README keeps the quarantine removal step for v0.1.
+- The package script defaults to the host architecture and supports `ARCHES="arm64 x86_64"` for a universal build when both architecture builds are available.
+- Existing generated app bundles and release zips are moved to `~/.Trash` before replacement; the script avoids destructive clean operations.
+
+### Left for Paul
+
+- Replace `docs/screenshot-placeholder.svg` with a real screenshot before the public release page is published.
+- Confirm the public GitHub repo path is `psufka/REM-Bar`; if not, update README badge and release links.
+- Manual smoke test the packaged app from `dist/REM-Bar.app` with your real Oura token.
+- Decide whether `PLAN2.md` and `SESSION-LOG.md` should remain public or be removed before the first GitHub push.
+- Create the GitHub repo, add the remote, push, tag `v0.1.0`, and upload `dist/REM-Bar-v0.1.0.zip`.
+
 ## Pre-tag polish audit (2026-05-11)
 
 | Concern | Status | Evidence | Fix |
