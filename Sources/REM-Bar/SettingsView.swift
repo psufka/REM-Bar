@@ -11,6 +11,7 @@ struct SettingsView: View {
     @State private var detectedTokenForImport: String?
     @State private var sourceSummaries: [OuraTokenSourceSummary] = []
     @State private var draggedMetric: BarMetric?
+    @State private var showingTokenSetup = false
     @FocusState private var tokenFieldFocused: Bool
 
     private let keychain = KeychainStore.shared
@@ -36,6 +37,9 @@ struct SettingsView: View {
             Task {
                 await reloadTokenState()
             }
+        }
+        .sheet(isPresented: $showingTokenSetup) {
+            TokenSetupInstructionsView()
         }
     }
 
@@ -78,6 +82,12 @@ struct SettingsView: View {
                             .disabled(detectedTokenForImport == nil || isValidating)
 
                             Spacer()
+
+                            Button {
+                                showingTokenSetup = true
+                            } label: {
+                                Label("How to set up your token", systemImage: "questionmark.circle")
+                            }
 
                             Link("Create token", destination: URL(string: "https://cloud.ouraring.com/personal-access-tokens")!)
                         }
@@ -455,6 +465,80 @@ private struct AboutLinkRow: View {
         .buttonStyle(.plain)
         .contentShape(Rectangle())
         .onHover { hovering = $0 }
+    }
+}
+
+private struct TokenSetupInstructionsView: View {
+    @Environment(\.dismiss) private var dismiss
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: 18) {
+            HStack(alignment: .center) {
+                Label("How to Set Up Your Token", systemImage: "key")
+                    .font(.title2.weight(.semibold))
+                Spacer()
+                Button {
+                    dismiss()
+                } label: {
+                    Image(systemName: "xmark.circle.fill")
+                        .font(.title3)
+                        .foregroundStyle(.secondary)
+                }
+                .buttonStyle(.plain)
+                .help("Close")
+            }
+
+            VStack(alignment: .leading, spacing: 12) {
+                TokenSetupStep(number: 1, title: "Open Oura Personal Access Tokens", detail: "Sign in with the Oura account connected to your ring.")
+                TokenSetupStep(number: 2, title: "Create a Personal Access Token", detail: "Use a clear name like REM-Bar so you can recognize it later.")
+                TokenSetupStep(number: 3, title: "Copy the token immediately", detail: "Oura only shows the full token once. If you lose it, create a new one.")
+                TokenSetupStep(number: 4, title: "Paste it in REM-Bar", detail: "Return to Account settings, paste the token, then choose Validate & Save.")
+            }
+
+            HStack(spacing: 12) {
+                Button {
+                    if let url = URL(string: "https://cloud.ouraring.com/personal-access-tokens") {
+                        NSWorkspace.shared.open(url)
+                    }
+                } label: {
+                    Label("Open Oura Token Page", systemImage: "safari")
+                }
+                .buttonStyle(.borderedProminent)
+
+                Spacer()
+
+                Button("Done") {
+                    dismiss()
+                }
+            }
+        }
+        .padding(24)
+        .frame(width: 560)
+    }
+}
+
+private struct TokenSetupStep: View {
+    let number: Int
+    let title: String
+    let detail: String
+
+    var body: some View {
+        HStack(alignment: .top, spacing: 12) {
+            Text("\(number)")
+                .font(.caption.weight(.bold))
+                .foregroundStyle(.white)
+                .frame(width: 24, height: 24)
+                .background(Color.accentColor, in: Circle())
+
+            VStack(alignment: .leading, spacing: 3) {
+                Text(title)
+                    .font(.headline)
+                Text(detail)
+                    .font(.callout)
+                    .foregroundStyle(.secondary)
+                    .fixedSize(horizontal: false, vertical: true)
+            }
+        }
     }
 }
 
