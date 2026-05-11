@@ -25,6 +25,7 @@ final class SettingsStoreTests: XCTestCase {
         store.refreshCadence = .fifteen
         store.averageWindow = .fourteen
         store.temperatureUnit = .fahrenheit
+        store.iconStyle = .monochrome
         store.setMetric(.dailyStress, enabled: true)
         store.selectedMetric = .dailyStress
         store.setMetric(.activity, enabled: false)
@@ -34,9 +35,23 @@ final class SettingsStoreTests: XCTestCase {
         XCTAssertEqual(reloaded.refreshCadence, .fifteen)
         XCTAssertEqual(reloaded.averageWindow, .fourteen)
         XCTAssertEqual(reloaded.temperatureUnit, .fahrenheit)
+        XCTAssertEqual(reloaded.iconStyle, .monochrome)
         XCTAssertEqual(reloaded.selectedMetric, .dailyStress)
         XCTAssertTrue(reloaded.enabledMetrics.contains(.dailyStress))
         XCTAssertFalse(reloaded.enabledMetrics.contains(.activity))
+    }
+
+    func testRoundTripsIconOnlyMenuBarSelection() {
+        let defaults = makeDefaults()
+        defer { defaults.removePersistentDomain(forName: defaultsSuiteName(defaults)) }
+
+        let store = SettingsStore(userDefaults: defaults)
+        store.selectedMetric = nil
+
+        let reloaded = SettingsStore(userDefaults: defaults)
+
+        XCTAssertNil(reloaded.selectedMetric)
+        XCTAssertEqual(defaults.string(forKey: "selectedMetric"), SettingsStore.iconOnlyMenuBarMetricRawValue)
     }
 
     func testAverageWindowLabels() {
@@ -149,6 +164,17 @@ final class SettingsStoreTests: XCTestCase {
         store.setMetric(.activity, enabled: false)
 
         XCTAssertEqual(store.selectedMetric, .dailyStress)
+    }
+
+    func testIconOnlySelectionSurvivesCardDisableChanges() {
+        let defaults = makeDefaults()
+        defer { defaults.removePersistentDomain(forName: defaultsSuiteName(defaults)) }
+
+        let store = SettingsStore(userDefaults: defaults)
+        store.selectedMetric = nil
+        store.setMetric(.readiness, enabled: false)
+
+        XCTAssertNil(store.selectedMetric)
     }
 
     private func makeDefaults() -> UserDefaults {

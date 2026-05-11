@@ -21,8 +21,11 @@ if [[ -z "$SPARKLE_FEED_URL" || -z "$SPARKLE_PUBLIC_ED_KEY" ]]; then
   exit 1
 fi
 DIST="$ROOT/dist"
-APP="$DIST/${APP_NAME}.app"
-ZIP="$DIST/${APP_NAME}-v${REM_BAR_VERSION}.zip"
+DIST_APP="$DIST/${APP_NAME}.app"
+DIST_ZIP="$DIST/${APP_NAME}-v${REM_BAR_VERSION}.zip"
+PACKAGE_ROOT=${PACKAGE_ROOT:-$(mktemp -d /tmp/rembar-package.XXXXXX)}
+APP="$PACKAGE_ROOT/${APP_NAME}.app"
+ZIP="$PACKAGE_ROOT/${APP_NAME}-v${REM_BAR_VERSION}.zip"
 BUILD_NUMBER=$(git rev-list --count HEAD 2>/dev/null || echo "1")
 GIT_COMMIT=$(git rev-parse --short HEAD 2>/dev/null || echo "unknown")
 BUILD_TIMESTAMP=$(date -u +"%Y-%m-%dT%H:%M:%SZ")
@@ -106,11 +109,18 @@ sign_if_exists() {
   codesign --force --sign - "$path" >/dev/null
 }
 
+clean_package_metadata() {
+  xattr -cr "$APP"
+  find "$APP" -name '._*' -delete
+}
+
 for arch in "${ARCH_LIST[@]}"; do
   swift build -c "$CONF" --arch "$arch"
 done
 
-mkdir -p "$DIST"
+mkdir -p "$DIST" "$PACKAGE_ROOT"
+move_to_trash "$DIST_APP"
+move_to_trash "$DIST_ZIP"
 move_to_trash "$APP"
 move_to_trash "$ZIP"
 mkdir -p "$APP/Contents/MacOS" "$APP/Contents/Resources" "$APP/Contents/Frameworks"
@@ -169,8 +179,7 @@ cp -R "$SPARKLE_FRAMEWORK" "$APP/Contents/Frameworks/"
 install_name_tool -add_rpath "@executable_path/../Frameworks" "$APP/Contents/MacOS/$APP_NAME" 2>/dev/null || true
 
 plutil -lint "$APP/Contents/Info.plist" >/dev/null
-xattr -cr "$APP"
-find "$APP" -name '._*' -delete
+clean_package_metadata
 SPARKLE="$APP/Contents/Frameworks/Sparkle.framework"
 sign_if_exists "$SPARKLE/Versions/B/Autoupdate"
 sign_if_exists "$SPARKLE/Versions/B/Updater.app/Contents/MacOS/Updater"
@@ -184,12 +193,22 @@ sign_if_exists "$SPARKLE/Versions/B"
 sign_if_exists "$SPARKLE"
 codesign --force --sign - "$APP/Contents/MacOS/$MCP_NAME" >/dev/null
 codesign --force --sign - "$APP" >/dev/null
-codesign --verify --deep --strict --verbose=2 "$APP" >/dev/null
+clean_package_metadata
+if ! codesign --verify --deep --strict --verbose=2 "$APP" >/dev/null; then
+  clean_package_metadata
+  codesign --verify --deep --strict --verbose=2 "$APP" >/dev/null
+fi
 
 (
-  cd "$DIST"
+  cd "$PACKAGE_ROOT"
   ditto -c -k --sequesterRsrc --keepParent "${APP_NAME}.app" "$(basename "$ZIP")"
 )
 
-echo "Created $APP"
-echo "Created $ZIP"
+ditto "$APP" "$DIST_APP"
+cp "$ZIP" "$DIST_ZIP"
+xattr -cr "$DIST_APP" 2>/dev/null || true
+find "$DIST_APP" -name '._*' -delete
+
+echo "Created $DIST_APP"
+echo "Created $DIST_ZIP"
+echo "Package staging left at $PACKAGE_ROOT"

@@ -178,8 +178,11 @@ struct SettingsView: View {
                             Text("Menu-bar metric")
                                 .frame(width: 130, alignment: .leading)
                             Picker("Menu-bar metric", selection: $settings.selectedMetric) {
+                                Label("Icon only", systemImage: "moon.zzz")
+                                    .tag(nil as BarMetric?)
                                 ForEach(settings.orderedEnabledMetrics) { metric in
-                                    Label(metric.label, systemImage: metric.symbolName).tag(metric)
+                                    Label(metric.label, systemImage: metric.symbolName)
+                                        .tag(Optional(metric))
                                 }
                             }
                             .labelsHidden()
@@ -198,6 +201,14 @@ struct SettingsView: View {
                             .labelsHidden()
                             .pickerStyle(.segmented)
                             .frame(width: 240)
+                            Spacer(minLength: 0)
+                        }
+
+                        HStack {
+                            Text("Icon color")
+                                .frame(width: 130, alignment: .leading)
+                            Toggle("Color icons", isOn: iconColorEnabled)
+                                .toggleStyle(.switch)
                             Spacer(minLength: 0)
                         }
                     }
@@ -353,6 +364,12 @@ struct SettingsView: View {
 
     private var metricCardColumns: [GridItem] {
         Array(repeating: GridItem(.flexible(minimum: 295), spacing: 10, alignment: .topLeading), count: 3)
+    }
+
+    private var iconColorEnabled: Binding<Bool> {
+        Binding(
+            get: { settings.iconStyle == .color },
+            set: { settings.iconStyle = $0 ? .color : .monochrome })
     }
 
     private var appVersionString: String {

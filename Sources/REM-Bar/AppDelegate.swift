@@ -45,6 +45,14 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
                 }
             }
             .store(in: &cancellables)
+        settings.$iconStyle
+            .receive(on: RunLoop.main)
+            .sink { [weak controller, weak refreshCoordinator] _ in
+                Task { @MainActor in
+                    controller?.update(snapshot: refreshCoordinator?.snapshot ?? .empty)
+                }
+            }
+            .store(in: &cancellables)
         settings.$refreshCadence
             .receive(on: RunLoop.main)
             .sink { [weak refreshCoordinator] _ in

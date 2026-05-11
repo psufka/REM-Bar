@@ -4,14 +4,12 @@ struct MetricCardView: View {
     let series: MetricSeries
     let temperatureUnit: TemperatureUnit
     let averageWindow: SettingsStore.AverageWindow
+    let iconStyle: IconStyle
 
     var body: some View {
         VStack(alignment: .leading, spacing: 4) {
             HStack {
-                Label(series.metric.label, systemImage: series.metric.symbolName)
-                    .font(.caption)
-                    .foregroundStyle(.secondary)
-                    .lineLimit(1)
+                metricLabel
                 Spacer(minLength: 4)
                 let formattedDelta = series.formattedDelta(using: temperatureUnit)
                 if !formattedDelta.isEmpty {
@@ -59,17 +57,35 @@ struct MetricCardView: View {
         }
         return delta > 0 ? .green : .red
     }
+
+    private var metricLabel: some View {
+        HStack(spacing: 6) {
+            Image(systemName: series.metric.symbolName)
+                .foregroundStyle(iconColor)
+            Text(series.metric.label)
+                .foregroundStyle(.secondary)
+                .lineLimit(1)
+        }
+        .font(.caption)
+    }
+
+    private var iconColor: Color {
+        guard iconStyle == .color else { return .secondary }
+        return Color(nsColor: ColorThresholds.color(
+            for: series.currentValue,
+            metric: series.metric,
+            baseline: series.baselineValue,
+            category: series.categoryValue))
+    }
 }
 
 struct CategoricalMetricCardView: View {
     let series: MetricSeries
+    let iconStyle: IconStyle
 
     var body: some View {
         VStack(alignment: .leading, spacing: 8) {
-            Label(series.metric.label, systemImage: series.metric.symbolName)
-                .font(.caption)
-                .foregroundStyle(.secondary)
-                .lineLimit(1)
+            metricLabel
 
             Text(series.formattedCurrentValue)
                 .font(.title2.weight(.semibold))
@@ -91,5 +107,24 @@ struct CategoricalMetricCardView: View {
         .padding(10)
         .frame(height: PopoverLayoutMetrics.cardHeight)
         .background(Color(nsColor: .controlBackgroundColor), in: RoundedRectangle(cornerRadius: 8))
+    }
+
+    private var metricLabel: some View {
+        HStack(spacing: 6) {
+            Image(systemName: series.metric.symbolName)
+                .foregroundStyle(iconColor)
+            Text(series.metric.label)
+                .foregroundStyle(.secondary)
+                .lineLimit(1)
+        }
+        .font(.caption)
+    }
+
+    private var iconColor: Color {
+        guard iconStyle == .color else { return .secondary }
+        return Color(nsColor: ColorThresholds.color(
+            for: series.currentValue,
+            metric: series.metric,
+            category: series.categoryValue))
     }
 }

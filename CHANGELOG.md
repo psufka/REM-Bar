@@ -6,6 +6,8 @@
 
 - Added Sparkle-powered in-app update support with an About-pane auto-update checkbox and manual Check for Updates button.
 - Added Sparkle appcast generation and verification scripts for GitHub Releases.
+- Added an Icon only menu-bar display option that shows the REM-Bar moon icon without a metric value.
+- Added a Display switch for colored vs black-and-white metric icons.
 
 ### Changed
 

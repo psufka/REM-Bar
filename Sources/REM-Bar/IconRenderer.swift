@@ -273,12 +273,14 @@ enum BarMetric: String, CaseIterable, Codable, Identifiable {
 }
 
 enum IconRenderer {
-    static func image(for metric: BarMetric, color: NSColor) -> NSImage? {
-        let configuration = NSImage.SymbolConfiguration(pointSize: 13, weight: .semibold)
-            .applying(NSImage.SymbolConfiguration(hierarchicalColor: color))
+    static func image(for metric: BarMetric, color: NSColor, style: IconStyle = .color) -> NSImage? {
+        var configuration = NSImage.SymbolConfiguration(pointSize: 13, weight: .semibold)
+        if style == .color {
+            configuration = configuration.applying(NSImage.SymbolConfiguration(hierarchicalColor: color))
+        }
         let image = NSImage(systemSymbolName: metric.symbolName, accessibilityDescription: metric.label)?
             .withSymbolConfiguration(configuration)
-        image?.isTemplate = false
+        image?.isTemplate = style == .monochrome
         return image
     }
 }

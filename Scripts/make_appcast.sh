@@ -47,6 +47,7 @@ HTML
   --ed-key-file "$PRIVATE_KEY_FILE" \
   --download-url-prefix "$DOWNLOAD_URL_PREFIX" \
   --embed-release-notes \
+  --maximum-versions 1 \
   --link "$FEED_URL" \
   "$WORK_DIR"
 

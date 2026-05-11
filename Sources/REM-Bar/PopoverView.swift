@@ -7,6 +7,7 @@ struct PopoverView: View {
     let metricOrder: [BarMetric]
     let temperatureUnit: TemperatureUnit
     let averageWindow: SettingsStore.AverageWindow
+    let iconStyle: IconStyle
     let gridViewportHeight: CGFloat
     let lastError: String?
     let tokenNeedsUpdate: Bool
@@ -22,12 +23,13 @@ struct PopoverView: View {
                     ForEach(visibleMetrics) { metric in
                         let series = snapshot.series(for: metric)
                         if metric.isCategorical {
-                            CategoricalMetricCardView(series: series)
+                            CategoricalMetricCardView(series: series, iconStyle: iconStyle)
                         } else {
                             MetricCardView(
                                 series: series,
                                 temperatureUnit: temperatureUnit,
-                                averageWindow: averageWindow)
+                                averageWindow: averageWindow,
+                                iconStyle: iconStyle)
                         }
                     }
                 }

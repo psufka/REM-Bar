@@ -34,14 +34,21 @@ final class StatusItemController: NSObject, NSWindowDelegate {
 
     func update(snapshot: DashboardSnapshot) {
         guard let button = statusItem.button else { return }
-        let metric = settings.selectedMetric
+        guard let metric = settings.selectedMetric else {
+            button.image = IconRenderer.image(for: .sleepScore, color: .systemOrange, style: settings.iconStyle)
+            button.contentTintColor = nil
+            button.imagePosition = .imageOnly
+            button.title = ""
+            return
+        }
         let series = snapshot.series(for: metric)
         let value = series.currentValue
         button.image = IconRenderer.image(for: metric, color: ColorThresholds.color(
             for: value,
             metric: metric,
             baseline: series.baselineValue,
-            category: series.categoryValue))
+            category: series.categoryValue),
+            style: settings.iconStyle)
         button.contentTintColor = nil
         button.imagePosition = .imageLeft
         if series.availabilityMessage != nil {
@@ -69,6 +76,7 @@ final class StatusItemController: NSObject, NSWindowDelegate {
             metricOrder: settings.metricOrder,
             temperatureUnit: settings.temperatureUnit,
             averageWindow: settings.averageWindow,
+            iconStyle: settings.iconStyle,
             gridViewportHeight: layout.gridViewportHeight,
             lastError: refreshCoordinator.lastError,
             tokenNeedsUpdate: refreshCoordinator.tokenNeedsUpdate,

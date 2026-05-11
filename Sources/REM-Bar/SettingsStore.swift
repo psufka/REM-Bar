@@ -35,6 +35,13 @@ enum TemperatureUnit: String, CaseIterable, Identifiable {
     }
 }
 
+enum IconStyle: String, CaseIterable, Identifiable {
+    case color
+    case monochrome
+
+    var id: String { rawValue }
+}
+
 @MainActor
 final class SettingsStore: ObservableObject {
     static let shared = SettingsStore()
@@ -109,10 +116,20 @@ final class SettingsStore: ObservableObject {
         }
     }
 
-    @Published var selectedMetric: BarMetric {
+    @Published var iconStyle: IconStyle {
         didSet {
+            userDefaults.set(iconStyle.rawValue, forKey: Keys.iconStyle)
+        }
+    }
+
+    @Published var selectedMetric: BarMetric? {
+        didSet {
+            guard let selectedMetric else {
+                userDefaults.set(Self.iconOnlyMenuBarMetricRawValue, forKey: Keys.selectedMetric)
+                return
+            }
             guard enabledMetrics.contains(selectedMetric) else {
-                selectedMetric = orderedEnabledMetrics.first ?? .sleepScore
+                self.selectedMetric = orderedEnabledMetrics.first ?? .sleepScore
                 return
             }
             userDefaults.set(selectedMetric.rawValue, forKey: Keys.selectedMetric)
@@ -132,8 +149,8 @@ final class SettingsStore: ObservableObject {
                 return
             }
             saveEnabledMetrics()
-            if !enabledMetrics.contains(selectedMetric) {
-                selectedMetric = orderedEnabledMetrics.first ?? .sleepScore
+            if let selectedMetric, !enabledMetrics.contains(selectedMetric) {
+                self.selectedMetric = orderedEnabledMetrics.first ?? .sleepScore
             }
         }
     }
@@ -160,11 +177,17 @@ final class SettingsStore: ObservableObject {
         self.averageWindow = AverageWindow(rawValue: rawAverageWindow) ?? .seven
         let rawTemperatureUnit = userDefaults.string(forKey: Keys.temperatureUnit) ?? TemperatureUnit.celsius.rawValue
         self.temperatureUnit = TemperatureUnit(rawValue: rawTemperatureUnit) ?? .celsius
+        let rawIconStyle = userDefaults.string(forKey: Keys.iconStyle) ?? IconStyle.color.rawValue
+        self.iconStyle = IconStyle(rawValue: rawIconStyle) ?? .color
         let rawMetric = userDefaults.string(forKey: Keys.selectedMetric) ?? BarMetric.sleepScore.rawValue
-        let selectedMetric = BarMetric(rawValue: rawMetric) ?? .sleepScore
-        self.selectedMetric = enabledMetrics.contains(selectedMetric)
-            ? selectedMetric
-            : Self.orderedMetrics(in: enabledMetrics, metricOrder: metricOrder).first ?? .sleepScore
+        if rawMetric == Self.iconOnlyMenuBarMetricRawValue {
+            self.selectedMetric = nil
+        } else {
+            let selectedMetric = BarMetric(rawValue: rawMetric) ?? .sleepScore
+            self.selectedMetric = enabledMetrics.contains(selectedMetric)
+                ? selectedMetric
+                : Self.orderedMetrics(in: enabledMetrics, metricOrder: metricOrder).first ?? .sleepScore
+        }
     }
 
     func setMetric(_ metric: BarMetric, enabled: Bool) {
@@ -236,6 +259,7 @@ final class SettingsStore: ObservableObject {
         static let enabledMetrics = "enabledMetrics"
         static let metricOrder = "metricOrder"
         static let temperatureUnit = "temperatureUnit"
+        static let iconStyle = "iconStyle"
     }
 
     static let defaultEnabledMetrics: Set<BarMetric> = [
@@ -267,6 +291,8 @@ final class SettingsStore: ObservableObject {
         .vo2Max,
         .averageSpO2,
     ]
+
+    static let iconOnlyMenuBarMetricRawValue = "__iconOnly"
 
     private static func orderedMetrics(in metrics: Set<BarMetric>, metricOrder: [BarMetric]) -> [BarMetric] {
         metricOrder.filter { metrics.contains($0) }
