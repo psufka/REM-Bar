@@ -54,7 +54,7 @@ final class StatusItemController: NSObject, NSWindowDelegate {
         if series.availabilityMessage != nil {
             button.title = " N/A"
         } else if let value {
-            button.title = " \(metric.formattedValue(value, temperatureUnit: settings.temperatureUnit))"
+            button.title = " \(metric.formattedValue(value, temperatureUnit: settings.temperatureUnit))\(trendText(for: series))"
         } else if let categoryValue = series.categoryValue {
             button.title = " \(metric.formattedCategory(categoryValue))"
         } else {
@@ -142,6 +142,38 @@ final class StatusItemController: NSObject, NSWindowDelegate {
 
     @objc private func quit() {
         NSApp.terminate(nil)
+    }
+
+    private func trendText(for series: MetricSeries) -> String {
+        guard !series.metric.isCategorical,
+              series.availabilityMessage == nil,
+              let delta = series.delta
+        else {
+            return ""
+        }
+        let magnitude = abs(delta)
+        guard magnitude >= minimumTrendMagnitude(for: series.metric) else { return "" }
+        let arrow = delta > 0 ? "↑" : "↓"
+        let formatted = series.metric.formattedDelta(magnitude, temperatureUnit: settings.temperatureUnit)
+        guard !isZeroTrend(formatted) else { return "" }
+        return " \(arrow)\(formatted)"
+    }
+
+    private func minimumTrendMagnitude(for metric: BarMetric) -> Double {
+        switch metric {
+        case .averageBreath, .averageSpO2, .bodyTemperatureDeviation, .vo2Max:
+            return 0.05
+        case .rem, .deepSleep, .totalSleep, .sleepDebt, .lightSleep, .awakeTime, .timeInBed, .sleepLatency:
+            return 0.5
+        case .sleepScore, .hrv, .rhr, .readiness, .activity, .hrvBalance, .sleepBalance, .sleepRegularity, .sleepEfficiency, .cardiovascularAge, .breathingDisturbance:
+            return 0.5
+        case .dailyStress, .resilience, .optimalBedtime, .sleepTimeRecommendation:
+            return .infinity
+        }
+    }
+
+    private func isZeroTrend(_ text: String) -> Bool {
+        ["0", "0ms", "0bpm", "0y", "0%", "0:00", "0.0", "0.0C", "0.0F", "0.0%", "0.0rpm"].contains(text)
     }
 }
 

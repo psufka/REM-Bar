@@ -93,6 +93,7 @@ enum DashboardSnapshotBuilder {
         vo2Max: [VO2Max] = [],
         sleepTime: [SleepTime] = [],
         personalInfo: PersonalInfo? = nil,
+        sleepTargetMinutes: Int = 480,
         enabledMetrics: Set<BarMetric> = Set(BarMetric.allCases))
         -> DashboardSnapshot
     {
@@ -139,6 +140,10 @@ enum DashboardSnapshotBuilder {
                     return point(day: day, value: detail?.deepSleepDuration.map { Double($0) / 60.0 })
                 case .totalSleep:
                     return point(day: day, value: detail?.totalSleepDuration.map { Double($0) / 60.0 })
+                case .sleepDebt:
+                    guard let totalSleepDuration = detail?.totalSleepDuration else { return nil }
+                    let sleepMinutes = Double(totalSleepDuration) / 60.0
+                    return point(day: day, value: max(0, Double(sleepTargetMinutes) - sleepMinutes))
                 case .lightSleep:
                     return point(day: day, value: detail?.lightSleepDuration.map { Double($0) / 60.0 })
                 case .awakeTime:
@@ -268,7 +273,7 @@ enum DashboardSnapshotBuilder {
              .optimalBedtime where sleepTime.isEmpty,
              .sleepTimeRecommendation where sleepTime.isEmpty:
             return "Not available on your ring"
-        case .sleepScore, .rem, .deepSleep, .totalSleep, .lightSleep, .awakeTime, .timeInBed, .sleepLatency, .averageBreath, .hrv, .rhr, .readiness, .activity, .hrvBalance, .sleepBalance, .sleepRegularity, .bodyTemperatureDeviation, .sleepEfficiency, .dailyStress, .resilience, .cardiovascularAge, .averageSpO2, .breathingDisturbance, .vo2Max, .optimalBedtime, .sleepTimeRecommendation:
+        case .sleepScore, .rem, .deepSleep, .totalSleep, .sleepDebt, .lightSleep, .awakeTime, .timeInBed, .sleepLatency, .averageBreath, .hrv, .rhr, .readiness, .activity, .hrvBalance, .sleepBalance, .sleepRegularity, .bodyTemperatureDeviation, .sleepEfficiency, .dailyStress, .resilience, .cardiovascularAge, .averageSpO2, .breathingDisturbance, .vo2Max, .optimalBedtime, .sleepTimeRecommendation:
             return nil
         }
     }

@@ -14,6 +14,7 @@ struct SettingsView: View {
     @State private var draggedMetric: BarMetric?
     @State private var showingTokenSetup = false
     @State private var didLoadUpdaterState = false
+    @StateObject private var loginItemController = LoginItemController()
     @AppStorage("autoUpdateEnabled") private var autoUpdateEnabled = true
     @FocusState private var tokenFieldFocused: Bool
 
@@ -37,6 +38,7 @@ struct SettingsView: View {
         .frame(width: 1120, height: 700)
         .onAppear {
             tokenFieldFocused = false
+            loginItemController.refresh()
             syncUpdaterStateIfNeeded()
             Task {
                 await reloadTokenState()
@@ -180,7 +182,7 @@ struct SettingsView: View {
                             Picker("Menu-bar metric", selection: $settings.selectedMetric) {
                                 Label("Icon only", systemImage: "moon.zzz")
                                     .tag(nil as BarMetric?)
-                                ForEach(settings.orderedEnabledMetrics) { metric in
+                                ForEach(settings.orderedAvailableEnabledMetrics) { metric in
                                     Label(metric.label, systemImage: metric.symbolName)
                                         .tag(Optional(metric))
                                 }
@@ -205,18 +207,46 @@ struct SettingsView: View {
                         }
 
                         HStack {
+                            Text("Sleep target")
+                                .frame(width: 130, alignment: .leading)
+                            Picker("Sleep target", selection: $settings.sleepTarget) {
+                                ForEach(SleepTarget.allCases) { target in
+                                    Text(target.label).tag(target)
+                                }
+                            }
+                            .labelsHidden()
+                            .frame(width: 220)
+                            Spacer(minLength: 0)
+                        }
+
+                        HStack {
                             Text("Icon color")
                                 .frame(width: 130, alignment: .leading)
                             Toggle("Color icons", isOn: iconColorEnabled)
                                 .toggleStyle(.switch)
                             Spacer(minLength: 0)
                         }
+
+                        HStack {
+                            Text("Launch")
+                                .frame(width: 130, alignment: .leading)
+                            Toggle("Open at login", isOn: loginItemEnabled)
+                                .toggleStyle(.switch)
+                                .disabled(!loginItemController.isAvailable)
+                            Spacer(minLength: 0)
+                        }
+
+                        if let errorMessage = loginItemController.errorMessage {
+                            Text(errorMessage)
+                                .font(.caption)
+                                .foregroundStyle(.red)
+                        }
                     }
                 }
 
                 settingsSection("Active cards") {
                     LazyVGrid(columns: metricCardColumns, alignment: .leading, spacing: 8) {
-                        ForEach(settings.orderedEnabledMetrics) { metric in
+                        ForEach(settings.orderedAvailableEnabledMetrics) { metric in
                             MetricOrderRow(metric: metric, isActive: true)
                                 .onDrag {
                                     draggedMetric = metric
@@ -242,7 +272,7 @@ struct SettingsView: View {
 
                 settingsSection("Inactive cards") {
                     LazyVGrid(columns: metricCardColumns, alignment: .leading, spacing: 8) {
-                        ForEach(settings.orderedInactiveMetrics) { metric in
+                        ForEach(settings.orderedAvailableInactiveMetrics) { metric in
                             MetricOrderRow(metric: metric, isActive: false)
                                 .onDrag {
                                     draggedMetric = metric
@@ -264,6 +294,16 @@ struct SettingsView: View {
                             targetMetric: nil,
                             settings: settings,
                             draggedMetric: $draggedMetric))
+                }
+
+                if !settings.orderedUnavailableMetrics.isEmpty {
+                    settingsSection("Unavailable with your ring") {
+                        LazyVGrid(columns: metricCardColumns, alignment: .leading, spacing: 8) {
+                            ForEach(settings.orderedUnavailableMetrics) { metric in
+                                MetricOrderRow(metric: metric, isActive: false, isUnavailable: true)
+                            }
+                        }
+                    }
                 }
 
                 Text("Refresh is driven by display-link ticks so requests pause while the display is asleep.")
@@ -371,6 +411,12 @@ struct SettingsView: View {
         Binding(
             get: { settings.iconStyle == .color },
             set: { settings.iconStyle = $0 ? .color : .monochrome })
+    }
+
+    private var loginItemEnabled: Binding<Bool> {
+        Binding(
+            get: { loginItemController.isEnabled },
+            set: { loginItemController.setEnabled($0) })
     }
 
     private var appVersionString: String {
@@ -619,20 +665,34 @@ private struct TokenSetupStep: View {
 private struct MetricOrderRow: View {
     let metric: BarMetric
     let isActive: Bool
+    var isUnavailable = false
 
     var body: some View {
         HStack(spacing: 8) {
-            Image(systemName: "line.3.horizontal")
-                .font(.caption.weight(.semibold))
-                .foregroundStyle(.secondary)
-                .frame(width: 18)
-                .help("Drag to reorder")
+            if isUnavailable {
+                Image(systemName: "slash.circle")
+                    .font(.caption.weight(.semibold))
+                    .foregroundStyle(.secondary)
+                    .frame(width: 18)
+            } else {
+                Image(systemName: "line.3.horizontal")
+                    .font(.caption.weight(.semibold))
+                    .foregroundStyle(.secondary)
+                    .frame(width: 18)
+                    .help("Drag to reorder")
+            }
 
             Label(metric.label, systemImage: metric.symbolName)
                 .lineLimit(1)
-                .foregroundStyle(isActive ? .primary : .secondary)
+                .foregroundStyle(rowForeground)
 
             Spacer(minLength: 0)
+
+            if isUnavailable {
+                Text("Unavailable")
+                    .font(.caption2.weight(.medium))
+                    .foregroundStyle(.secondary)
+            }
         }
         .contentShape(Rectangle())
         .padding(.vertical, 5)
@@ -642,7 +702,11 @@ private struct MetricOrderRow: View {
     }
 
     private var rowBackground: Color {
-        isActive ? Color(nsColor: .controlBackgroundColor) : Color(nsColor: .controlBackgroundColor).opacity(0.55)
+        isActive && !isUnavailable ? Color(nsColor: .controlBackgroundColor) : Color(nsColor: .controlBackgroundColor).opacity(0.55)
+    }
+
+    private var rowForeground: Color {
+        isActive && !isUnavailable ? .primary : .secondary
     }
 }
 

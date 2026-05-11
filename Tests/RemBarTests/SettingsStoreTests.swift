@@ -26,6 +26,7 @@ final class SettingsStoreTests: XCTestCase {
         store.averageWindow = .fourteen
         store.temperatureUnit = .fahrenheit
         store.iconStyle = .monochrome
+        store.sleepTarget = .eightThirty
         store.setMetric(.dailyStress, enabled: true)
         store.selectedMetric = .dailyStress
         store.setMetric(.activity, enabled: false)
@@ -36,6 +37,7 @@ final class SettingsStoreTests: XCTestCase {
         XCTAssertEqual(reloaded.averageWindow, .fourteen)
         XCTAssertEqual(reloaded.temperatureUnit, .fahrenheit)
         XCTAssertEqual(reloaded.iconStyle, .monochrome)
+        XCTAssertEqual(reloaded.sleepTarget, .eightThirty)
         XCTAssertEqual(reloaded.selectedMetric, .dailyStress)
         XCTAssertTrue(reloaded.enabledMetrics.contains(.dailyStress))
         XCTAssertFalse(reloaded.enabledMetrics.contains(.activity))
@@ -59,6 +61,8 @@ final class SettingsStoreTests: XCTestCase {
         XCTAssertEqual(SettingsStore.AverageWindow.seven.averageLabel, "7-day avg")
         XCTAssertEqual(SettingsStore.AverageWindow.fourteen.averageLabel, "14-day avg")
         XCTAssertEqual(SettingsStore.AverageWindow.thirty.averageLabel, "30-day avg")
+        XCTAssertEqual(SleepTarget.eight.label, "8:00")
+        XCTAssertEqual(SleepTarget.eightThirty.label, "8:30")
     }
 
     func testTemperatureFormattingConvertsDeviationUnits() {
@@ -73,6 +77,7 @@ final class SettingsStoreTests: XCTestCase {
         XCTAssertEqual(BarMetric.deepSleep.formattedValue(92), "1:32")
         XCTAssertEqual(BarMetric.lightSleep.formattedValue(185), "3:05")
         XCTAssertEqual(BarMetric.rem.formattedValue(94), "1:34")
+        XCTAssertEqual(BarMetric.sleepDebt.formattedValue(73), "1:13")
         XCTAssertEqual(BarMetric.sleepLatency.formattedValue(9), "0:09")
         XCTAssertEqual(BarMetric.totalSleep.formattedDelta(-32), "-0:32")
     }
@@ -111,7 +116,7 @@ final class SettingsStoreTests: XCTestCase {
 
         XCTAssertFalse(store.enabledMetrics.contains(.readiness))
         XCTAssertEqual(store.orderedEnabledMetrics, SettingsStore.defaultMetricOrder.filter { $0 != .readiness })
-        XCTAssertEqual(Array(store.orderedInactiveMetrics.prefix(3)), [.activity, .readiness, .lightSleep])
+        XCTAssertEqual(Array(store.orderedInactiveMetrics.prefix(3)), [.activity, .sleepDebt, .readiness])
     }
 
     func testCannotMoveOnlyActiveMetricToInactive() {
@@ -175,6 +180,33 @@ final class SettingsStoreTests: XCTestCase {
         store.setMetric(.readiness, enabled: false)
 
         XCTAssertNil(store.selectedMetric)
+    }
+
+    func testUnavailableMetricsPersistAndFilterCardSections() {
+        let defaults = makeDefaults()
+        defer { defaults.removePersistentDomain(forName: defaultsSuiteName(defaults)) }
+
+        let store = SettingsStore(userDefaults: defaults)
+        store.setMetric(.vo2Max, enabled: true)
+        store.selectedMetric = .vo2Max
+        store.noteMetricAvailability(from: DashboardSnapshot(metrics: [
+            .vo2Max: MetricSeries(metric: .vo2Max, points: [], availabilityMessage: "Not available on your ring"),
+        ]))
+
+        XCTAssertTrue(store.knownUnavailableMetrics.contains(.vo2Max))
+        XCTAssertFalse(store.orderedAvailableEnabledMetrics.contains(.vo2Max))
+        XCTAssertTrue(store.orderedUnavailableMetrics.contains(.vo2Max))
+        XCTAssertNotEqual(store.selectedMetric, .vo2Max)
+
+        let reloaded = SettingsStore(userDefaults: defaults)
+        XCTAssertTrue(reloaded.knownUnavailableMetrics.contains(.vo2Max))
+
+        store.noteMetricAvailability(from: DashboardSnapshot(metrics: [
+            .vo2Max: MetricSeries(metric: .vo2Max, points: [MetricPoint(id: "today", date: Date(), value: 42)]),
+        ]))
+
+        XCTAssertFalse(store.knownUnavailableMetrics.contains(.vo2Max))
+        XCTAssertTrue(store.orderedAvailableEnabledMetrics.contains(.vo2Max))
     }
 
     private func makeDefaults() -> UserDefaults {

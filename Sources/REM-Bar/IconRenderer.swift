@@ -9,6 +9,7 @@ enum BarMetric: String, CaseIterable, Codable, Identifiable {
     case activity
     case deepSleep
     case totalSleep
+    case sleepDebt
     case lightSleep
     case awakeTime
     case timeInBed
@@ -40,6 +41,8 @@ enum BarMetric: String, CaseIterable, Codable, Identifiable {
             return "Deep Sleep"
         case .totalSleep:
             return "Total Sleep"
+        case .sleepDebt:
+            return "Sleep Debt"
         case .lightSleep:
             return "Light Sleep"
         case .awakeTime:
@@ -97,6 +100,8 @@ enum BarMetric: String, CaseIterable, Codable, Identifiable {
             return "bed.double.circle"
         case .totalSleep:
             return "clock"
+        case .sleepDebt:
+            return "hourglass"
         case .lightSleep:
             return "bed.double"
         case .awakeTime:
@@ -148,7 +153,7 @@ enum BarMetric: String, CaseIterable, Codable, Identifiable {
         switch self {
         case .sleepScore, .readiness, .activity, .sleepEfficiency, .hrvBalance, .sleepBalance, .sleepRegularity, .breathingDisturbance:
             return ""
-        case .rem, .deepSleep, .totalSleep, .lightSleep, .awakeTime, .timeInBed, .sleepLatency:
+        case .rem, .deepSleep, .totalSleep, .sleepDebt, .lightSleep, .awakeTime, .timeInBed, .sleepLatency:
             return ""
         case .hrv:
             return "ms"
@@ -173,7 +178,7 @@ enum BarMetric: String, CaseIterable, Codable, Identifiable {
         switch self {
         case .dailyStress, .resilience, .optimalBedtime, .sleepTimeRecommendation:
             return true
-        case .sleepScore, .rem, .hrv, .rhr, .readiness, .activity, .deepSleep, .totalSleep, .lightSleep, .awakeTime, .timeInBed, .sleepLatency, .averageBreath, .hrvBalance, .sleepBalance, .sleepRegularity, .bodyTemperatureDeviation, .sleepEfficiency, .cardiovascularAge, .averageSpO2, .breathingDisturbance, .vo2Max:
+        case .sleepScore, .rem, .hrv, .rhr, .readiness, .activity, .deepSleep, .totalSleep, .sleepDebt, .lightSleep, .awakeTime, .timeInBed, .sleepLatency, .averageBreath, .hrvBalance, .sleepBalance, .sleepRegularity, .bodyTemperatureDeviation, .sleepEfficiency, .cardiovascularAge, .averageSpO2, .breathingDisturbance, .vo2Max:
             return false
         }
     }
@@ -188,14 +193,14 @@ enum BarMetric: String, CaseIterable, Codable, Identifiable {
             return "Recommended bedtime window"
         case .sleepTimeRecommendation:
             return "Oura sleep-time guidance"
-        case .sleepScore, .rem, .hrv, .rhr, .readiness, .activity, .deepSleep, .totalSleep, .lightSleep, .awakeTime, .timeInBed, .sleepLatency, .averageBreath, .hrvBalance, .sleepBalance, .sleepRegularity, .bodyTemperatureDeviation, .sleepEfficiency, .cardiovascularAge, .averageSpO2, .breathingDisturbance, .vo2Max:
+        case .sleepScore, .rem, .hrv, .rhr, .readiness, .activity, .deepSleep, .totalSleep, .sleepDebt, .lightSleep, .awakeTime, .timeInBed, .sleepLatency, .averageBreath, .hrvBalance, .sleepBalance, .sleepRegularity, .bodyTemperatureDeviation, .sleepEfficiency, .cardiovascularAge, .averageSpO2, .breathingDisturbance, .vo2Max:
             return ""
         }
     }
 
     func formattedValue(_ value: Double, temperatureUnit: TemperatureUnit = .celsius) -> String {
         switch self {
-        case .rem, .deepSleep, .totalSleep, .lightSleep, .awakeTime, .timeInBed, .sleepLatency:
+        case .rem, .deepSleep, .totalSleep, .sleepDebt, .lightSleep, .awakeTime, .timeInBed, .sleepLatency:
             return formattedDuration(minutes: value)
         case .sleepScore, .readiness, .activity, .hrv, .rhr, .sleepEfficiency, .hrvBalance, .sleepBalance, .sleepRegularity, .breathingDisturbance, .cardiovascularAge:
             return "\(Int(value.rounded()))\(unit)"
@@ -214,7 +219,7 @@ enum BarMetric: String, CaseIterable, Codable, Identifiable {
 
     func formattedDelta(_ value: Double, temperatureUnit: TemperatureUnit = .celsius) -> String {
         switch self {
-        case .rem, .deepSleep, .totalSleep, .lightSleep, .awakeTime, .timeInBed, .sleepLatency:
+        case .rem, .deepSleep, .totalSleep, .sleepDebt, .lightSleep, .awakeTime, .timeInBed, .sleepLatency:
             return formattedDuration(minutes: value)
         case .sleepScore, .readiness, .activity, .hrv, .rhr, .sleepEfficiency, .hrvBalance, .sleepBalance, .sleepRegularity, .breathingDisturbance, .cardiovascularAge:
             return "\(Int(value.rounded()))\(unit)"
@@ -242,7 +247,7 @@ enum BarMetric: String, CaseIterable, Codable, Identifiable {
                 .split { $0 == "_" || $0 == "-" }
                 .map { $0.capitalized }
                 .joined(separator: " ")
-        case .sleepScore, .rem, .deepSleep, .totalSleep, .lightSleep, .awakeTime, .timeInBed, .sleepLatency, .averageBreath, .hrv, .rhr, .readiness, .activity, .hrvBalance, .sleepBalance, .sleepRegularity, .bodyTemperatureDeviation, .sleepEfficiency, .cardiovascularAge, .averageSpO2, .breathingDisturbance, .vo2Max, .optimalBedtime:
+        case .sleepScore, .rem, .deepSleep, .totalSleep, .sleepDebt, .lightSleep, .awakeTime, .timeInBed, .sleepLatency, .averageBreath, .hrv, .rhr, .readiness, .activity, .hrvBalance, .sleepBalance, .sleepRegularity, .bodyTemperatureDeviation, .sleepEfficiency, .cardiovascularAge, .averageSpO2, .breathingDisturbance, .vo2Max, .optimalBedtime:
             return category
         }
     }

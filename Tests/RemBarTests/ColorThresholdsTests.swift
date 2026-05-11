@@ -20,6 +20,8 @@ final class ColorThresholdsTests: XCTestCase {
         XCTAssertEqual(ColorThresholds.color(for: 90, metric: .deepSleep), .systemGreen)
         XCTAssertEqual(ColorThresholds.color(for: 419.9, metric: .totalSleep), .systemOrange)
         XCTAssertEqual(ColorThresholds.color(for: 420, metric: .totalSleep), .systemGreen)
+        XCTAssertEqual(ColorThresholds.color(for: 30, metric: .sleepDebt), .systemGreen)
+        XCTAssertEqual(ColorThresholds.color(for: 90.1, metric: .sleepDebt), .systemRed)
         XCTAssertEqual(ColorThresholds.color(for: 47, metric: .cardiovascularAge, baseline: 42), .systemOrange)
         XCTAssertEqual(ColorThresholds.color(for: 48, metric: .cardiovascularAge, baseline: 42), .systemRed)
     }

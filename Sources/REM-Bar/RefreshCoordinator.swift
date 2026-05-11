@@ -54,6 +54,7 @@ final class RefreshCoordinator: ObservableObject {
         guard refreshTask == nil else { return }
         let enabledMetrics = settings.enabledMetrics
         let averageWindow = settings.averageWindow
+        let sleepTarget = settings.sleepTarget
         nextRefreshAfter = Date().addingTimeInterval(TimeInterval(settings.refreshCadence.rawValue))
         refreshTask = Task { [weak self] in
             guard let self else { return }
@@ -70,7 +71,7 @@ final class RefreshCoordinator: ObservableObject {
                 async let dailySleep = fetchIfNeeded("daily_sleep", enabledMetrics: enabledMetrics, requiredMetrics: [.sleepScore]) {
                     (try await self.client.dailySleep(startDate: startDate, endDate: endDate)).data
                 }
-                async let sleep = fetchIfNeeded("sleep", enabledMetrics: enabledMetrics, requiredMetrics: [.rem, .deepSleep, .totalSleep, .lightSleep, .awakeTime, .timeInBed, .sleepLatency, .averageBreath, .hrv, .rhr, .sleepEfficiency]) {
+                async let sleep = fetchIfNeeded("sleep", enabledMetrics: enabledMetrics, requiredMetrics: [.rem, .deepSleep, .totalSleep, .sleepDebt, .lightSleep, .awakeTime, .timeInBed, .sleepLatency, .averageBreath, .hrv, .rhr, .sleepEfficiency]) {
                     (try await self.client.sleep(startDate: startDate, endDate: endDate)).data
                 }
                 async let readiness = fetchIfNeeded("daily_readiness", enabledMetrics: enabledMetrics, requiredMetrics: [.readiness, .hrvBalance, .sleepBalance, .sleepRegularity, .bodyTemperatureDeviation]) {
@@ -131,9 +132,11 @@ final class RefreshCoordinator: ObservableObject {
                     vo2Max: vo2MaxResult.data,
                     sleepTime: sleepTimeResult.data,
                     personalInfo: personalInfo,
+                    sleepTargetMinutes: sleepTarget.minutes,
                     enabledMetrics: enabledMetrics)
                 await MainActor.run {
                     self.snapshot = snapshot
+                    self.settings.noteMetricAvailability(from: snapshot)
                     self.lastRefresh = Date()
                     self.lastError = Self.partialFailureMessage(for: failures)
                     self.tokenNeedsUpdate = false

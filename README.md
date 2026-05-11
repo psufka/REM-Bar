@@ -18,6 +18,7 @@ Tiny native macOS 14+ menu-bar app for Oura Ring data. REM-Bar shows sleep, read
 - **Real Oura data only.** REM-Bar uses your Oura Personal Access Token and does not include synthetic or demo data.
 - **Local by default.** Tokens live in the macOS Keychain or your existing local Oura config; the bundled MCP server reads the same token sources.
 - **Built-in updates.** Starting with v0.1.3, REM-Bar can check for signed app updates from GitHub Releases.
+- **Sleep target aware.** Optional Sleep Debt cards compare recent total sleep to your selected target.
 
 ## Install
 
@@ -100,11 +101,15 @@ oura_enhanced_tag
 
 - Native SwiftUI menu-bar app with no Dock icon.
 - Configurable menu-bar metric and refresh cadence.
-- Twenty-six Oura metric cards with persisted Active/Inactive state and drag ordering.
+- Twenty-seven Oura metric cards with persisted Active/Inactive state and drag ordering.
 - Celsius/Fahrenheit display setting for temperature deviation metrics.
+- Menu-bar icon-only mode, colored/black-and-white icon mode, and trend arrows for numeric metrics.
 - Sleep duration metrics formatted as hours and minutes.
+- Sleep Debt card based on total sleep versus a configurable sleep target.
 - Categorical cards for Resilience, Optimal Bedtime, Sleep Time Recommendation, and Daily Stress.
 - Graceful unavailable states for Gen3+/Membership-gated Oura endpoints.
+- Unavailable-with-your-ring metrics are separated from Active/Inactive card settings after Oura reports them unsupported.
+- Open at login toggle for the packaged app.
 - Sparkle-powered update checks with a manual Check for Updates button in Settings → About.
 - Shared `OuraKit` Swift library used by the app and MCP server.
 - Offline tests with Oura fixtures and URLProtocol stubs.

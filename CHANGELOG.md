@@ -8,6 +8,10 @@
 - Added Sparkle appcast generation and verification scripts for GitHub Releases.
 - Added an Icon only menu-bar display option that shows the REM-Bar moon icon without a metric value.
 - Added a Display switch for colored vs black-and-white metric icons.
+- Added an Open at login toggle in Display settings.
+- Added menu-bar trend arrows for numeric metrics when they differ from the selected average window.
+- Added a Sleep Debt card driven by recent total sleep versus a user-selected sleep target.
+- Added an Unavailable with your ring section in Display settings for metrics Oura reports as unsupported.
 
 ### Changed
 

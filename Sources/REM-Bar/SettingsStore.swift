@@ -42,6 +42,27 @@ enum IconStyle: String, CaseIterable, Identifiable {
     var id: String { rawValue }
 }
 
+enum SleepTarget: Int, CaseIterable, Identifiable {
+    case six = 360
+    case sixThirty = 390
+    case seven = 420
+    case sevenThirty = 450
+    case eight = 480
+    case eightThirty = 510
+    case nine = 540
+    case nineThirty = 570
+    case ten = 600
+
+    var id: Int { rawValue }
+    var minutes: Int { rawValue }
+
+    var label: String {
+        let hours = rawValue / 60
+        let minutes = rawValue % 60
+        return "\(hours):\(String(format: "%02d", minutes))"
+    }
+}
+
 @MainActor
 final class SettingsStore: ObservableObject {
     static let shared = SettingsStore()
@@ -122,6 +143,12 @@ final class SettingsStore: ObservableObject {
         }
     }
 
+    @Published var sleepTarget: SleepTarget {
+        didSet {
+            userDefaults.set(sleepTarget.rawValue, forKey: Keys.sleepTarget)
+        }
+    }
+
     @Published var selectedMetric: BarMetric? {
         didSet {
             guard let selectedMetric else {
@@ -155,12 +182,30 @@ final class SettingsStore: ObservableObject {
         }
     }
 
+    @Published private(set) var knownUnavailableMetrics: Set<BarMetric> {
+        didSet {
+            saveKnownUnavailableMetrics()
+        }
+    }
+
     var orderedEnabledMetrics: [BarMetric] {
         metricOrder.filter { enabledMetrics.contains($0) }
     }
 
     var orderedInactiveMetrics: [BarMetric] {
         metricOrder.filter { !enabledMetrics.contains($0) }
+    }
+
+    var orderedAvailableEnabledMetrics: [BarMetric] {
+        metricOrder.filter { enabledMetrics.contains($0) && !knownUnavailableMetrics.contains($0) }
+    }
+
+    var orderedAvailableInactiveMetrics: [BarMetric] {
+        metricOrder.filter { !enabledMetrics.contains($0) && !knownUnavailableMetrics.contains($0) }
+    }
+
+    var orderedUnavailableMetrics: [BarMetric] {
+        metricOrder.filter { knownUnavailableMetrics.contains($0) }
     }
 
     private let userDefaults: UserDefaults
@@ -171,6 +216,7 @@ final class SettingsStore: ObservableObject {
         self.metricOrder = metricOrder
         let enabledMetrics = Self.loadEnabledMetrics(from: userDefaults)
         self.enabledMetrics = enabledMetrics
+        self.knownUnavailableMetrics = Self.loadKnownUnavailableMetrics(from: userDefaults)
         let rawCadence = userDefaults.integer(forKey: Keys.refreshCadence)
         self.refreshCadence = RefreshCadence(rawValue: rawCadence) ?? .five
         let rawAverageWindow = userDefaults.integer(forKey: Keys.averageWindow)
@@ -179,6 +225,8 @@ final class SettingsStore: ObservableObject {
         self.temperatureUnit = TemperatureUnit(rawValue: rawTemperatureUnit) ?? .celsius
         let rawIconStyle = userDefaults.string(forKey: Keys.iconStyle) ?? IconStyle.color.rawValue
         self.iconStyle = IconStyle(rawValue: rawIconStyle) ?? .color
+        let rawSleepTarget = userDefaults.integer(forKey: Keys.sleepTarget)
+        self.sleepTarget = SleepTarget(rawValue: rawSleepTarget) ?? .eight
         let rawMetric = userDefaults.string(forKey: Keys.selectedMetric) ?? BarMetric.sleepScore.rawValue
         if rawMetric == Self.iconOnlyMenuBarMetricRawValue {
             self.selectedMetric = nil
@@ -252,6 +300,21 @@ final class SettingsStore: ObservableObject {
         enabledMetrics = Set(activeMetrics)
     }
 
+    func noteMetricAvailability(from snapshot: DashboardSnapshot) {
+        var updated = knownUnavailableMetrics
+        for (metric, series) in snapshot.metrics {
+            if series.availabilityMessage == nil {
+                updated.remove(metric)
+            } else {
+                updated.insert(metric)
+            }
+        }
+        knownUnavailableMetrics = updated
+        if let selectedMetric, knownUnavailableMetrics.contains(selectedMetric) {
+            self.selectedMetric = orderedAvailableEnabledMetrics.first
+        }
+    }
+
     private enum Keys {
         static let refreshCadence = "refreshCadence"
         static let averageWindow = "averageWindow"
@@ -260,6 +323,8 @@ final class SettingsStore: ObservableObject {
         static let metricOrder = "metricOrder"
         static let temperatureUnit = "temperatureUnit"
         static let iconStyle = "iconStyle"
+        static let sleepTarget = "sleepTarget"
+        static let knownUnavailableMetrics = "knownUnavailableMetrics"
     }
 
     static let defaultEnabledMetrics: Set<BarMetric> = [
@@ -330,6 +395,15 @@ final class SettingsStore: ObservableObject {
         return metrics.isEmpty ? defaultEnabledMetrics : metrics
     }
 
+    private static func loadKnownUnavailableMetrics(from userDefaults: UserDefaults) -> Set<BarMetric> {
+        guard let data = userDefaults.data(forKey: Keys.knownUnavailableMetrics),
+              let rawValues = try? JSONDecoder().decode([String].self, from: data)
+        else {
+            return []
+        }
+        return Set(rawValues.compactMap(BarMetric.init(rawValue:)))
+    }
+
     private func saveEnabledMetrics() {
         let rawValues = metricOrder
             .filter { enabledMetrics.contains($0) }
@@ -343,6 +417,15 @@ final class SettingsStore: ObservableObject {
         let rawValues = metricOrder.map(\.rawValue)
         if let data = try? JSONEncoder().encode(rawValues) {
             userDefaults.set(data, forKey: Keys.metricOrder)
+        }
+    }
+
+    private func saveKnownUnavailableMetrics() {
+        let rawValues = metricOrder
+            .filter { knownUnavailableMetrics.contains($0) }
+            .map(\.rawValue)
+        if let data = try? JSONEncoder().encode(rawValues) {
+            userDefaults.set(data, forKey: Keys.knownUnavailableMetrics)
         }
     }
 }
