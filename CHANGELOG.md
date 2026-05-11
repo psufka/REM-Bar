@@ -6,6 +6,7 @@
 
 - Expanded the menu-bar metric model from five metrics to eleven, adding Activity, body temperature deviation, sleep efficiency, daily stress, resilience, and cardiovascular age.
 - Added Settings toggles for metric cards with the v0.1 defaults: sleep score, REM, HRV, RHR, readiness, and activity enabled; optional metrics disabled.
+- Added persisted drag-and-drop ordering for metric cards in Settings.
 - Added OuraKit models, fixtures, client methods, and endpoints for daily stress, daily resilience, and daily cardiovascular age.
 - Added three RemBarMCP tools: `oura_daily_stress`, `oura_daily_resilience`, and `oura_daily_cardiovascular_age`.
 - Added a categorical Resilience card and unavailable-state copy for ring or membership-gated metric payloads.

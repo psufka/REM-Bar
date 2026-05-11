@@ -58,6 +58,7 @@ final class StatusItemController: NSObject, NSWindowDelegate {
         popover.contentViewController = NSHostingController(rootView: PopoverView(
             snapshot: refreshCoordinator.snapshot,
             enabledMetrics: settings.enabledMetrics,
+            metricOrder: settings.metricOrder,
             lastError: refreshCoordinator.lastError,
             tokenNeedsUpdate: refreshCoordinator.tokenNeedsUpdate,
             lastRefresh: refreshCoordinator.lastRefresh,

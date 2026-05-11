@@ -3,6 +3,7 @@ import SwiftUI
 struct PopoverView: View {
     let snapshot: DashboardSnapshot
     let enabledMetrics: Set<BarMetric>
+    let metricOrder: [BarMetric]
     let lastError: String?
     let tokenNeedsUpdate: Bool
     let lastRefresh: Date?
@@ -83,7 +84,7 @@ struct PopoverView: View {
     }
 
     private var visibleMetrics: [BarMetric] {
-        BarMetric.allCases.filter { enabledMetrics.contains($0) }
+        metricOrder.filter { enabledMetrics.contains($0) }
     }
 
     private var gridColumns: [GridItem] {

@@ -46,6 +46,12 @@ final class SettingsStore: ObservableObject {
         }
     }
 
+    @Published private(set) var metricOrder: [BarMetric] {
+        didSet {
+            saveMetricOrder()
+        }
+    }
+
     @Published private(set) var enabledMetrics: Set<BarMetric> {
         didSet {
             guard !enabledMetrics.isEmpty else {
@@ -60,13 +66,15 @@ final class SettingsStore: ObservableObject {
     }
 
     var orderedEnabledMetrics: [BarMetric] {
-        BarMetric.allCases.filter { enabledMetrics.contains($0) }
+        metricOrder.filter { enabledMetrics.contains($0) }
     }
 
     private let userDefaults: UserDefaults
 
     init(userDefaults: UserDefaults = .standard) {
         self.userDefaults = userDefaults
+        let metricOrder = Self.loadMetricOrder(from: userDefaults)
+        self.metricOrder = metricOrder
         let enabledMetrics = Self.loadEnabledMetrics(from: userDefaults)
         self.enabledMetrics = enabledMetrics
         let rawCadence = userDefaults.integer(forKey: Keys.refreshCadence)
@@ -75,7 +83,7 @@ final class SettingsStore: ObservableObject {
         let selectedMetric = BarMetric(rawValue: rawMetric) ?? .sleepScore
         self.selectedMetric = enabledMetrics.contains(selectedMetric)
             ? selectedMetric
-            : Self.orderedMetrics(in: enabledMetrics).first ?? .sleepScore
+            : Self.orderedMetrics(in: enabledMetrics, metricOrder: metricOrder).first ?? .sleepScore
     }
 
     func setMetric(_ metric: BarMetric, enabled: Bool) {
@@ -86,10 +94,36 @@ final class SettingsStore: ObservableObject {
         }
     }
 
+    func moveMetric(fromOffsets source: IndexSet, toOffset destination: Int) {
+        guard !source.isEmpty else { return }
+        var order = metricOrder
+        let moving = source.sorted().map { order[$0] }
+        for index in source.sorted(by: >) {
+            order.remove(at: index)
+        }
+        let earlierRemovedCount = source.filter { $0 < destination }.count
+        let adjustedDestination = max(0, min(destination - earlierRemovedCount, order.count))
+        order.insert(contentsOf: moving, at: adjustedDestination)
+        metricOrder = Self.repairedMetricOrder(order)
+    }
+
+    func moveMetric(_ metric: BarMetric, to targetMetric: BarMetric) {
+        guard metric != targetMetric,
+              let source = metricOrder.firstIndex(of: metric),
+              let target = metricOrder.firstIndex(of: targetMetric)
+        else {
+            return
+        }
+        moveMetric(
+            fromOffsets: IndexSet(integer: source),
+            toOffset: target > source ? target + 1 : target)
+    }
+
     private enum Keys {
         static let refreshCadence = "refreshCadence"
         static let selectedMetric = "selectedMetric"
         static let enabledMetrics = "enabledMetrics"
+        static let metricOrder = "metricOrder"
     }
 
     static let defaultEnabledMetrics: Set<BarMetric> = [
@@ -101,8 +135,30 @@ final class SettingsStore: ObservableObject {
         .activity,
     ]
 
-    private static func orderedMetrics(in metrics: Set<BarMetric>) -> [BarMetric] {
-        BarMetric.allCases.filter { metrics.contains($0) }
+    private static func orderedMetrics(in metrics: Set<BarMetric>, metricOrder: [BarMetric]) -> [BarMetric] {
+        metricOrder.filter { metrics.contains($0) }
+    }
+
+    private static func loadMetricOrder(from userDefaults: UserDefaults) -> [BarMetric] {
+        guard let data = userDefaults.data(forKey: Keys.metricOrder),
+              let rawValues = try? JSONDecoder().decode([String].self, from: data)
+        else {
+            return Array(BarMetric.allCases)
+        }
+        return repairedMetricOrder(rawValues.compactMap(BarMetric.init(rawValue:)))
+    }
+
+    private static func repairedMetricOrder(_ metrics: [BarMetric]) -> [BarMetric] {
+        var seen = Set<BarMetric>()
+        var repaired: [BarMetric] = []
+        for metric in metrics where !seen.contains(metric) {
+            repaired.append(metric)
+            seen.insert(metric)
+        }
+        for metric in BarMetric.allCases where !seen.contains(metric) {
+            repaired.append(metric)
+        }
+        return repaired
     }
 
     private static func loadEnabledMetrics(from userDefaults: UserDefaults) -> Set<BarMetric> {
@@ -116,11 +172,18 @@ final class SettingsStore: ObservableObject {
     }
 
     private func saveEnabledMetrics() {
-        let rawValues = BarMetric.allCases
+        let rawValues = metricOrder
             .filter { enabledMetrics.contains($0) }
             .map(\.rawValue)
         if let data = try? JSONEncoder().encode(rawValues) {
             userDefaults.set(data, forKey: Keys.enabledMetrics)
+        }
+    }
+
+    private func saveMetricOrder() {
+        let rawValues = metricOrder.map(\.rawValue)
+        if let data = try? JSONEncoder().encode(rawValues) {
+            userDefaults.set(data, forKey: Keys.metricOrder)
         }
     }
 }

@@ -1,5 +1,6 @@
 import OuraKit
 import SwiftUI
+import UniformTypeIdentifiers
 
 struct SettingsView: View {
     @ObservedObject var settings: SettingsStore
@@ -9,6 +10,7 @@ struct SettingsView: View {
     @State private var tokenSource: TokenSource = .missing
     @State private var detectedTokenForImport: String?
     @State private var sourceSummaries: [OuraTokenSourceSummary] = []
+    @State private var draggedMetric: BarMetric?
     @FocusState private var tokenFieldFocused: Bool
 
     private let keychain = KeychainStore.shared
@@ -135,10 +137,18 @@ struct SettingsView: View {
                 }
             }
             Section("Metric cards") {
-                ForEach(BarMetric.allCases) { metric in
-                    Toggle(isOn: metricEnabledBinding(metric)) {
-                        Label(metric.label, systemImage: metric.symbolName)
-                    }
+                ForEach(settings.metricOrder) { metric in
+                    MetricOrderRow(metric: metric, isEnabled: metricEnabledBinding(metric))
+                        .onDrag {
+                            draggedMetric = metric
+                            return NSItemProvider(object: metric.rawValue as NSString)
+                        }
+                        .onDrop(
+                            of: [.plainText],
+                            delegate: MetricDropDelegate(
+                                targetMetric: metric,
+                                settings: settings,
+                                draggedMetric: $draggedMetric))
                 }
             }
             Text("Refresh is driven by display-link ticks so requests pause while the display is asleep.")
@@ -375,6 +385,54 @@ private struct AboutLinkRow: View {
         .buttonStyle(.plain)
         .contentShape(Rectangle())
         .onHover { hovering = $0 }
+    }
+}
+
+private struct MetricOrderRow: View {
+    let metric: BarMetric
+    @Binding var isEnabled: Bool
+
+    var body: some View {
+        HStack(spacing: 8) {
+            Image(systemName: "line.3.horizontal")
+                .font(.caption.weight(.semibold))
+                .foregroundStyle(.secondary)
+                .frame(width: 18)
+                .help("Drag to reorder")
+
+            Toggle(isOn: $isEnabled) {
+                Label(metric.label, systemImage: metric.symbolName)
+            }
+            .toggleStyle(.checkbox)
+
+            Spacer(minLength: 0)
+        }
+        .contentShape(Rectangle())
+        .padding(.vertical, 2)
+    }
+}
+
+private struct MetricDropDelegate: DropDelegate {
+    let targetMetric: BarMetric
+    let settings: SettingsStore
+    @Binding var draggedMetric: BarMetric?
+
+    func validateDrop(info _: DropInfo) -> Bool {
+        draggedMetric != nil
+    }
+
+    func dropEntered(info _: DropInfo) {
+        guard let draggedMetric, draggedMetric != targetMetric else { return }
+        settings.moveMetric(draggedMetric, to: targetMetric)
+    }
+
+    func dropUpdated(info _: DropInfo) -> DropProposal? {
+        DropProposal(operation: .move)
+    }
+
+    func performDrop(info _: DropInfo) -> Bool {
+        draggedMetric = nil
+        return true
     }
 }
 
