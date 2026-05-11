@@ -2,11 +2,20 @@
 
 ## Unreleased
 
+### Added
+
+- Expanded the menu-bar metric model from five metrics to eleven, adding Activity, body temperature deviation, sleep efficiency, daily stress, resilience, and cardiovascular age.
+- Added Settings toggles for metric cards with the v0.1 defaults: sleep score, REM, HRV, RHR, readiness, and activity enabled; optional metrics disabled.
+- Added OuraKit models, fixtures, client methods, and endpoints for daily stress, daily resilience, and daily cardiovascular age.
+- Added three RemBarMCP tools: `oura_daily_stress`, `oura_daily_resilience`, and `oura_daily_cardiovascular_age`.
+- Added a categorical Resilience card and unavailable-state copy for ring or membership-gated metric payloads.
+
 ### Fixed
 
 - Retained and released the macOS 14 `CVDisplayLink` callback context explicitly to avoid dangling callback pointers on shutdown.
 - Prevented overlapping manual/display-link refreshes by ignoring refresh requests while one refresh task is already in flight.
 - Cleared the retained Settings window when it closes via `NSWindowDelegate`.
+- Stopped discarding fetched daily activity data by promoting Activity to a first-class card metric.
 
 ### Changed
 

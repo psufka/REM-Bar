@@ -128,8 +128,15 @@ struct SettingsView: View {
                 }
             }
             Picker("Menu-bar metric", selection: $settings.selectedMetric) {
-                ForEach(BarMetric.allCases) { metric in
+                ForEach(settings.orderedEnabledMetrics) { metric in
                     Label(metric.label, systemImage: metric.symbolName).tag(metric)
+                }
+            }
+            Section("Metric cards") {
+                ForEach(BarMetric.allCases) { metric in
+                    Toggle(isOn: metricEnabledBinding(metric)) {
+                        Label(metric.label, systemImage: metric.symbolName)
+                    }
                 }
             }
             Text("Refresh is driven by display-link ticks so requests pause while the display is asleep.")
@@ -281,6 +288,14 @@ struct SettingsView: View {
             detectedTokenForImport = resolved.token
         } else {
             detectedTokenForImport = nil
+        }
+    }
+
+    private func metricEnabledBinding(_ metric: BarMetric) -> Binding<Bool> {
+        Binding {
+            settings.enabledMetrics.contains(metric)
+        } set: { isEnabled in
+            settings.setMetric(metric, enabled: isEnabled)
         }
     }
 

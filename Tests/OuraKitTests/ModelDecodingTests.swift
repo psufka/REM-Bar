@@ -33,6 +33,24 @@ struct ModelDecodingTests {
         #expect(response.data.first?.activeCalories == 520)
     }
 
+    @Test func dailyStressFixtureDecodes() throws {
+        let response = try decode(OuraCollection<DailyStress>.self, fixture: "daily_stress")
+        #expect(response.data.first?.daySummary == .normal)
+        #expect(response.data.first?.stressHigh == 3600)
+    }
+
+    @Test func dailyResilienceFixtureDecodes() throws {
+        let response = try decode(OuraCollection<DailyResilience>.self, fixture: "daily_resilience")
+        #expect(response.data.first?.level == .solid)
+        #expect(response.data.first?.contributors?.sleepRecovery == 72.5)
+    }
+
+    @Test func dailyCardiovascularAgeFixtureDecodes() throws {
+        let response = try decode(OuraCollection<DailyCardiovascularAge>.self, fixture: "daily_cardiovascular_age")
+        #expect(response.data.first?.vascularAge == 39)
+        #expect(response.data.first?.day == "2026-05-08")
+    }
+
     @Test func nullableOuraFieldsDecode() throws {
         let dailySleep = try JSONDecoder().decode(OuraCollection<DailySleep>.self, from: Data("""
         {

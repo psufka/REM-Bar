@@ -84,6 +84,18 @@ public final class OuraClient: @unchecked Sendable {
         try await collection(endpoint: .dailyActivity, startDate: startDate, endDate: endDate, responseType: DailyActivity.self)
     }
 
+    public func dailyStress(startDate: String, endDate: String) async throws -> OuraCollection<DailyStress> {
+        try await collection(endpoint: .dailyStress, startDate: startDate, endDate: endDate, responseType: DailyStress.self)
+    }
+
+    public func dailyResilience(startDate: String, endDate: String) async throws -> OuraCollection<DailyResilience> {
+        try await collection(endpoint: .dailyResilience, startDate: startDate, endDate: endDate, responseType: DailyResilience.self)
+    }
+
+    public func dailyCardiovascularAge(startDate: String, endDate: String) async throws -> OuraCollection<DailyCardiovascularAge> {
+        try await collection(endpoint: .dailyCardiovascularAge, startDate: startDate, endDate: endDate, responseType: DailyCardiovascularAge.self)
+    }
+
     private func collection<T: Codable & Equatable & Sendable>(
         endpoint: Endpoint,
         startDate: String,

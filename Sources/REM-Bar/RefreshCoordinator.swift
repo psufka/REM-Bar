@@ -13,6 +13,7 @@ final class RefreshCoordinator: ObservableObject {
         self?.handleDisplayTick()
     }
     private var refreshTask: Task<Void, Never>?
+    private var cachedPersonalInfo: PersonalInfo?
     private var nextRefreshAfter = Date.distantPast
 
     init(settings: SettingsStore, client: OuraClient = .live()) {
@@ -35,6 +36,11 @@ final class RefreshCoordinator: ObservableObject {
         nextRefreshAfter = Date().addingTimeInterval(TimeInterval(settings.refreshCadence.rawValue))
     }
 
+    func tokenDidChange() {
+        cachedPersonalInfo = nil
+        refresh()
+    }
+
     private func handleDisplayTick() {
         guard Date() >= nextRefreshAfter else { return }
         refresh()
@@ -50,16 +56,24 @@ final class RefreshCoordinator: ObservableObject {
             }
             let endDate = Self.localDateString(Date())
             let startDate = Self.localDateString(Calendar.current.date(byAdding: .day, value: -6, to: Date()) ?? Date())
+            let personalInfo = await self.personalInfoForRefresh()
             do {
                 async let dailySleep = client.dailySleep(startDate: startDate, endDate: endDate)
                 async let sleep = client.sleep(startDate: startDate, endDate: endDate)
                 async let readiness = client.dailyReadiness(startDate: startDate, endDate: endDate)
                 async let activity = client.dailyActivity(startDate: startDate, endDate: endDate)
+                async let dailyStress = client.dailyStress(startDate: startDate, endDate: endDate)
+                async let dailyResilience = client.dailyResilience(startDate: startDate, endDate: endDate)
+                async let dailyCardiovascularAge = client.dailyCardiovascularAge(startDate: startDate, endDate: endDate)
                 let snapshot = try await DashboardSnapshotBuilder.make(
                     dailySleep: dailySleep.data,
                     sleep: sleep.data,
                     readiness: readiness.data,
-                    activity: activity.data)
+                    activity: activity.data,
+                    dailyStress: dailyStress.data,
+                    dailyResilience: dailyResilience.data,
+                    dailyCardiovascularAge: dailyCardiovascularAge.data,
+                    personalInfo: personalInfo)
                 await MainActor.run {
                     self.snapshot = snapshot
                     self.lastRefresh = Date()
@@ -75,6 +89,17 @@ final class RefreshCoordinator: ObservableObject {
                 }
             }
         }
+    }
+
+    private func personalInfoForRefresh() async -> PersonalInfo? {
+        if let cachedPersonalInfo {
+            return cachedPersonalInfo
+        }
+        guard let personalInfo = try? await client.personalInfo() else {
+            return nil
+        }
+        cachedPersonalInfo = personalInfo
+        return personalInfo
     }
 
     static let dayFormatter: DateFormatter = {

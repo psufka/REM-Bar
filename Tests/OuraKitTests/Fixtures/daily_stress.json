@@ -1,0 +1,15 @@
+{
+  "data": [
+    {
+      "id": "stress-2026-05-08",
+      "meta": {
+        "version": "1"
+      },
+      "day": "2026-05-08",
+      "day_summary": "normal",
+      "recovery_high": 7200,
+      "stress_high": 3600
+    }
+  ],
+  "next_token": null
+}

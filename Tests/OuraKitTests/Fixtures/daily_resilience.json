@@ -1,0 +1,15 @@
+{
+  "data": [
+    {
+      "id": "resilience-2026-05-08",
+      "day": "2026-05-08",
+      "contributors": {
+        "sleep_recovery": 72.5,
+        "daytime_recovery": 68.2,
+        "stress": 54.1
+      },
+      "level": "solid"
+    }
+  ],
+  "next_token": null
+}

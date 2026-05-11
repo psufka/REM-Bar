@@ -50,6 +50,6 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
     }
 
     @objc private func tokenDidChange() {
-        refreshCoordinator.refresh()
+        refreshCoordinator.tokenDidChange()
     }
 }

@@ -2,6 +2,7 @@ import SwiftUI
 
 struct PopoverView: View {
     let snapshot: DashboardSnapshot
+    let enabledMetrics: Set<BarMetric>
     let lastError: String?
     let lastRefresh: Date?
     let refresh: () -> Void
@@ -10,9 +11,14 @@ struct PopoverView: View {
 
     var body: some View {
         VStack(alignment: .leading, spacing: 14) {
-            LazyVGrid(columns: [GridItem(.flexible()), GridItem(.flexible())], spacing: 10) {
-                ForEach(BarMetric.allCases) { metric in
-                    MetricCardView(series: snapshot.series(for: metric))
+            LazyVGrid(columns: gridColumns, spacing: 10) {
+                ForEach(visibleMetrics) { metric in
+                    let series = snapshot.series(for: metric)
+                    if metric == .resilience {
+                        CategoricalMetricCardView(series: series)
+                    } else {
+                        MetricCardView(series: series)
+                    }
                 }
             }
 
@@ -56,8 +62,16 @@ struct PopoverView: View {
                 .foregroundStyle(.secondary)
         }
         .padding(14)
-        .frame(width: 430)
+        .frame(width: 540)
         .background(.regularMaterial)
+    }
+
+    private var visibleMetrics: [BarMetric] {
+        BarMetric.allCases.filter { enabledMetrics.contains($0) }
+    }
+
+    private var gridColumns: [GridItem] {
+        Array(repeating: GridItem(.flexible(), spacing: 10), count: visibleMetrics.count > 2 ? 3 : 2)
     }
 
     private var lastRefreshText: String {

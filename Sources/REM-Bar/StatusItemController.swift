@@ -30,11 +30,19 @@ final class StatusItemController: NSObject, NSWindowDelegate {
         let metric = settings.selectedMetric
         let series = snapshot.series(for: metric)
         let value = series.currentValue
-        button.image = IconRenderer.image(for: metric, color: ColorThresholds.color(for: value, metric: metric))
+        button.image = IconRenderer.image(for: metric, color: ColorThresholds.color(
+            for: value,
+            metric: metric,
+            baseline: series.baselineValue,
+            category: series.categoryValue))
         button.contentTintColor = nil
         button.imagePosition = .imageLeft
-        if let value {
+        if series.availabilityMessage != nil {
+            button.title = " N/A"
+        } else if let value {
             button.title = " \(metric.formattedValue(value))"
+        } else if let categoryValue = series.categoryValue {
+            button.title = " \(metric.formattedCategory(categoryValue))"
         } else {
             button.title = " ?"
         }
@@ -49,6 +57,7 @@ final class StatusItemController: NSObject, NSWindowDelegate {
         popover.contentSize = NSSize(width: 430, height: 380)
         popover.contentViewController = NSHostingController(rootView: PopoverView(
             snapshot: refreshCoordinator.snapshot,
+            enabledMetrics: settings.enabledMetrics,
             lastError: refreshCoordinator.lastError,
             lastRefresh: refreshCoordinator.lastRefresh,
             refresh: { [weak self] in self?.refreshNow() },

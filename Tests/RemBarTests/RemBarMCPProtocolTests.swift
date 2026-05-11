@@ -51,6 +51,9 @@ struct RemBarMCPProtocolTests {
             "oura_sleep_detail",
             "oura_daily_readiness",
             "oura_daily_activity",
+            "oura_daily_stress",
+            "oura_daily_resilience",
+            "oura_daily_cardiovascular_age",
             "oura_personal_info",
         ])
 
