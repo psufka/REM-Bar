@@ -30,7 +30,8 @@ final class StatusItemController: NSObject {
         let series = snapshot.series(for: metric)
         let value = series.currentValue
         button.image = IconRenderer.image(for: metric, color: ColorThresholds.color(for: value, metric: metric))
-        button.contentTintColor = ColorThresholds.color(for: value, metric: metric)
+        button.contentTintColor = nil
+        button.imagePosition = .imageLeft
         if let value {
             button.title = " \(metric.formattedValue(value))"
         } else {

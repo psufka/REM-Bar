@@ -66,9 +66,10 @@ enum BarMetric: String, CaseIterable, Identifiable {
 enum IconRenderer {
     static func image(for metric: BarMetric, color: NSColor) -> NSImage? {
         let configuration = NSImage.SymbolConfiguration(pointSize: 13, weight: .semibold)
+            .applying(NSImage.SymbolConfiguration(hierarchicalColor: color))
         let image = NSImage(systemSymbolName: metric.symbolName, accessibilityDescription: metric.label)?
             .withSymbolConfiguration(configuration)
-        image?.isTemplate = true
+        image?.isTemplate = false
         return image
     }
 }

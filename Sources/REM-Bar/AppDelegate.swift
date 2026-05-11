@@ -36,10 +36,20 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
                 }
             }
             .store(in: &cancellables)
+        NotificationCenter.default.addObserver(
+            self,
+            selector: #selector(tokenDidChange),
+            name: .remBarTokenDidChange,
+            object: nil)
         refreshCoordinator.start()
     }
 
     func applicationWillTerminate(_: Notification) {
+        NotificationCenter.default.removeObserver(self)
         refreshCoordinator.stop()
+    }
+
+    @objc private func tokenDidChange() {
+        refreshCoordinator.refresh()
     }
 }

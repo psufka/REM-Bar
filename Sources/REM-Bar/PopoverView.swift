@@ -16,6 +16,12 @@ struct PopoverView: View {
                 }
             }
 
+            if snapshot.metrics.values.allSatisfy(\.points.isEmpty), lastError == nil {
+                Text("No Oura data loaded yet. Add a token in Settings or refresh after saving one.")
+                    .font(.caption)
+                    .foregroundStyle(.secondary)
+            }
+
             if let lastError {
                 Text(lastError)
                     .font(.caption)
