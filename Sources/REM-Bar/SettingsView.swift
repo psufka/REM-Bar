@@ -30,7 +30,7 @@ struct SettingsView: View {
                 .padding()
                 .tabItem { Label("About", systemImage: "info.circle") }
         }
-        .frame(width: 1080, height: 620)
+        .frame(width: 1120, height: 700)
         .onAppear {
             tokenFieldFocused = false
             Task {
@@ -157,10 +157,10 @@ struct SettingsView: View {
                     }
                 }
 
-                settingsSection("Metric cards") {
+                settingsSection("Active cards") {
                     LazyVGrid(columns: metricCardColumns, alignment: .leading, spacing: 8) {
-                        ForEach(settings.metricOrder) { metric in
-                            MetricOrderRow(metric: metric, isEnabled: metricEnabledBinding(metric))
+                        ForEach(settings.orderedEnabledMetrics) { metric in
+                            MetricOrderRow(metric: metric, isActive: true)
                                 .onDrag {
                                     draggedMetric = metric
                                     return NSItemProvider(object: metric.rawValue as NSString)
@@ -168,11 +168,45 @@ struct SettingsView: View {
                                 .onDrop(
                                     of: [.plainText],
                                     delegate: MetricDropDelegate(
+                                        group: .active,
                                         targetMetric: metric,
                                         settings: settings,
                                         draggedMetric: $draggedMetric))
                         }
                     }
+                    .onDrop(
+                        of: [.plainText],
+                        delegate: MetricDropDelegate(
+                            group: .active,
+                            targetMetric: nil,
+                            settings: settings,
+                            draggedMetric: $draggedMetric))
+                }
+
+                settingsSection("Inactive cards") {
+                    LazyVGrid(columns: metricCardColumns, alignment: .leading, spacing: 8) {
+                        ForEach(settings.orderedInactiveMetrics) { metric in
+                            MetricOrderRow(metric: metric, isActive: false)
+                                .onDrag {
+                                    draggedMetric = metric
+                                    return NSItemProvider(object: metric.rawValue as NSString)
+                                }
+                                .onDrop(
+                                    of: [.plainText],
+                                    delegate: MetricDropDelegate(
+                                        group: .inactive,
+                                        targetMetric: metric,
+                                        settings: settings,
+                                        draggedMetric: $draggedMetric))
+                        }
+                    }
+                    .onDrop(
+                        of: [.plainText],
+                        delegate: MetricDropDelegate(
+                            group: .inactive,
+                            targetMetric: nil,
+                            settings: settings,
+                            draggedMetric: $draggedMetric))
                 }
 
                 Text("Refresh is driven by display-link ticks so requests pause while the display is asleep.")
@@ -348,14 +382,6 @@ struct SettingsView: View {
         }
     }
 
-    private func metricEnabledBinding(_ metric: BarMetric) -> Binding<Bool> {
-        Binding {
-            settings.enabledMetrics.contains(metric)
-        } set: { isEnabled in
-            settings.setMetric(metric, enabled: isEnabled)
-        }
-    }
-
     private func settingsSection<Content: View>(_ title: String, @ViewBuilder content: () -> Content) -> some View {
         VStack(alignment: .leading, spacing: 10) {
             Text(title)
@@ -420,7 +446,7 @@ private struct AboutLinkRow: View {
 
 private struct MetricOrderRow: View {
     let metric: BarMetric
-    @Binding var isEnabled: Bool
+    let isActive: Bool
 
     var body: some View {
         HStack(spacing: 8) {
@@ -430,11 +456,9 @@ private struct MetricOrderRow: View {
                 .frame(width: 18)
                 .help("Drag to reorder")
 
-            Toggle(isOn: $isEnabled) {
-                Label(metric.label, systemImage: metric.symbolName)
-                    .lineLimit(1)
-            }
-            .toggleStyle(.checkbox)
+            Label(metric.label, systemImage: metric.symbolName)
+                .lineLimit(1)
+                .foregroundStyle(isActive ? .primary : .secondary)
 
             Spacer(minLength: 0)
         }
@@ -442,12 +466,22 @@ private struct MetricOrderRow: View {
         .padding(.vertical, 5)
         .padding(.horizontal, 7)
         .frame(maxWidth: .infinity, minHeight: 30, alignment: .leading)
-        .background(Color(nsColor: .controlBackgroundColor), in: RoundedRectangle(cornerRadius: 6))
+        .background(rowBackground, in: RoundedRectangle(cornerRadius: 6))
+    }
+
+    private var rowBackground: Color {
+        isActive ? Color(nsColor: .controlBackgroundColor) : Color(nsColor: .controlBackgroundColor).opacity(0.55)
     }
 }
 
+private enum MetricCardGroup {
+    case active
+    case inactive
+}
+
 private struct MetricDropDelegate: DropDelegate {
-    let targetMetric: BarMetric
+    let group: MetricCardGroup
+    let targetMetric: BarMetric?
     let settings: SettingsStore
     @Binding var draggedMetric: BarMetric?
 
@@ -456,8 +490,11 @@ private struct MetricDropDelegate: DropDelegate {
     }
 
     func dropEntered(info _: DropInfo) {
-        guard let draggedMetric, draggedMetric != targetMetric else { return }
-        settings.moveMetric(draggedMetric, to: targetMetric)
+        guard let draggedMetric else { return }
+        if targetMetric == draggedMetric, settings.enabledMetrics.contains(draggedMetric) == (group == .active) {
+            return
+        }
+        settings.moveMetric(draggedMetric, before: targetMetric, enabled: group == .active)
     }
 
     func dropUpdated(info _: DropInfo) -> DropProposal? {
@@ -465,6 +502,9 @@ private struct MetricDropDelegate: DropDelegate {
     }
 
     func performDrop(info _: DropInfo) -> Bool {
+        if let draggedMetric {
+            settings.moveMetric(draggedMetric, before: targetMetric, enabled: group == .active)
+        }
         draggedMetric = nil
         return true
     }

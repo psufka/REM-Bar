@@ -47,6 +47,44 @@ struct SettingsStoreTests {
         #expect(reloaded.orderedEnabledMetrics.first == .activity)
     }
 
+    @Test func movingInactiveMetricToActiveEnablesAndOrdersIt() {
+        let defaults = makeDefaults()
+        defer { defaults.removePersistentDomain(forName: defaultsSuiteName(defaults)) }
+
+        let store = SettingsStore(userDefaults: defaults)
+        store.moveMetric(.dailyStress, before: .rem, enabled: true)
+
+        #expect(store.enabledMetrics.contains(.dailyStress))
+        #expect(Array(store.orderedEnabledMetrics.prefix(3)) == [.sleepScore, .dailyStress, .rem])
+        #expect(!store.orderedInactiveMetrics.contains(.dailyStress))
+    }
+
+    @Test func movingActiveMetricToInactiveDisablesAndOrdersIt() {
+        let defaults = makeDefaults()
+        defer { defaults.removePersistentDomain(forName: defaultsSuiteName(defaults)) }
+
+        let store = SettingsStore(userDefaults: defaults)
+        store.moveMetric(.activity, before: .deepSleep, enabled: false)
+
+        #expect(!store.enabledMetrics.contains(.activity))
+        #expect(store.orderedEnabledMetrics == [.sleepScore, .rem, .hrv, .rhr, .readiness])
+        #expect(Array(store.orderedInactiveMetrics.prefix(2)) == [.activity, .deepSleep])
+    }
+
+    @Test func cannotMoveOnlyActiveMetricToInactive() {
+        let defaults = makeDefaults()
+        defer { defaults.removePersistentDomain(forName: defaultsSuiteName(defaults)) }
+
+        let store = SettingsStore(userDefaults: defaults)
+        for metric in SettingsStore.defaultEnabledMetrics where metric != .sleepScore {
+            store.setMetric(metric, enabled: false)
+        }
+        store.moveMetric(.sleepScore, before: nil, enabled: false)
+
+        #expect(store.enabledMetrics == [.sleepScore])
+        #expect(store.orderedEnabledMetrics == [.sleepScore])
+    }
+
     @Test func repairsStoredMetricOrder() throws {
         let defaults = makeDefaults()
         defer { defaults.removePersistentDomain(forName: defaultsSuiteName(defaults)) }

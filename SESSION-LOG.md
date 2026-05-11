@@ -27,7 +27,7 @@
 - Ambient token discovery for `OURA_TOKEN`, launchctl, oura-mcp config, and common shell/dotenv files.
 - Serialized 401 retry gate for token re-resolution.
 - Per-metric fetch gating so disabled cards do not request their backing endpoints.
-- Wider Settings window with a fixed three-column Display layout for the metric card enable/reorder controls.
+- Wider Settings window with Active and Inactive drag-and-drop metric sections; Active ordering drives popover card order.
 - Bundled `RemBarMCP` executable with a self-contained stdio JSON-RPC server and eighteen read-only Oura tools.
 - Offline tests with Oura fixtures and URLProtocol stubs.
 - README, MIT LICENSE with CodexBar attribution, CHANGELOG, CI workflow, root icon, screenshot placeholder, scripts, and git history checkpoints.

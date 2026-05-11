@@ -69,6 +69,10 @@ final class SettingsStore: ObservableObject {
         metricOrder.filter { enabledMetrics.contains($0) }
     }
 
+    var orderedInactiveMetrics: [BarMetric] {
+        metricOrder.filter { !enabledMetrics.contains($0) }
+    }
+
     private let userDefaults: UserDefaults
 
     init(userDefaults: UserDefaults = .standard) {
@@ -117,6 +121,35 @@ final class SettingsStore: ObservableObject {
         moveMetric(
             fromOffsets: IndexSet(integer: source),
             toOffset: target > source ? target + 1 : target)
+    }
+
+    func moveMetric(_ metric: BarMetric, before targetMetric: BarMetric?, enabled: Bool) {
+        guard BarMetric.allCases.contains(metric) else { return }
+        if !enabled, enabledMetrics == [metric] {
+            return
+        }
+        if targetMetric == metric, enabledMetrics.contains(metric) == enabled {
+            return
+        }
+
+        var activeMetrics = orderedEnabledMetrics.filter { $0 != metric }
+        var inactiveMetrics = orderedInactiveMetrics.filter { $0 != metric }
+        var targetMetrics = enabled ? activeMetrics : inactiveMetrics
+
+        if let targetMetric, let targetIndex = targetMetrics.firstIndex(of: targetMetric) {
+            targetMetrics.insert(metric, at: targetIndex)
+        } else {
+            targetMetrics.append(metric)
+        }
+
+        if enabled {
+            activeMetrics = targetMetrics
+        } else {
+            inactiveMetrics = targetMetrics
+        }
+
+        metricOrder = Self.repairedMetricOrder(activeMetrics + inactiveMetrics)
+        enabledMetrics = Set(activeMetrics)
     }
 
     private enum Keys {

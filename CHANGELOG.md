@@ -31,6 +31,7 @@
 - Added ambient Oura token discovery after explicit sources: process `OURA_TOKEN`, REM-Bar Keychain, `~/.oura-mcp/config.json`, `launchctl getenv OURA_TOKEN`, and common shell/dotenv files such as `~/.zshrc`.
 - Settings now shows the exact active token source and can save a detected ambient token into the REM-Bar Keychain.
 - Settings now lays out metric-card options in a fixed three-column grid inside a wider Display tab so all 26 options are visible with less scrolling.
+- Settings now organizes metric cards into Active and Inactive drag-and-drop sections instead of checkbox toggles; the Active section order is the popover card order.
 - Refresh now skips endpoint fetches when every metric driven by that endpoint is disabled, and the snapshot builder omits disabled metric series.
 - Time-series OuraClient calls default to `latest=true` when no date-time range is supplied.
 - Added offline tests for `TokenValidator`, metric color thresholds, and `SettingsStore` persistence.
