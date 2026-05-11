@@ -14,6 +14,12 @@ if [[ -z "$REM_BAR_VERSION" ]]; then
   echo "ERROR: Could not read REM-Bar version from $VERSION_FILE" >&2
   exit 1
 fi
+SPARKLE_FEED_URL=$(sed -nE 's/.*static let sparkleFeedURL = "([^"]+)".*/\1/p' "$VERSION_FILE" | head -n 1)
+SPARKLE_PUBLIC_ED_KEY=$(sed -nE 's/.*static let sparklePublicEDKey = "([^"]+)".*/\1/p' "$VERSION_FILE" | head -n 1)
+if [[ -z "$SPARKLE_FEED_URL" || -z "$SPARKLE_PUBLIC_ED_KEY" ]]; then
+  echo "ERROR: Could not read Sparkle config from $VERSION_FILE" >&2
+  exit 1
+fi
 DIST="$ROOT/dist"
 APP="$DIST/${APP_NAME}.app"
 ZIP="$DIST/${APP_NAME}-v${REM_BAR_VERSION}.zip"
@@ -79,6 +85,27 @@ install_binary() {
   chmod +x "$destination"
 }
 
+resolve_sparkle_framework_path() {
+  local arch="$1"
+  local candidates=(
+    "$ROOT/.build/${arch}-apple-macosx/${CONF}/Sparkle.framework"
+    "$ROOT/.build/${CONF}/Sparkle.framework"
+  )
+  for candidate in "${candidates[@]}"; do
+    if [[ -d "$candidate" ]]; then
+      echo "$candidate"
+      return 0
+    fi
+  done
+  return 1
+}
+
+sign_if_exists() {
+  local path="$1"
+  [[ -e "$path" ]] || return 0
+  codesign --force --sign - "$path" >/dev/null
+}
+
 for arch in "${ARCH_LIST[@]}"; do
   swift build -c "$CONF" --arch "$arch"
 done
@@ -86,7 +113,7 @@ done
 mkdir -p "$DIST"
 move_to_trash "$APP"
 move_to_trash "$ZIP"
-mkdir -p "$APP/Contents/MacOS" "$APP/Contents/Resources"
+mkdir -p "$APP/Contents/MacOS" "$APP/Contents/Resources" "$APP/Contents/Frameworks"
 
 cat > "$APP/Contents/Info.plist" <<PLIST
 <?xml version="1.0" encoding="UTF-8"?>
@@ -104,6 +131,9 @@ cat > "$APP/Contents/Info.plist" <<PLIST
     <key>LSUIElement</key><true/>
     <key>CFBundleIconFile</key><string>Icon</string>
     <key>NSHumanReadableCopyright</key><string>© 2026 Paul Sufka. MIT License.</string>
+    <key>SUFeedURL</key><string>${SPARKLE_FEED_URL}</string>
+    <key>SUPublicEDKey</key><string>${SPARKLE_PUBLIC_ED_KEY}</string>
+    <key>SUEnableAutomaticChecks</key><true/>
     <key>REMBarBuildTimestamp</key><string>${BUILD_TIMESTAMP}</string>
     <key>REMBarGitCommit</key><string>${GIT_COMMIT}</string>
 </dict>
@@ -131,9 +161,27 @@ else
   exit 1
 fi
 
+SPARKLE_FRAMEWORK=$(resolve_sparkle_framework_path "${ARCH_LIST[0]}") || {
+  echo "ERROR: Missing Sparkle.framework build artifact." >&2
+  exit 1
+}
+cp -R "$SPARKLE_FRAMEWORK" "$APP/Contents/Frameworks/"
+install_name_tool -add_rpath "@executable_path/../Frameworks" "$APP/Contents/MacOS/$APP_NAME" 2>/dev/null || true
+
 plutil -lint "$APP/Contents/Info.plist" >/dev/null
 xattr -cr "$APP"
 find "$APP" -name '._*' -delete
+SPARKLE="$APP/Contents/Frameworks/Sparkle.framework"
+sign_if_exists "$SPARKLE/Versions/B/Autoupdate"
+sign_if_exists "$SPARKLE/Versions/B/Updater.app/Contents/MacOS/Updater"
+sign_if_exists "$SPARKLE/Versions/B/Updater.app"
+sign_if_exists "$SPARKLE/Versions/B/XPCServices/Downloader.xpc/Contents/MacOS/Downloader"
+sign_if_exists "$SPARKLE/Versions/B/XPCServices/Downloader.xpc"
+sign_if_exists "$SPARKLE/Versions/B/XPCServices/Installer.xpc/Contents/MacOS/Installer"
+sign_if_exists "$SPARKLE/Versions/B/XPCServices/Installer.xpc"
+sign_if_exists "$SPARKLE/Versions/B/Sparkle"
+sign_if_exists "$SPARKLE/Versions/B"
+sign_if_exists "$SPARKLE"
 codesign --force --sign - "$APP/Contents/MacOS/$MCP_NAME" >/dev/null
 codesign --force --sign - "$APP" >/dev/null
 codesign --verify --deep --strict --verbose=2 "$APP" >/dev/null

@@ -5,6 +5,7 @@ import Combine
 final class AppDelegate: NSObject, NSApplicationDelegate {
     private let settings = SettingsStore.shared
     private lazy var refreshCoordinator = RefreshCoordinator(settings: settings)
+    let updaterController: UpdaterProviding = makeUpdaterController()
     private var statusController: StatusItemController?
     private var cancellables: Set<AnyCancellable> = []
 
@@ -15,7 +16,10 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         {
             NSApp.applicationIconImage = icon
         }
-        let controller = StatusItemController(settings: settings, refreshCoordinator: refreshCoordinator)
+        let controller = StatusItemController(
+            settings: settings,
+            refreshCoordinator: refreshCoordinator,
+            updater: updaterController)
         statusController = controller
         refreshCoordinator.$snapshot
             .receive(on: RunLoop.main)

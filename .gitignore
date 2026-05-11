@@ -8,6 +8,7 @@ DerivedData/
 *.zip
 *.dmg
 *.log
+sparkle-ed25519-private-key.txt
 dist/
 PLAN*.md
 SESSION-LOG.md

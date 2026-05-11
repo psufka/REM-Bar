@@ -2,6 +2,20 @@
 
 ## Unreleased
 
+### Added
+
+- Added Sparkle-powered in-app update support with an About-pane auto-update checkbox and manual Check for Updates button.
+- Added Sparkle appcast generation and verification scripts for GitHub Releases.
+
+### Changed
+
+- Bumped the local development version to 0.1.3.
+- Package builds now embed Sparkle.framework and write Sparkle feed/public-key metadata into the app bundle.
+
+### Build-time decisions
+
+- Added Sparkle 2.9.1 as the only third-party Swift package because native macOS auto-updates need Sparkle's signed appcast verification, installer, and update UI; reimplementing that would be higher risk than using the standard maintained framework.
+
 ## 0.1.2 - 2026-05-11
 
 ### Added

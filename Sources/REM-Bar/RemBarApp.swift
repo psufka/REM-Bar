@@ -7,7 +7,7 @@ struct RemBarApp: App {
 
     var body: some Scene {
         Settings {
-            SettingsView(settings: settings)
+            SettingsView(settings: settings, updater: appDelegate.updaterController)
         }
     }
 }

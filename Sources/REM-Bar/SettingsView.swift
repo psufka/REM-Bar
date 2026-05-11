@@ -4,6 +4,7 @@ import UniformTypeIdentifiers
 
 struct SettingsView: View {
     @ObservedObject var settings: SettingsStore
+    let updater: UpdaterProviding
     @State private var token = ""
     @State private var validationMessage = ""
     @State private var isValidating = false
@@ -12,6 +13,8 @@ struct SettingsView: View {
     @State private var sourceSummaries: [OuraTokenSourceSummary] = []
     @State private var draggedMetric: BarMetric?
     @State private var showingTokenSetup = false
+    @State private var didLoadUpdaterState = false
+    @AppStorage("autoUpdateEnabled") private var autoUpdateEnabled = true
     @FocusState private var tokenFieldFocused: Bool
 
     private let keychain = KeychainStore.shared
@@ -34,9 +37,14 @@ struct SettingsView: View {
         .frame(width: 1120, height: 700)
         .onAppear {
             tokenFieldFocused = false
+            syncUpdaterStateIfNeeded()
             Task {
                 await reloadTokenState()
             }
+        }
+        .onChange(of: autoUpdateEnabled) { _, newValue in
+            updater.automaticallyChecksForUpdates = newValue
+            updater.automaticallyDownloadsUpdates = newValue
         }
         .sheet(isPresented: $showingTokenSetup) {
             TokenSetupInstructionsView()
@@ -317,6 +325,24 @@ struct SettingsView: View {
             .foregroundStyle(.secondary)
             .multilineTextAlignment(.center)
 
+            Divider()
+                .padding(.top, 4)
+
+            if updater.isAvailable {
+                VStack(spacing: 10) {
+                    Toggle("Automatically check for updates", isOn: $autoUpdateEnabled)
+                        .toggleStyle(.checkbox)
+                    Button("Check for Updates...") {
+                        updater.checkForUpdates(nil)
+                    }
+                }
+            } else {
+                Text(updater.unavailableReason ?? "Updates unavailable in this build.")
+                    .font(.footnote)
+                    .foregroundStyle(.secondary)
+                    .multilineTextAlignment(.center)
+            }
+
             Spacer(minLength: 0)
         }
         .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .top)
@@ -344,6 +370,13 @@ struct SettingsView: View {
         formatter.timeStyle = .short
         formatter.locale = .current
         return formatter.string(from: date)
+    }
+
+    private func syncUpdaterStateIfNeeded() {
+        guard !didLoadUpdaterState else { return }
+        updater.automaticallyChecksForUpdates = autoUpdateEnabled
+        updater.automaticallyDownloadsUpdates = autoUpdateEnabled
+        didLoadUpdaterState = true
     }
 
     private func validateAndSave() {

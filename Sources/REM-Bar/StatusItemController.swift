@@ -6,12 +6,19 @@ final class StatusItemController: NSObject, NSWindowDelegate {
     private let statusItem: NSStatusItem
     private let settings: SettingsStore
     private let refreshCoordinator: RefreshCoordinator
+    private let updater: UpdaterProviding
     private let popover = NSPopover()
     private var settingsWindow: NSWindow?
 
-    init(settings: SettingsStore, refreshCoordinator: RefreshCoordinator, statusBar: NSStatusBar = .system) {
+    init(
+        settings: SettingsStore,
+        refreshCoordinator: RefreshCoordinator,
+        updater: UpdaterProviding,
+        statusBar: NSStatusBar = .system)
+    {
         self.settings = settings
         self.refreshCoordinator = refreshCoordinator
+        self.updater = updater
         self.statusItem = statusBar.statusItem(withLength: NSStatusItem.variableLength)
         super.init()
         configure()
@@ -107,7 +114,7 @@ final class StatusItemController: NSObject, NSWindowDelegate {
     }
 
     private func makeSettingsWindow() -> NSWindow {
-        let hostingController = NSHostingController(rootView: SettingsView(settings: settings))
+        let hostingController = NSHostingController(rootView: SettingsView(settings: settings, updater: updater))
         let window = NSWindow(contentViewController: hostingController)
         window.title = "REM-Bar Settings"
         window.identifier = NSUserInterfaceItemIdentifier("com.psufka.REM-Bar.settings")

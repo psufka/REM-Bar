@@ -17,6 +17,7 @@ Tiny native macOS 14+ menu-bar app for Oura Ring data. REM-Bar shows sleep, read
 - **Your cards, your order.** Drag metrics between Active and Inactive sections in Settings, then reorder Active cards to control the popover.
 - **Real Oura data only.** REM-Bar uses your Oura Personal Access Token and does not include synthetic or demo data.
 - **Local by default.** Tokens live in the macOS Keychain or your existing local Oura config; the bundled MCP server reads the same token sources.
+- **Built-in updates.** Starting with v0.1.3, REM-Bar can check for signed app updates from GitHub Releases.
 
 ## Install
 
@@ -104,6 +105,7 @@ oura_enhanced_tag
 - Sleep duration metrics formatted as hours and minutes.
 - Categorical cards for Resilience, Optimal Bedtime, Sleep Time Recommendation, and Daily Stress.
 - Graceful unavailable states for Gen3+/Membership-gated Oura endpoints.
+- Sparkle-powered update checks with a manual Check for Updates button in Settings → About.
 - Shared `OuraKit` Swift library used by the app and MCP server.
 - Offline tests with Oura fixtures and URLProtocol stubs.
 
@@ -135,6 +137,14 @@ Build a local `.app` bundle and release zip:
 ./Scripts/package_app.sh
 open dist/REM-Bar.app
 ```
+
+Generate the signed Sparkle appcast for a release zip:
+
+```bash
+./Scripts/make_appcast.sh dist/REM-Bar-v0.1.3.zip
+```
+
+The Sparkle private key is intentionally not stored in this repo. Release maintainers need it at `~/.rem-bar/sparkle-ed25519-private-key.txt`.
 
 Build a universal app when both macOS architectures are available:
 

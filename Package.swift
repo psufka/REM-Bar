@@ -11,10 +11,16 @@ let package = Package(
         .library(name: "OuraKit", targets: ["OuraKit"]),
         .executable(name: "RemBarMCP", targets: ["RemBarMCP"]),
     ],
+    dependencies: [
+        .package(url: "https://github.com/sparkle-project/Sparkle", from: "2.9.1"),
+    ],
     targets: [
         .executableTarget(
             name: "REMBar",
-            dependencies: ["OuraKit"],
+            dependencies: [
+                "OuraKit",
+                .product(name: "Sparkle", package: "Sparkle"),
+            ],
             path: "Sources/REM-Bar",
             resources: [
                 .process("Resources"),
