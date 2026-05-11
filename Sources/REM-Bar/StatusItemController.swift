@@ -7,6 +7,7 @@ final class StatusItemController: NSObject {
     private let settings: SettingsStore
     private let refreshCoordinator: RefreshCoordinator
     private let popover = NSPopover()
+    private var settingsWindow: NSWindow?
 
     init(settings: SettingsStore, refreshCoordinator: RefreshCoordinator, statusBar: NSStatusBar = .system) {
         self.settings = settings
@@ -62,8 +63,23 @@ final class StatusItemController: NSObject {
     }
 
     @objc private func openSettings() {
-        NSApp.sendAction(Selector(("showSettingsWindow:")), to: nil, from: nil)
+        popover.performClose(nil)
+        let window = settingsWindow ?? makeSettingsWindow()
+        settingsWindow = window
+        window.makeKeyAndOrderFront(nil)
         NSApp.activate(ignoringOtherApps: true)
+    }
+
+    private func makeSettingsWindow() -> NSWindow {
+        let hostingController = NSHostingController(rootView: SettingsView(settings: settings))
+        let window = NSWindow(contentViewController: hostingController)
+        window.title = "REM-Bar Settings"
+        window.identifier = NSUserInterfaceItemIdentifier("com.psufka.REM-Bar.settings")
+        window.styleMask = [.titled, .closable, .miniaturizable]
+        window.isReleasedWhenClosed = false
+        window.setContentSize(NSSize(width: 560, height: 400))
+        window.center()
+        return window
     }
 
     @objc private func quit() {
