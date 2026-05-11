@@ -9,3 +9,5 @@ DerivedData/
 *.dmg
 *.log
 dist/
+PLAN*.md
+SESSION-LOG.md

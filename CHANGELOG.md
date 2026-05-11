@@ -46,8 +46,8 @@
 - Refresh now skips endpoint fetches when every metric driven by that endpoint is disabled, and the snapshot builder omits disabled metric series.
 - Time-series OuraClient calls default to `latest=true` when no date-time range is supplied.
 - Added offline tests for `TokenValidator`, metric color thresholds, and `SettingsStore` persistence.
-- Updated `PLAN.md` to describe v0.1 actuals: 26 metrics, 18 MCP tools, ambient token discovery, fetch gating, and the Gen3+/Membership-gated endpoints.
 - Updated docs and tests for 26 card options and 18 MCP tools.
+- Moved internal planning and session notes out of the public repo.
 
 ### Build-time decisions
 
