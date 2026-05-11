@@ -30,7 +30,7 @@ struct SettingsView: View {
                 .padding()
                 .tabItem { Label("About", systemImage: "info.circle") }
         }
-        .frame(width: 760, height: 540)
+        .frame(width: 1080, height: 620)
         .onAppear {
             tokenFieldFocused = false
             Task {
@@ -125,38 +125,61 @@ struct SettingsView: View {
     }
 
     private var displayPane: some View {
-        Form {
-            Picker("Refresh cadence", selection: $settings.refreshCadence) {
-                ForEach(SettingsStore.RefreshCadence.allCases) { cadence in
-                    Text(cadence.label).tag(cadence)
-                }
-            }
-            Picker("Menu-bar metric", selection: $settings.selectedMetric) {
-                ForEach(settings.orderedEnabledMetrics) { metric in
-                    Label(metric.label, systemImage: metric.symbolName).tag(metric)
-                }
-            }
-            Section("Metric cards") {
-                LazyVGrid(columns: metricCardColumns, alignment: .leading, spacing: 8) {
-                    ForEach(settings.metricOrder) { metric in
-                        MetricOrderRow(metric: metric, isEnabled: metricEnabledBinding(metric))
-                            .onDrag {
-                                draggedMetric = metric
-                                return NSItemProvider(object: metric.rawValue as NSString)
+        ScrollView {
+            VStack(alignment: .leading, spacing: 16) {
+                settingsSection("Display") {
+                    VStack(alignment: .leading, spacing: 12) {
+                        HStack {
+                            Text("Refresh cadence")
+                                .frame(width: 130, alignment: .leading)
+                            Picker("Refresh cadence", selection: $settings.refreshCadence) {
+                                ForEach(SettingsStore.RefreshCadence.allCases) { cadence in
+                                    Text(cadence.label).tag(cadence)
+                                }
                             }
-                            .onDrop(
-                                of: [.plainText],
-                                delegate: MetricDropDelegate(
-                                    targetMetric: metric,
-                                    settings: settings,
-                                    draggedMetric: $draggedMetric))
+                            .labelsHidden()
+                            .frame(width: 220)
+                            Spacer(minLength: 0)
+                        }
+
+                        HStack {
+                            Text("Menu-bar metric")
+                                .frame(width: 130, alignment: .leading)
+                            Picker("Menu-bar metric", selection: $settings.selectedMetric) {
+                                ForEach(settings.orderedEnabledMetrics) { metric in
+                                    Label(metric.label, systemImage: metric.symbolName).tag(metric)
+                                }
+                            }
+                            .labelsHidden()
+                            .frame(width: 280)
+                            Spacer(minLength: 0)
+                        }
                     }
                 }
-                .padding(.vertical, 3)
+
+                settingsSection("Metric cards") {
+                    LazyVGrid(columns: metricCardColumns, alignment: .leading, spacing: 8) {
+                        ForEach(settings.metricOrder) { metric in
+                            MetricOrderRow(metric: metric, isEnabled: metricEnabledBinding(metric))
+                                .onDrag {
+                                    draggedMetric = metric
+                                    return NSItemProvider(object: metric.rawValue as NSString)
+                                }
+                                .onDrop(
+                                    of: [.plainText],
+                                    delegate: MetricDropDelegate(
+                                        targetMetric: metric,
+                                        settings: settings,
+                                        draggedMetric: $draggedMetric))
+                        }
+                    }
+                }
+
+                Text("Refresh is driven by display-link ticks so requests pause while the display is asleep.")
+                    .font(.caption)
+                    .foregroundStyle(.secondary)
             }
-            Text("Refresh is driven by display-link ticks so requests pause while the display is asleep.")
-                .font(.caption)
-                .foregroundStyle(.secondary)
+            .padding(.vertical, 4)
         }
     }
 
@@ -228,9 +251,7 @@ struct SettingsView: View {
     }
 
     private var metricCardColumns: [GridItem] {
-        [
-            GridItem(.adaptive(minimum: 210, maximum: 250), spacing: 10, alignment: .topLeading),
-        ]
+        Array(repeating: GridItem(.flexible(minimum: 295), spacing: 10, alignment: .topLeading), count: 3)
     }
 
     private var appVersionString: String {
