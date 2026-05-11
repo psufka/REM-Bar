@@ -139,17 +139,87 @@ struct SettingsView: View {
     }
 
     private var aboutPane: some View {
-        VStack(alignment: .leading, spacing: 12) {
-            Text("REM-Bar")
-                .font(.title2.weight(.semibold))
-            Text("Native macOS menu-bar app for Oura Ring sleep, REM, HRV, resting heart rate, and readiness data.")
-            Text("No synthetic data mode is implemented. Values shown in the menu bar and popover come from Oura API v2 using the active token source, or remain empty when no token/data is available.")
-                .foregroundStyle(.secondary)
-            Text("Token discovery checks process environment, REM-Bar Keychain, oura-mcp config, launchctl, then common shell and dotenv files.")
-                .foregroundStyle(.secondary)
-            Spacer()
+        VStack(spacing: 13) {
+            Image(nsImage: NSApplication.shared.applicationIconImage)
+                .resizable()
+                .frame(width: 88, height: 88)
+                .clipShape(RoundedRectangle(cornerRadius: 16))
+                .shadow(color: .black.opacity(0.14), radius: 8, y: 3)
+                .padding(.bottom, 4)
+
+            VStack(spacing: 3) {
+                Text("REM-Bar")
+                    .font(.title2.weight(.bold))
+                Text("Version \(appVersionString)")
+                    .font(.title3.weight(.semibold))
+                    .foregroundStyle(.secondary)
+                if let buildString {
+                    Text("Built \(buildString)")
+                        .font(.footnote.weight(.semibold))
+                        .foregroundStyle(.secondary)
+                }
+                Text("Keep Oura sleep, REM, HRV, RHR, and readiness in view.")
+                    .font(.footnote.weight(.semibold))
+                    .foregroundStyle(.secondary)
+                    .padding(.top, 5)
+            }
+            .multilineTextAlignment(.center)
+
+            VStack(alignment: .center, spacing: 10) {
+                AboutLinkRow(
+                    icon: "chevron.left.slash.chevron.right",
+                    title: "GitHub",
+                    url: "https://github.com/psufka/REM-Bar")
+                AboutLinkRow(
+                    icon: "key",
+                    title: "Oura Tokens",
+                    url: "https://cloud.ouraring.com/personal-access-tokens")
+                AboutLinkRow(
+                    icon: "server.rack",
+                    title: "MCP Docs",
+                    url: "https://modelcontextprotocol.io")
+                AboutLinkRow(
+                    icon: "doc.text",
+                    title: "README",
+                    url: "https://github.com/psufka/REM-Bar#readme")
+            }
+            .padding(.top, 18)
+            .frame(maxWidth: .infinity)
+
+            Divider()
+                .padding(.top, 4)
+
+            VStack(spacing: 4) {
+                Text("No synthetic data mode. Real Oura API v2 data only.")
+                Text("Token discovery checks environment, Keychain, oura-mcp config, launchctl, and shell files.")
+            }
+            .font(.footnote)
+            .foregroundStyle(.secondary)
+            .multilineTextAlignment(.center)
+
+            Spacer(minLength: 0)
         }
-        .frame(maxWidth: .infinity, alignment: .leading)
+        .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .top)
+        .padding(.top, 8)
+        .padding(.horizontal, 28)
+        .padding(.bottom, 24)
+    }
+
+    private var appVersionString: String {
+        let version = Bundle.main.object(forInfoDictionaryKey: "CFBundleShortVersionString") as? String ?? "0.1.0"
+        let build = Bundle.main.object(forInfoDictionaryKey: "CFBundleVersion") as? String
+        return build.map { "\(version) (\($0))" } ?? version
+    }
+
+    private var buildString: String? {
+        guard let date = try? Bundle.main.executableURL?.resourceValues(forKeys: [.contentModificationDateKey]).contentModificationDate else {
+            return nil
+        }
+        let formatter = DateFormatter()
+        formatter.dateStyle = .medium
+        formatter.timeStyle = .short
+        formatter.locale = .current
+        return formatter.string(from: date)
     }
 
     private func validateAndSave() {
@@ -244,6 +314,35 @@ struct SettingsView: View {
             }
             Spacer(minLength: 0)
         }
+    }
+}
+
+private struct AboutLinkRow: View {
+    let icon: String
+    let title: String
+    let url: String
+    @State private var hovering = false
+
+    var body: some View {
+        Button {
+            if let url = URL(string: url) {
+                NSWorkspace.shared.open(url)
+            }
+        } label: {
+            HStack(spacing: 12) {
+                Image(systemName: icon)
+                    .frame(width: 26)
+                Text(title)
+                    .underline(hovering, color: .accentColor)
+            }
+            .font(.title3.weight(.medium))
+            .foregroundColor(.accentColor)
+            .frame(width: 210, alignment: .leading)
+            .padding(.vertical, 4)
+        }
+        .buttonStyle(.plain)
+        .contentShape(Rectangle())
+        .onHover { hovering = $0 }
     }
 }
 
