@@ -7,6 +7,8 @@ enum BarMetric: String, CaseIterable, Codable, Identifiable {
     case rhr
     case readiness
     case activity
+    case deepSleep
+    case totalSleep
     case bodyTemperatureDeviation
     case sleepEfficiency
     case dailyStress
@@ -21,6 +23,10 @@ enum BarMetric: String, CaseIterable, Codable, Identifiable {
             return "Sleep Score"
         case .rem:
             return "REM"
+        case .deepSleep:
+            return "Deep Sleep"
+        case .totalSleep:
+            return "Total Sleep"
         case .hrv:
             return "HRV"
         case .rhr:
@@ -48,6 +54,10 @@ enum BarMetric: String, CaseIterable, Codable, Identifiable {
             return "moon.zzz"
         case .rem:
             return "bed.double"
+        case .deepSleep:
+            return "bed.double.circle"
+        case .totalSleep:
+            return "clock"
         case .hrv, .rhr, .readiness:
             return "heart.text.square"
         case .activity:
@@ -69,7 +79,7 @@ enum BarMetric: String, CaseIterable, Codable, Identifiable {
         switch self {
         case .sleepScore, .readiness, .activity, .sleepEfficiency:
             return ""
-        case .rem:
+        case .rem, .deepSleep, .totalSleep:
             return "m"
         case .hrv:
             return "ms"
@@ -86,7 +96,7 @@ enum BarMetric: String, CaseIterable, Codable, Identifiable {
 
     func formattedValue(_ value: Double) -> String {
         switch self {
-        case .sleepScore, .readiness, .activity, .rem, .hrv, .rhr, .sleepEfficiency, .cardiovascularAge:
+        case .sleepScore, .readiness, .activity, .rem, .deepSleep, .totalSleep, .hrv, .rhr, .sleepEfficiency, .cardiovascularAge:
             return "\(Int(value.rounded()))\(unit)"
         case .bodyTemperatureDeviation:
             let prefix = value >= 0 ? "+" : ""
@@ -100,7 +110,7 @@ enum BarMetric: String, CaseIterable, Codable, Identifiable {
 
     func formattedDelta(_ value: Double) -> String {
         switch self {
-        case .sleepScore, .readiness, .activity, .rem, .hrv, .rhr, .sleepEfficiency, .cardiovascularAge:
+        case .sleepScore, .readiness, .activity, .rem, .deepSleep, .totalSleep, .hrv, .rhr, .sleepEfficiency, .cardiovascularAge:
             return "\(Int(value.rounded()))\(unit)"
         case .bodyTemperatureDeviation:
             return "\(String(format: "%.1f", value))\(unit)"
@@ -118,7 +128,7 @@ enum BarMetric: String, CaseIterable, Codable, Identifiable {
                 .joined(separator: " ")
         case .resilience:
             return category.capitalized
-        case .sleepScore, .rem, .hrv, .rhr, .readiness, .activity, .bodyTemperatureDeviation, .sleepEfficiency, .cardiovascularAge:
+        case .sleepScore, .rem, .deepSleep, .totalSleep, .hrv, .rhr, .readiness, .activity, .bodyTemperatureDeviation, .sleepEfficiency, .cardiovascularAge:
             return category
         }
     }

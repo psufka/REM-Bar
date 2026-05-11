@@ -66,7 +66,7 @@ final class RefreshCoordinator: ObservableObject {
                 async let dailySleep = fetchIfNeeded("daily_sleep", enabledMetrics: enabledMetrics, requiredMetrics: [.sleepScore]) {
                     (try await self.client.dailySleep(startDate: startDate, endDate: endDate)).data
                 }
-                async let sleep = fetchIfNeeded("sleep", enabledMetrics: enabledMetrics, requiredMetrics: [.rem, .hrv, .rhr, .sleepEfficiency]) {
+                async let sleep = fetchIfNeeded("sleep", enabledMetrics: enabledMetrics, requiredMetrics: [.rem, .deepSleep, .totalSleep, .hrv, .rhr, .sleepEfficiency]) {
                     (try await self.client.sleep(startDate: startDate, endDate: endDate)).data
                 }
                 async let readiness = fetchIfNeeded("daily_readiness", enabledMetrics: enabledMetrics, requiredMetrics: [.readiness, .bodyTemperatureDeviation]) {

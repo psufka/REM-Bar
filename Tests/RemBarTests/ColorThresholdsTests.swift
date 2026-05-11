@@ -16,6 +16,10 @@ struct ColorThresholdsTests {
         #expect(ColorThresholds.color(for: 0.51, metric: .bodyTemperatureDeviation) == .systemRed)
         #expect(ColorThresholds.color(for: 84.9, metric: .sleepEfficiency) == .systemOrange)
         #expect(ColorThresholds.color(for: 85, metric: .sleepEfficiency) == .systemGreen)
+        #expect(ColorThresholds.color(for: 89.9, metric: .deepSleep) == .systemOrange)
+        #expect(ColorThresholds.color(for: 90, metric: .deepSleep) == .systemGreen)
+        #expect(ColorThresholds.color(for: 419.9, metric: .totalSleep) == .systemOrange)
+        #expect(ColorThresholds.color(for: 420, metric: .totalSleep) == .systemGreen)
         #expect(ColorThresholds.color(for: 47, metric: .cardiovascularAge, baseline: 42) == .systemOrange)
         #expect(ColorThresholds.color(for: 48, metric: .cardiovascularAge, baseline: 42) == .systemRed)
     }

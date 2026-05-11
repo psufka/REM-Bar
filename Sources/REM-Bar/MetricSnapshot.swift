@@ -120,6 +120,10 @@ enum DashboardSnapshotBuilder {
                     return point(day: day, value: dailySleepByDay[day]?.score.map(Double.init))
                 case .rem:
                     return point(day: day, value: detail?.remSleepDuration.map { Double($0) / 60.0 })
+                case .deepSleep:
+                    return point(day: day, value: detail?.deepSleepDuration.map { Double($0) / 60.0 })
+                case .totalSleep:
+                    return point(day: day, value: detail?.totalSleepDuration.map { Double($0) / 60.0 })
                 case .hrv:
                     return point(day: day, value: detail?.averageHrv.map(Double.init))
                 case .rhr:
@@ -197,7 +201,7 @@ enum DashboardSnapshotBuilder {
              .resilience where dailyResilience.isEmpty,
              .cardiovascularAge where dailyCardiovascularAge.isEmpty:
             return "Not available on your ring"
-        case .sleepScore, .rem, .hrv, .rhr, .readiness, .activity, .bodyTemperatureDeviation, .sleepEfficiency, .dailyStress, .resilience, .cardiovascularAge:
+        case .sleepScore, .rem, .deepSleep, .totalSleep, .hrv, .rhr, .readiness, .activity, .bodyTemperatureDeviation, .sleepEfficiency, .dailyStress, .resilience, .cardiovascularAge:
             return nil
         }
     }

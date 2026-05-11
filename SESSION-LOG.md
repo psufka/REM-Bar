@@ -20,7 +20,7 @@
 ## Built
 
 - SwiftPM workspace with three products: `REM-Bar`, `OuraKit`, and `RemBarMCP`.
-- Native macOS menu-bar app with configurable Oura metric, SF Symbol status item, Keychain token settings, display-link refresh pause behavior, and a SwiftUI popover with eleven toggleable Oura metric cards.
+- Native macOS menu-bar app with configurable Oura metric, SF Symbol status item, Keychain token settings, display-link refresh pause behavior, and a SwiftUI popover with thirteen toggleable Oura metric cards.
 - Numeric cards show seven-day sparklines and deltas vs seven-day average; Resilience is categorical with no sparkline.
 - Shared `OuraKit` library with Oura API v2 endpoints for personal info, daily sleep, sleep detail, daily readiness, daily activity, daily stress, daily resilience, and daily cardiovascular age.
 - Keychain token storage using service `com.psufka.REM-Bar` and `kSecAttrAccessibleAfterFirstUnlock`.

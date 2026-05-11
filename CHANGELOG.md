@@ -4,7 +4,7 @@
 
 ### Added
 
-- Expanded the menu-bar metric model from five metrics to eleven, adding Activity, body temperature deviation, sleep efficiency, daily stress, resilience, and cardiovascular age.
+- Expanded the menu-bar metric model from five metrics to thirteen, adding Activity, Deep Sleep, Total Sleep, body temperature deviation, sleep efficiency, daily stress, resilience, and cardiovascular age.
 - Added Settings toggles for metric cards with the v0.1 defaults: sleep score, REM, HRV, RHR, readiness, and activity enabled; optional metrics disabled.
 - Added persisted drag-and-drop ordering for metric cards in Settings.
 - Added OuraKit models, fixtures, client methods, and endpoints for daily stress, daily resilience, and daily cardiovascular age.
@@ -28,7 +28,7 @@
 - Settings now shows the exact active token source and can save a detected ambient token into the REM-Bar Keychain.
 - Refresh now skips endpoint fetches when every metric driven by that endpoint is disabled, and the snapshot builder omits disabled metric series.
 - Added offline tests for `TokenValidator`, metric color thresholds, and `SettingsStore` persistence.
-- Updated `PLAN.md` to describe v0.1 actuals: 11 metrics, 8 MCP tools, ambient token discovery, fetch gating, and the three Gen3+/Membership-gated endpoints.
+- Updated `PLAN.md` to describe v0.1 actuals: 13 metrics, 8 MCP tools, ambient token discovery, fetch gating, and the three Gen3+/Membership-gated endpoints.
 
 ### Build-time decisions
 

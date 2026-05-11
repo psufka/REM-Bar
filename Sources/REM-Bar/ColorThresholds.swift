@@ -26,6 +26,14 @@ enum ColorThresholds {
             if value >= 90 { return .systemGreen }
             if value >= 60 { return .systemOrange }
             return .systemRed
+        case .deepSleep:
+            if value >= 90 { return .systemGreen }
+            if value >= 60 { return .systemOrange }
+            return .systemRed
+        case .totalSleep:
+            if value >= 420 { return .systemGreen }
+            if value >= 360 { return .systemOrange }
+            return .systemRed
         case .hrv:
             if value >= 50 { return .systemGreen }
             if value >= 35 { return .systemOrange }
@@ -80,7 +88,7 @@ enum ColorThresholds {
             default:
                 return .systemRed
             }
-        case .sleepScore, .rem, .hrv, .rhr, .readiness, .activity, .bodyTemperatureDeviation, .sleepEfficiency, .cardiovascularAge:
+        case .sleepScore, .rem, .deepSleep, .totalSleep, .hrv, .rhr, .readiness, .activity, .bodyTemperatureDeviation, .sleepEfficiency, .cardiovascularAge:
             return .systemRed
         }
     }
