@@ -2,7 +2,7 @@ import AppKit
 import SwiftUI
 
 @MainActor
-final class StatusItemController: NSObject {
+final class StatusItemController: NSObject, NSWindowDelegate {
     private let statusItem: NSStatusItem
     private let settings: SettingsStore
     private let refreshCoordinator: RefreshCoordinator
@@ -77,9 +77,16 @@ final class StatusItemController: NSObject {
         window.identifier = NSUserInterfaceItemIdentifier("com.psufka.REM-Bar.settings")
         window.styleMask = [.titled, .closable, .miniaturizable]
         window.isReleasedWhenClosed = false
+        window.delegate = self
         window.setContentSize(NSSize(width: 640, height: 500))
         window.center()
         return window
+    }
+
+    func windowWillClose(_ notification: Notification) {
+        guard let window = notification.object as? NSWindow, window === settingsWindow else { return }
+        window.delegate = nil
+        settingsWindow = nil
     }
 
     @objc private func quit() {

@@ -41,10 +41,13 @@ final class RefreshCoordinator: ObservableObject {
     }
 
     func refresh() {
-        refreshTask?.cancel()
+        guard refreshTask == nil else { return }
         nextRefreshAfter = Date().addingTimeInterval(TimeInterval(settings.refreshCadence.rawValue))
         refreshTask = Task { [weak self] in
             guard let self else { return }
+            defer {
+                self.refreshTask = nil
+            }
             let endDate = Self.localDateString(Date())
             let startDate = Self.localDateString(Calendar.current.date(byAdding: .day, value: -6, to: Date()) ?? Date())
             do {

@@ -2,6 +2,12 @@
 
 ## Unreleased
 
+### Fixed
+
+- Retained and released the macOS 14 `CVDisplayLink` callback context explicitly to avoid dangling callback pointers on shutdown.
+- Prevented overlapping manual/display-link refreshes by ignoring refresh requests while one refresh task is already in flight.
+- Cleared the retained Settings window when it closes via `NSWindowDelegate`.
+
 ### Changed
 
 - Added ambient Oura token discovery after explicit sources: process `OURA_TOKEN`, REM-Bar Keychain, `~/.oura-mcp/config.json`, `launchctl getenv OURA_TOKEN`, and common shell/dotenv files such as `~/.zshrc`.

@@ -6,6 +6,7 @@ import QuartzCore
 final class DisplayLinkDriver {
     private var displayLink: CADisplayLink?
     private var cvDisplayLink: CVDisplayLink?
+    private var retainedCVDisplayLinkContext: UnsafeMutableRawPointer?
     private var targetInterval: CFTimeInterval = 1.0
     private var lastTickTimestamp: CFTimeInterval = 0
     private let onTick: () -> Void
@@ -38,6 +39,10 @@ final class DisplayLinkDriver {
             CVDisplayLinkStop(cvDisplayLink)
         }
         cvDisplayLink = nil
+        if let retainedCVDisplayLinkContext {
+            self.retainedCVDisplayLinkContext = nil
+            Unmanaged<DisplayLinkDriver>.fromOpaque(retainedCVDisplayLinkContext).release()
+        }
     }
 
     @objc private func step(_: AnyObject) {
@@ -64,8 +69,16 @@ final class DisplayLinkDriver {
             driver.scheduleTick()
             return kCVReturnSuccess
         }
-        CVDisplayLinkSetOutputCallback(link, callback, Unmanaged.passUnretained(self).toOpaque())
-        CVDisplayLinkStart(link)
+        let context = Unmanaged.passRetained(self).toOpaque()
+        guard CVDisplayLinkSetOutputCallback(link, callback, context) == kCVReturnSuccess else {
+            Unmanaged<DisplayLinkDriver>.fromOpaque(context).release()
+            return
+        }
+        guard CVDisplayLinkStart(link) == kCVReturnSuccess else {
+            Unmanaged<DisplayLinkDriver>.fromOpaque(context).release()
+            return
+        }
+        retainedCVDisplayLinkContext = context
         cvDisplayLink = link
     }
 
@@ -76,8 +89,12 @@ final class DisplayLinkDriver {
     }
 
     deinit {
-        Task { @MainActor [weak self] in
-            self?.stop()
+        displayLink?.invalidate()
+        if let cvDisplayLink {
+            CVDisplayLinkStop(cvDisplayLink)
+        }
+        if let retainedCVDisplayLinkContext {
+            Unmanaged<DisplayLinkDriver>.fromOpaque(retainedCVDisplayLinkContext).release()
         }
     }
 }
