@@ -339,7 +339,7 @@ final class SettingsStore: ObservableObject {
         .hrvBalance,
         .bodyTemperatureDeviation,
         .vo2Max,
-        .averageSpO2,
+        .sleepDebt,
     ]
 
     static let defaultMetricOrder: [BarMetric] = [
@@ -354,7 +354,7 @@ final class SettingsStore: ObservableObject {
         .hrvBalance,
         .bodyTemperatureDeviation,
         .vo2Max,
-        .averageSpO2,
+        .sleepDebt,
     ]
 
     static let iconOnlyMenuBarMetricRawValue = "__iconOnly"

@@ -116,7 +116,7 @@ final class SettingsStoreTests: XCTestCase {
 
         XCTAssertFalse(store.enabledMetrics.contains(.readiness))
         XCTAssertEqual(store.orderedEnabledMetrics, SettingsStore.defaultMetricOrder.filter { $0 != .readiness })
-        XCTAssertEqual(Array(store.orderedInactiveMetrics.prefix(3)), [.activity, .sleepDebt, .readiness])
+        XCTAssertEqual(Array(store.orderedInactiveMetrics.prefix(3)), [.activity, .readiness, .lightSleep])
     }
 
     func testCannotMoveOnlyActiveMetricToInactive() {
