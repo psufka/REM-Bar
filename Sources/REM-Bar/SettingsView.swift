@@ -314,9 +314,9 @@ struct SettingsView: View {
                     title: "Oura Tokens",
                     url: "https://cloud.ouraring.com/personal-access-tokens")
                 AboutLinkRow(
-                    icon: "server.rack",
-                    title: "MCP Docs",
-                    url: "https://modelcontextprotocol.io")
+                    icon: "at",
+                    title: "@psufka",
+                    url: "https://x.com/psufka")
                 AboutLinkRow(
                     icon: "doc.text",
                     title: "README",

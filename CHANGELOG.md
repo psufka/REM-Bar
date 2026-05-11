@@ -13,6 +13,7 @@
 
 - Bumped the local development version to 0.1.3.
 - Package builds now embed Sparkle.framework and write Sparkle feed/public-key metadata into the app bundle.
+- About now links to @psufka on X instead of the MCP docs.
 
 ### Build-time decisions
 
