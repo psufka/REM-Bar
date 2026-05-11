@@ -1,0 +1,22 @@
+{
+  "data": [
+    {
+      "id": "activity-2026-05-08",
+      "day": "2026-05-08",
+      "score": 91,
+      "active_calories": 520,
+      "average_met_minutes": 1.03125,
+      "equivalent_walking_distance": 8120,
+      "high_activity_met_minutes": 110,
+      "high_activity_time": 1800,
+      "inactivity_alerts": 1,
+      "low_activity_met_minutes": 160,
+      "low_activity_time": 9300,
+      "medium_activity_met_minutes": 84,
+      "medium_activity_time": 2100,
+      "steps": 10340,
+      "total_calories": 2410,
+      "timestamp": "2026-05-08T14:15:22Z"
+    }
+  ]
+}

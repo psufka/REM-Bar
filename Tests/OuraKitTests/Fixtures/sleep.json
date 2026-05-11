@@ -1,0 +1,24 @@
+{
+  "data": [
+    {
+      "id": "sleep-detail-2026-05-08",
+      "day": "2026-05-08",
+      "type": "long_sleep",
+      "bedtime_start": "2026-05-07T22:44:00-05:00",
+      "bedtime_end": "2026-05-08T06:32:00-05:00",
+      "awake_time": 3210,
+      "deep_sleep_duration": 6120,
+      "light_sleep_duration": 12900,
+      "rem_sleep_duration": 5640,
+      "total_sleep_duration": 24660,
+      "time_in_bed": 28080,
+      "efficiency": 88,
+      "latency": 540,
+      "restless_periods": 24,
+      "average_breath": 14.3,
+      "average_heart_rate": 54.8,
+      "average_hrv": 63,
+      "lowest_heart_rate": 47
+    }
+  ]
+}

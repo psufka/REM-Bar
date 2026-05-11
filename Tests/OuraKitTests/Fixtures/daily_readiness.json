@@ -1,0 +1,22 @@
+{
+  "data": [
+    {
+      "id": "readiness-2026-05-08",
+      "contributors": {
+        "activity_balance": 83,
+        "body_temperature": 97,
+        "hrv_balance": 79,
+        "previous_day_activity": 88,
+        "previous_night": 91,
+        "recovery_index": 74,
+        "resting_heart_rate": 84,
+        "sleep_balance": 86
+      },
+      "day": "2026-05-08",
+      "score": 84,
+      "temperature_deviation": -0.1,
+      "temperature_trend_deviation": 0.0,
+      "timestamp": "2026-05-08T14:15:22Z"
+    }
+  ]
+}
