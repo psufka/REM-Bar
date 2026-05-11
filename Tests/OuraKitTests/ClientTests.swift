@@ -96,7 +96,8 @@ struct ClientTests {
         let provider = OuraClient.tokenProvider(
             environment: { ["OURA_TOKEN": "  "] },
             keychainToken: { "\n" },
-            configToken: { "" })
+            configToken: { "" },
+            ambientToken: { "" })
 
         do {
             _ = try await provider()
@@ -104,6 +105,61 @@ struct ClientTests {
         } catch OuraError.missingToken {
             #expect(Bool(true))
         }
+    }
+
+    @Test func ambientShellProfileTokenIsFallback() throws {
+        let home = try temporaryHome()
+        let zshrc = home.appendingPathComponent(".zshrc")
+        try """
+        # comment
+        export OURA_TOKEN="shell-profile-token"
+        """.write(to: zshrc, atomically: true, encoding: .utf8)
+
+        let discovery = OuraTokenDiscovery(
+            environment: { [:] },
+            keychainToken: { nil },
+            launchctlToken: { nil },
+            homeDirectory: home)
+
+        let resolved = try #require(try discovery.resolve())
+
+        #expect(resolved.token == "shell-profile-token")
+        #expect(resolved.source.kind == .shellProfile)
+        #expect(resolved.source.displayName == "~/.zshrc")
+    }
+
+    @Test func tokenDiscoveryPrecedenceMatchesRuntimeOrder() throws {
+        let home = try temporaryHome()
+        try FileManager.default.createDirectory(
+            at: home.appendingPathComponent(".oura-mcp", isDirectory: true),
+            withIntermediateDirectories: true)
+        try #"{"token":"config-token"}"#.write(
+            to: home.appendingPathComponent(".oura-mcp/config.json"),
+            atomically: true,
+            encoding: .utf8)
+        try #"OURA_TOKEN=dotenv-token"#.write(
+            to: home.appendingPathComponent(".env"),
+            atomically: true,
+            encoding: .utf8)
+
+        let discovery = OuraTokenDiscovery(
+            environment: { ["OURA_TOKEN": "env-token"] },
+            keychainToken: { "keychain-token" },
+            launchctlToken: { "launchctl-token" },
+            homeDirectory: home)
+
+        let resolved = try #require(try discovery.resolve())
+
+        #expect(resolved.token == "env-token")
+        #expect(resolved.source.kind == .environment)
+        #expect(resolved.keychainTokenAvailable)
+    }
+
+    @Test func tokenAssignmentParserHandlesCommonShellForms() {
+        #expect(OuraTokenDiscovery.parseTokenAssignment(in: "export OURA_TOKEN=plain") == "plain")
+        #expect(OuraTokenDiscovery.parseTokenAssignment(in: #"OURA_TOKEN="quoted value""#) == "quoted value")
+        #expect(OuraTokenDiscovery.parseTokenAssignment(in: "set -gx OURA_TOKEN fish-token") == "fish-token")
+        #expect(OuraTokenDiscovery.parseTokenAssignment(in: "# OURA_TOKEN=ignored") == nil)
     }
 
     private func makeClient(token: String) -> OuraClient {
@@ -125,6 +181,13 @@ struct ClientTests {
         let url = directory.appendingPathComponent("config.json")
         try Data(contents.utf8).write(to: url)
         return url
+    }
+
+    private func temporaryHome() throws -> URL {
+        let directory = FileManager.default.temporaryDirectory
+            .appendingPathComponent("OuraKitTests-\(UUID().uuidString)", isDirectory: true)
+        try FileManager.default.createDirectory(at: directory, withIntermediateDirectories: true)
+        return directory
     }
 }
 

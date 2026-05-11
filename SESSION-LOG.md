@@ -6,6 +6,7 @@
 - Native macOS menu-bar app with configurable Oura metric, SF Symbol status item, Keychain token settings, display-link refresh pause behavior, and a SwiftUI popover with five Oura metric cards, seven-day sparklines, and deltas vs seven-day average.
 - Shared `OuraKit` library with Oura API v2 endpoints for personal info, daily sleep, sleep detail, daily readiness, and daily activity.
 - Keychain token storage using service `com.psufka.REM-Bar` and `kSecAttrAccessibleAfterFirstUnlock`.
+- Ambient token discovery for `OURA_TOKEN`, launchctl, oura-mcp config, and common shell/dotenv files.
 - Serialized 401 retry gate for token re-resolution.
 - Bundled `RemBarMCP` executable with a self-contained stdio JSON-RPC server and five read-only Oura tools.
 - Offline tests with Oura fixtures and URLProtocol stubs.

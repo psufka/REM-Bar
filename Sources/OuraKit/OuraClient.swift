@@ -21,30 +21,30 @@ public final class OuraClient: @unchecked Sendable {
     }
 
     public static func live(keychain: KeychainStore = .shared) -> OuraClient {
-        OuraClient(tokenProvider: tokenProvider(keychainToken: {
-            try keychain.readToken()
-        }))
+        OuraClient(tokenProvider: {
+            let discovery = OuraTokenDiscovery(keychainToken: {
+                try keychain.readToken()
+            })
+            guard let resolved = try discovery.resolve() else {
+                throw OuraError.missingToken
+            }
+            return resolved.token
+        })
     }
 
     public static func configFileToken(fileManager: FileManager = .default) -> String? {
-        let home = fileManager.homeDirectoryForCurrentUser
-        let url = home.appendingPathComponent(".oura-mcp/config.json")
-        return configFileToken(url: url)
+        OuraTokenDiscovery.configFileToken(fileManager: fileManager)
     }
 
     public static func configFileToken(url: URL) -> String? {
-        guard let data = try? Data(contentsOf: url),
-              let json = try? JSONSerialization.jsonObject(with: data) as? [String: Any]
-        else {
-            return nil
-        }
-        return json["token"] as? String
+        OuraTokenDiscovery.configFileToken(url: url)
     }
 
     static func tokenProvider(
         environment: @escaping @Sendable () -> [String: String] = { ProcessInfo.processInfo.environment },
         keychainToken: @escaping @Sendable () throws -> String? = { try KeychainStore.shared.readToken() },
-        configToken: @escaping @Sendable () -> String? = { OuraClient.configFileToken() })
+        configToken: @escaping @Sendable () -> String? = { OuraClient.configFileToken() },
+        ambientToken: @escaping @Sendable () -> String? = { OuraTokenDiscovery().ambientFileToken()?.token })
         -> OuraTokenProvider
     {
         {
@@ -55,6 +55,9 @@ public final class OuraClient: @unchecked Sendable {
                 return token
             }
             if let token = configToken()?.nonEmptyOuraToken {
+                return token
+            }
+            if let token = ambientToken()?.nonEmptyOuraToken {
                 return token
             }
             throw OuraError.missingToken
@@ -162,13 +165,6 @@ public final class OuraClient: @unchecked Sendable {
             let body = String(data: data, encoding: .utf8) ?? ""
             throw OuraError.badStatus(httpResponse.statusCode, body)
         }
-    }
-}
-
-private extension String {
-    var nonEmptyOuraToken: String? {
-        let trimmed = trimmingCharacters(in: .whitespacesAndNewlines)
-        return trimmed.isEmpty ? nil : trimmed
     }
 }
 

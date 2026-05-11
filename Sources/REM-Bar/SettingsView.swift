@@ -7,6 +7,7 @@ struct SettingsView: View {
     @State private var validationMessage = ""
     @State private var isValidating = false
     @State private var tokenSource: TokenSource = .missing
+    @State private var detectedTokenForImport: String?
 
     private let keychain = KeychainStore.shared
     private let validator = TokenValidator()
@@ -58,6 +59,11 @@ struct SettingsView: View {
                 }
                 .disabled(!tokenSource.hasKeychainToken)
 
+                Button("Save Detected Token") {
+                    saveDetectedToken()
+                }
+                .disabled(detectedTokenForImport == nil || isValidating)
+
                 Spacer()
 
                 Link("Create token", destination: URL(string: "https://cloud.ouraring.com/personal-access-tokens")!)
@@ -96,15 +102,20 @@ struct SettingsView: View {
             Text("Native macOS menu-bar app for Oura Ring sleep, REM, HRV, resting heart rate, and readiness data.")
             Text("No synthetic data mode is implemented. Values shown in the menu bar and popover come from Oura API v2 using the active token source, or remain empty when no token/data is available.")
                 .foregroundStyle(.secondary)
+            Text("Token discovery checks process environment, REM-Bar Keychain, oura-mcp config, launchctl, then common shell and dotenv files.")
+                .foregroundStyle(.secondary)
             Spacer()
         }
         .frame(maxWidth: .infinity, alignment: .leading)
     }
 
     private func validateAndSave() {
+        validateAndSave(token)
+    }
+
+    private func validateAndSave(_ proposedToken: String) {
         isValidating = true
         validationMessage = ""
-        let proposedToken = token
         Task {
             let result = await validator.validate(token: proposedToken)
             await MainActor.run {
@@ -125,6 +136,12 @@ struct SettingsView: View {
         }
     }
 
+    private func saveDetectedToken() {
+        guard let detectedTokenForImport else { return }
+        token = detectedTokenForImport
+        validateAndSave(detectedTokenForImport)
+    }
+
     private func removeKeychainToken() {
         do {
             try keychain.deleteToken()
@@ -137,19 +154,18 @@ struct SettingsView: View {
     }
 
     private func reloadTokenState() {
-        let envToken = ProcessInfo.processInfo.environment["OURA_TOKEN"]?.trimmingCharacters(in: .whitespacesAndNewlines)
         let keychainToken = try? keychain.readToken()?.trimmingCharacters(in: .whitespacesAndNewlines)
-        let configToken = OuraClient.configFileToken()?.trimmingCharacters(in: .whitespacesAndNewlines)
+        let discovery = OuraTokenDiscovery(keychainToken: {
+            keychainToken
+        })
+        let resolved = try? discovery.resolve()
 
         token = keychainToken ?? ""
-        if let envToken, !envToken.isEmpty {
-            tokenSource = .environment(hasKeychainToken: !(keychainToken ?? "").isEmpty)
-        } else if let keychainToken, !keychainToken.isEmpty {
-            tokenSource = .keychain
-        } else if let configToken, !configToken.isEmpty {
-            tokenSource = .config
+        tokenSource = TokenSource(resolved: resolved)
+        if let resolved, !resolved.source.isKeychain {
+            detectedTokenForImport = resolved.token
         } else {
-            tokenSource = .missing
+            detectedTokenForImport = nil
         }
     }
 }
@@ -158,7 +174,32 @@ private enum TokenSource: Equatable {
     case environment(hasKeychainToken: Bool)
     case keychain
     case config
+    case launchctl
+    case shellProfile(String)
+    case dotenv(String)
     case missing
+
+    init(resolved: OuraResolvedToken?) {
+        guard let resolved else {
+            self = .missing
+            return
+        }
+
+        switch resolved.source.kind {
+        case .environment:
+            self = .environment(hasKeychainToken: resolved.keychainTokenAvailable)
+        case .keychain:
+            self = .keychain
+        case .configFile:
+            self = .config
+        case .launchctl:
+            self = .launchctl
+        case .shellProfile:
+            self = .shellProfile(resolved.source.displayName)
+        case .dotenv:
+            self = .dotenv(resolved.source.displayName)
+        }
+    }
 
     var label: String {
         switch self {
@@ -168,6 +209,12 @@ private enum TokenSource: Equatable {
             return "REM-Bar Keychain"
         case .config:
             return "~/.oura-mcp/config.json"
+        case .launchctl:
+            return "launchctl OURA_TOKEN"
+        case let .shellProfile(path):
+            return "Shell profile: \(path)"
+        case let .dotenv(path):
+            return "Dotenv file: \(path)"
         case .missing:
             return "No token configured"
         }
@@ -181,6 +228,12 @@ private enum TokenSource: Equatable {
             return "The app and bundled MCP server are using the shared REM-Bar Keychain token."
         case .config:
             return "The app is using the oura-mcp compatibility config fallback. Save a token here to move it into the REM-Bar Keychain."
+        case .launchctl:
+            return "The app found OURA_TOKEN through launchctl. Save it to Keychain if you want REM-Bar to own the token explicitly."
+        case .shellProfile:
+            return "The app found OURA_TOKEN in a shell startup file. Save it to Keychain if you want Finder-launched builds and MCP installs to be independent of shell config."
+        case .dotenv:
+            return "The app found OURA_TOKEN in a dotenv file. Save it to Keychain if you want REM-Bar to own the token explicitly."
         case .missing:
             return "Paste a Personal Access Token to load real Oura data. The app does not generate demo values."
         }
@@ -194,6 +247,12 @@ private enum TokenSource: Equatable {
             return "key.fill"
         case .config:
             return "doc.text"
+        case .launchctl:
+            return "macwindow"
+        case .shellProfile:
+            return "terminal"
+        case .dotenv:
+            return "doc.badge.gearshape"
         case .missing:
             return "exclamationmark.triangle"
         }
@@ -201,7 +260,7 @@ private enum TokenSource: Equatable {
 
     var tint: Color {
         switch self {
-        case .environment, .config:
+        case .environment, .config, .launchctl, .shellProfile, .dotenv:
             return .orange
         case .keychain:
             return .green
@@ -216,7 +275,7 @@ private enum TokenSource: Equatable {
             return true
         case let .environment(hasKeychainToken):
             return hasKeychainToken
-        case .config, .missing:
+        case .config, .launchctl, .shellProfile, .dotenv, .missing:
             return false
         }
     }

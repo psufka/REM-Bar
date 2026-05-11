@@ -2,6 +2,11 @@
 
 ## Unreleased
 
+### Changed
+
+- Added ambient Oura token discovery after explicit sources: process `OURA_TOKEN`, REM-Bar Keychain, `~/.oura-mcp/config.json`, `launchctl getenv OURA_TOKEN`, and common shell/dotenv files such as `~/.zshrc`.
+- Settings now shows the exact active token source and can save a detected ambient token into the REM-Bar Keychain.
+
 ### Build-time decisions
 
 - Used SwiftPM target name `REMBar` with executable product name `REM-Bar` because Swift module names cannot reliably use hyphens.
