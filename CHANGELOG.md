@@ -35,6 +35,8 @@
 - Added a Display setting for Celsius vs Fahrenheit and applied it to Body Temp in the menu bar, card value, card delta, and 7-day average.
 - Sleep duration metrics now display as hours and minutes, for example `6:51`, instead of total minutes.
 - Added an Account settings help sheet with step-by-step Oura Personal Access Token setup instructions.
+- Replaced the app icon with a dark moon-and-sleep symbol that matches REM-Bar's sleep status icon.
+- Reordered Settings tabs to Display, Account, About so display customization is first.
 - Refresh now skips endpoint fetches when every metric driven by that endpoint is disabled, and the snapshot builder omits disabled metric series.
 - Time-series OuraClient calls default to `latest=true` when no date-time range is supplied.
 - Added offline tests for `TokenValidator`, metric color thresholds, and `SettingsStore` persistence.

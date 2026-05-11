@@ -19,13 +19,13 @@ struct SettingsView: View {
 
     var body: some View {
         TabView {
-            accountPane
-                .padding(20)
-                .tabItem { Label("Account", systemImage: "key") }
-
             displayPane
                 .padding()
                 .tabItem { Label("Display", systemImage: "menubar.rectangle") }
+
+            accountPane
+                .padding(20)
+                .tabItem { Label("Account", systemImage: "key") }
 
             aboutPane
                 .padding()

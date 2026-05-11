@@ -10,6 +10,11 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
 
     func applicationDidFinishLaunching(_: Notification) {
         NSApp.setActivationPolicy(.accessory)
+        if let iconURL = Bundle.module.url(forResource: "Icon", withExtension: "icns"),
+           let icon = NSImage(contentsOf: iconURL)
+        {
+            NSApp.applicationIconImage = icon
+        }
         let controller = StatusItemController(settings: settings, refreshCoordinator: refreshCoordinator)
         statusController = controller
         refreshCoordinator.$snapshot
