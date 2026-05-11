@@ -1,34 +1,34 @@
 import Foundation
-import Testing
+import XCTest
 @testable import OuraKit
 
-@Suite(.serialized)
-struct TokenValidatorTests {
-    init() {
+final class TokenValidatorTests: XCTestCase {
+    override func setUp() {
+        super.setUp()
         ValidatorStubURLProtocol.reset()
     }
 
-    @Test func acceptsTokenWhenPersonalInfoRequestSucceeds() async {
+    func testAcceptsTokenWhenPersonalInfoRequestSucceeds() async {
         ValidatorStubURLProtocol.enqueue(status: 200, body: #"{"id":"user-123","email":"paul@example.com"}"#)
         let validator = TokenValidator(baseURL: URL(string: "https://api.ouraring.test")!, session: makeSession())
 
         let result = await validator.validate(token: " token-123 ")
 
-        #expect(result == .valid)
-        #expect(ValidatorStubURLProtocol.requests.first?.value(forHTTPHeaderField: "Authorization") == "Bearer token-123")
-        #expect(ValidatorStubURLProtocol.requests.first?.url?.path == "/v2/usercollection/personal_info")
+        XCTAssertEqual(result, .valid)
+        XCTAssertEqual(ValidatorStubURLProtocol.requests.first?.value(forHTTPHeaderField: "Authorization"), "Bearer token-123")
+        XCTAssertEqual(ValidatorStubURLProtocol.requests.first?.url?.path, "/v2/usercollection/personal_info")
     }
 
-    @Test func rejectsTokenWhenPersonalInfoReturnsUnauthorized() async {
+    func testRejectsTokenWhenPersonalInfoReturnsUnauthorized() async {
         ValidatorStubURLProtocol.enqueue(status: 401, body: #"{"status":401,"title":"Invalid Access Token"}"#)
         ValidatorStubURLProtocol.enqueue(status: 401, body: #"{"status":401,"title":"Invalid Access Token"}"#)
         let validator = TokenValidator(baseURL: URL(string: "https://api.ouraring.test")!, session: makeSession())
 
         let result = await validator.validate(token: "bad-token")
 
-        #expect(result.isValid == false)
-        #expect(result.message == "Token invalid.")
-        #expect(ValidatorStubURLProtocol.requests.count == 2)
+        XCTAssertFalse(result.isValid)
+        XCTAssertEqual(result.message, "Token invalid.")
+        XCTAssertEqual(ValidatorStubURLProtocol.requests.count, 2)
     }
 
     private func makeSession() -> URLSession {

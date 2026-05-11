@@ -6,7 +6,7 @@ on:
 
 jobs:
   build:
-    runs-on: macos-14
+    runs-on: macos-15
     steps:
       - uses: actions/checkout@v4
       - name: Lint
@@ -14,4 +14,4 @@ jobs:
       - name: Build
         run: swift build
       - name: Test
-        run: swift test
+        run: swift test --enable-xctest --disable-swift-testing

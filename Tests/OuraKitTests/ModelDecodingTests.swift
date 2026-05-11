@@ -1,101 +1,101 @@
 import Foundation
-import Testing
+import XCTest
 @testable import OuraKit
 
-struct ModelDecodingTests {
-    @Test func personalInfoFixtureDecodes() throws {
+final class ModelDecodingTests: XCTestCase {
+    func testPersonalInfoFixtureDecodes() throws {
         let personalInfo = try decode(PersonalInfo.self, fixture: "personal_info")
-        #expect(personalInfo.email == "paul@example.com")
-        #expect(personalInfo.biologicalSex == "male")
+        XCTAssertEqual(personalInfo.email, "paul@example.com")
+        XCTAssertEqual(personalInfo.biologicalSex, "male")
     }
 
-    @Test func dailySleepFixtureDecodes() throws {
+    func testDailySleepFixtureDecodes() throws {
         let response = try decode(OuraCollection<DailySleep>.self, fixture: "daily_sleep")
-        #expect(response.data.first?.score == 87)
-        #expect(response.data.first?.contributors?.remSleep == 94)
+        XCTAssertEqual(response.data.first?.score, 87)
+        XCTAssertEqual(response.data.first?.contributors?.remSleep, 94)
     }
 
-    @Test func sleepFixtureDecodes() throws {
+    func testSleepFixtureDecodes() throws {
         let response = try decode(OuraCollection<Sleep>.self, fixture: "sleep")
-        #expect(response.data.first?.remSleepDuration == 5640)
-        #expect(response.data.first?.averageHrv == 63)
+        XCTAssertEqual(response.data.first?.remSleepDuration, 5640)
+        XCTAssertEqual(response.data.first?.averageHrv, 63)
     }
 
-    @Test func dailyReadinessFixtureDecodes() throws {
+    func testDailyReadinessFixtureDecodes() throws {
         let response = try decode(OuraCollection<DailyReadiness>.self, fixture: "daily_readiness")
-        #expect(response.data.first?.score == 84)
-        #expect(response.data.first?.contributors?.hrvBalance == 79)
-        #expect(response.data.first?.contributors?.sleepRegularity == 81)
+        XCTAssertEqual(response.data.first?.score, 84)
+        XCTAssertEqual(response.data.first?.contributors?.hrvBalance, 79)
+        XCTAssertEqual(response.data.first?.contributors?.sleepRegularity, 81)
     }
 
-    @Test func dailyActivityFixtureDecodes() throws {
+    func testDailyActivityFixtureDecodes() throws {
         let response = try decode(OuraCollection<DailyActivity>.self, fixture: "daily_activity")
-        #expect(response.data.first?.steps == 10340)
-        #expect(response.data.first?.activeCalories == 520)
+        XCTAssertEqual(response.data.first?.steps, 10340)
+        XCTAssertEqual(response.data.first?.activeCalories, 520)
     }
 
-    @Test func dailyStressFixtureDecodes() throws {
+    func testDailyStressFixtureDecodes() throws {
         let response = try decode(OuraCollection<DailyStress>.self, fixture: "daily_stress")
-        #expect(response.data.first?.daySummary == .normal)
-        #expect(response.data.first?.stressHigh == 3600)
+        XCTAssertEqual(response.data.first?.daySummary, .normal)
+        XCTAssertEqual(response.data.first?.stressHigh, 3600)
     }
 
-    @Test func dailyResilienceFixtureDecodes() throws {
+    func testDailyResilienceFixtureDecodes() throws {
         let response = try decode(OuraCollection<DailyResilience>.self, fixture: "daily_resilience")
-        #expect(response.data.first?.level == .solid)
-        #expect(response.data.first?.contributors?.sleepRecovery == 72.5)
+        XCTAssertEqual(response.data.first?.level, .solid)
+        XCTAssertEqual(response.data.first?.contributors?.sleepRecovery, 72.5)
     }
 
-    @Test func dailyCardiovascularAgeFixtureDecodes() throws {
+    func testDailyCardiovascularAgeFixtureDecodes() throws {
         let response = try decode(OuraCollection<DailyCardiovascularAge>.self, fixture: "daily_cardiovascular_age")
-        #expect(response.data.first?.vascularAge == 39)
-        #expect(response.data.first?.day == "2026-05-08")
+        XCTAssertEqual(response.data.first?.vascularAge, 39)
+        XCTAssertEqual(response.data.first?.day, "2026-05-08")
     }
 
-    @Test func dailySpO2FixtureDecodes() throws {
+    func testDailySpO2FixtureDecodes() throws {
         let response = try decode(OuraCollection<DailySpO2>.self, fixture: "daily_spo2")
-        #expect(response.data.first?.spo2Percentage?.average == 97.2)
-        #expect(response.data.first?.breathingDisturbanceIndex == 2)
+        XCTAssertEqual(response.data.first?.spo2Percentage?.average, 97.2)
+        XCTAssertEqual(response.data.first?.breathingDisturbanceIndex, 2)
     }
 
-    @Test func vo2MaxFixtureDecodes() throws {
+    func testVO2MaxFixtureDecodes() throws {
         let response = try decode(OuraCollection<VO2Max>.self, fixture: "vo2_max")
-        #expect(response.data.first?.vo2Max == 42.6)
-        #expect(response.data.first?.day == "2026-05-08")
+        XCTAssertEqual(response.data.first?.vo2Max, 42.6)
+        XCTAssertEqual(response.data.first?.day, "2026-05-08")
     }
 
-    @Test func sleepTimeFixtureDecodes() throws {
+    func testSleepTimeFixtureDecodes() throws {
         let response = try decode(OuraCollection<SleepTime>.self, fixture: "sleep_time")
-        #expect(response.data.first?.optimalBedtime?.startOffset == 81000)
-        #expect(response.data.first?.recommendation == "follow_optimal_bedtime")
+        XCTAssertEqual(response.data.first?.optimalBedtime?.startOffset, 81000)
+        XCTAssertEqual(response.data.first?.recommendation, "follow_optimal_bedtime")
     }
 
-    @Test func timeSeriesFixturesDecode() throws {
+    func testTimeSeriesFixturesDecode() throws {
         let heartRate = try decode(OuraCollection<HeartRateSample>.self, fixture: "heart_rate")
-        #expect(heartRate.data.first?.bpm == 58)
+        XCTAssertEqual(heartRate.data.first?.bpm, 58)
 
         let battery = try decode(OuraCollection<RingBatteryLevel>.self, fixture: "ring_battery_level")
-        #expect(battery.data.first?.level == 84)
+        XCTAssertEqual(battery.data.first?.level, 84)
     }
 
-    @Test func activityRecordFixturesDecode() throws {
+    func testActivityRecordFixturesDecode() throws {
         let workout = try decode(OuraCollection<Workout>.self, fixture: "workout")
-        #expect(workout.data.first?.activity == "running")
+        XCTAssertEqual(workout.data.first?.activity, "running")
 
         let session = try decode(OuraCollection<Session>.self, fixture: "session")
-        #expect(session.data.first?.type == "breathing")
+        XCTAssertEqual(session.data.first?.type, "breathing")
 
         let restMode = try decode(OuraCollection<RestModePeriod>.self, fixture: "rest_mode_period")
-        #expect(restMode.data.first?.startDay == "2026-05-08")
+        XCTAssertEqual(restMode.data.first?.startDay, "2026-05-08")
 
         let tag = try decode(OuraCollection<OuraTag>.self, fixture: "tag")
-        #expect(tag.data.first?.tags == ["caffeine"])
+        XCTAssertEqual(tag.data.first?.tags, ["caffeine"])
 
         let enhancedTag = try decode(OuraCollection<EnhancedTag>.self, fixture: "enhanced_tag")
-        #expect(enhancedTag.data.first?.customName == "Caffeine")
+        XCTAssertEqual(enhancedTag.data.first?.customName, "Caffeine")
     }
 
-    @Test func nullableOuraFieldsDecode() throws {
+    func testNullableOuraFieldsDecode() throws {
         let dailySleep = try JSONDecoder().decode(OuraCollection<DailySleep>.self, from: Data("""
         {
           "data": [
@@ -118,8 +118,8 @@ struct ModelDecodingTests {
           "next_token": null
         }
         """.utf8))
-        #expect(dailySleep.data.first?.score == nil)
-        #expect(dailySleep.data.first?.contributors?.remSleep == nil)
+        XCTAssertNil(dailySleep.data.first?.score)
+        XCTAssertNil(dailySleep.data.first?.contributors?.remSleep)
 
         let sleep = try JSONDecoder().decode(OuraCollection<Sleep>.self, from: Data("""
         {
@@ -135,7 +135,7 @@ struct ModelDecodingTests {
           ]
         }
         """.utf8))
-        #expect(sleep.data.first?.averageHrv == nil)
+        XCTAssertNil(sleep.data.first?.averageHrv)
 
         let readiness = try JSONDecoder().decode(OuraCollection<DailyReadiness>.self, from: Data("""
         {
@@ -162,7 +162,7 @@ struct ModelDecodingTests {
           ]
         }
         """.utf8))
-        #expect(readiness.data.first?.contributors?.hrvBalance == nil)
+        XCTAssertNil(readiness.data.first?.contributors?.hrvBalance)
 
         let activity = try JSONDecoder().decode(OuraCollection<DailyActivity>.self, from: Data("""
         {
@@ -178,11 +178,11 @@ struct ModelDecodingTests {
           ]
         }
         """.utf8))
-        #expect(activity.data.first?.activeCalories == nil)
+        XCTAssertNil(activity.data.first?.activeCalories)
     }
 
     private func decode<T: Decodable>(_ type: T.Type, fixture: String) throws -> T {
-        let url = try #require(Bundle.module.url(forResource: fixture, withExtension: "json", subdirectory: "Fixtures"))
+        let url = try XCTUnwrap(Bundle.module.url(forResource: fixture, withExtension: "json", subdirectory: "Fixtures"))
         let data = try Data(contentsOf: url)
         return try JSONDecoder().decode(type, from: data)
     }

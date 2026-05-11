@@ -2,20 +2,22 @@
 import Foundation
 import PackageDescription
 
-let commandLineToolsFrameworks = "/Library/Developer/CommandLineTools/Library/Developer/Frameworks"
-let commandLineToolsDeveloperLib = "/Library/Developer/CommandLineTools/Library/Developer/usr/lib"
-let testingFrameworkSettings: [SwiftSetting] = FileManager.default.fileExists(atPath: "\(commandLineToolsFrameworks)/Testing.framework")
-    ? [.unsafeFlags(["-F", commandLineToolsFrameworks])]
+let xcodeMacOSXDeveloper = "/Applications/Xcode.app/Contents/Developer/Platforms/MacOSX.platform/Developer"
+let xcodeMacOSXFrameworks = "\(xcodeMacOSXDeveloper)/Library/Frameworks"
+let xcodeMacOSXSwiftModules = "\(xcodeMacOSXDeveloper)/usr/lib"
+let xcodeSharedFrameworks = "/Applications/Xcode.app/Contents/SharedFrameworks"
+let xctestSettings: [SwiftSetting] = FileManager.default.fileExists(atPath: "\(xcodeMacOSXFrameworks)/XCTest.framework")
+    ? [.unsafeFlags(["-F", xcodeMacOSXFrameworks, "-I", xcodeMacOSXSwiftModules])]
     : []
-let swiftTestingSettings = testingFrameworkSettings + [
-    .enableExperimentalFeature("SwiftTesting"),
-]
-let testingFrameworkLinkerSettings: [LinkerSetting] = FileManager.default.fileExists(atPath: "\(commandLineToolsFrameworks)/Testing.framework")
+let xctestLinkerSettings: [LinkerSetting] = FileManager.default.fileExists(atPath: "\(xcodeMacOSXFrameworks)/XCTest.framework")
     ? [.unsafeFlags([
-        "-F", commandLineToolsFrameworks,
-        "-framework", "Testing",
-        "-Xlinker", "-rpath", "-Xlinker", commandLineToolsFrameworks,
-        "-Xlinker", "-rpath", "-Xlinker", commandLineToolsDeveloperLib,
+        "-F", xcodeMacOSXFrameworks,
+        "-L", xcodeMacOSXSwiftModules,
+        "-framework", "XCTest",
+        "-lXCTestSwiftSupport",
+        "-Xlinker", "-rpath", "-Xlinker", xcodeMacOSXFrameworks,
+        "-Xlinker", "-rpath", "-Xlinker", xcodeMacOSXSwiftModules,
+        "-Xlinker", "-rpath", "-Xlinker", xcodeSharedFrameworks,
     ])]
     : []
 
@@ -51,12 +53,12 @@ let package = Package(
             resources: [
                 .copy("Fixtures"),
             ],
-            swiftSettings: swiftTestingSettings,
-            linkerSettings: testingFrameworkLinkerSettings),
+            swiftSettings: xctestSettings,
+            linkerSettings: xctestLinkerSettings),
         .testTarget(
             name: "RemBarTests",
             dependencies: ["REMBar"],
             path: "Tests/RemBarTests",
-            swiftSettings: swiftTestingSettings,
-            linkerSettings: testingFrameworkLinkerSettings),
+            swiftSettings: xctestSettings,
+            linkerSettings: xctestLinkerSettings),
     ])

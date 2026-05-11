@@ -1,62 +1,62 @@
 import Foundation
-import Testing
+import XCTest
 @testable import OuraKit
 
-@Suite(.serialized)
-struct ClientTests {
-    init() {
+final class ClientTests: XCTestCase {
+    override func setUp() {
+        super.setUp()
         StubURLProtocol.reset()
     }
 
-    @Test func personalInfoRequestUsesBearerToken() async throws {
+    func testPersonalInfoRequestUsesBearerToken() async throws {
         StubURLProtocol.enqueue(status: 200, body: #"{"id":"user-123","email":"paul@example.com"}"#)
         let client = makeClient(token: "test-token")
 
         let info = try await client.personalInfo()
 
-        #expect(info.email == "paul@example.com")
-        #expect(StubURLProtocol.requests.first?.value(forHTTPHeaderField: "Authorization") == "Bearer test-token")
-        #expect(StubURLProtocol.requests.first?.url?.path == "/v2/usercollection/personal_info")
+        XCTAssertEqual(info.email, "paul@example.com")
+        XCTAssertEqual(StubURLProtocol.requests.first?.value(forHTTPHeaderField: "Authorization"), "Bearer test-token")
+        XCTAssertEqual(StubURLProtocol.requests.first?.url?.path, "/v2/usercollection/personal_info")
     }
 
-    @Test func dailySleepAddsDateQueryItems() async throws {
+    func testDailySleepAddsDateQueryItems() async throws {
         StubURLProtocol.enqueue(status: 200, body: #"{"data":[]}"#)
         let client = makeClient(token: "test-token")
 
         _ = try await client.dailySleep(startDate: "2026-05-01", endDate: "2026-05-08")
 
-        let requestURL = try #require(StubURLProtocol.requests.first?.url)
-        let components = try #require(URLComponents(url: requestURL, resolvingAgainstBaseURL: false))
-        #expect(components.queryItems?.contains(URLQueryItem(name: "start_date", value: "2026-05-01")) == true)
-        #expect(components.queryItems?.contains(URLQueryItem(name: "end_date", value: "2026-05-08")) == true)
+        let requestURL = try XCTUnwrap(StubURLProtocol.requests.first?.url)
+        let components = try XCTUnwrap(URLComponents(url: requestURL, resolvingAgainstBaseURL: false))
+        XCTAssertTrue(components.queryItems?.contains(URLQueryItem(name: "start_date", value: "2026-05-01")) == true)
+        XCTAssertTrue(components.queryItems?.contains(URLQueryItem(name: "end_date", value: "2026-05-08")) == true)
     }
 
-    @Test func timeSeriesEndpointsDefaultToLatest() async throws {
+    func testTimeSeriesEndpointsDefaultToLatest() async throws {
         StubURLProtocol.enqueue(status: 200, body: #"{"data":[]}"#)
         let client = makeClient(token: "test-token")
 
         _ = try await client.heartRate()
 
-        let requestURL = try #require(StubURLProtocol.requests.first?.url)
-        let components = try #require(URLComponents(url: requestURL, resolvingAgainstBaseURL: false))
-        #expect(requestURL.path == "/v2/usercollection/heartrate")
-        #expect(components.queryItems?.contains(URLQueryItem(name: "latest", value: "true")) == true)
+        let requestURL = try XCTUnwrap(StubURLProtocol.requests.first?.url)
+        let components = try XCTUnwrap(URLComponents(url: requestURL, resolvingAgainstBaseURL: false))
+        XCTAssertEqual(requestURL.path, "/v2/usercollection/heartrate")
+        XCTAssertTrue(components.queryItems?.contains(URLQueryItem(name: "latest", value: "true")) == true)
     }
 
-    @Test func newDateRangeEndpointAddsDateQueryItems() async throws {
+    func testNewDateRangeEndpointAddsDateQueryItems() async throws {
         StubURLProtocol.enqueue(status: 200, body: #"{"data":[]}"#)
         let client = makeClient(token: "test-token")
 
         _ = try await client.dailySpO2(startDate: "2026-05-01", endDate: "2026-05-08")
 
-        let requestURL = try #require(StubURLProtocol.requests.first?.url)
-        let components = try #require(URLComponents(url: requestURL, resolvingAgainstBaseURL: false))
-        #expect(requestURL.path == "/v2/usercollection/daily_spo2")
-        #expect(components.queryItems?.contains(URLQueryItem(name: "start_date", value: "2026-05-01")) == true)
-        #expect(components.queryItems?.contains(URLQueryItem(name: "end_date", value: "2026-05-08")) == true)
+        let requestURL = try XCTUnwrap(StubURLProtocol.requests.first?.url)
+        let components = try XCTUnwrap(URLComponents(url: requestURL, resolvingAgainstBaseURL: false))
+        XCTAssertEqual(requestURL.path, "/v2/usercollection/daily_spo2")
+        XCTAssertTrue(components.queryItems?.contains(URLQueryItem(name: "start_date", value: "2026-05-01")) == true)
+        XCTAssertTrue(components.queryItems?.contains(URLQueryItem(name: "end_date", value: "2026-05-08")) == true)
     }
 
-    @Test func unauthorizedResponseReReadsTokenAndRetriesOnce() async throws {
+    func testUnauthorizedResponseReReadsTokenAndRetriesOnce() async throws {
         let provider = TokenCounter()
         StubURLProtocol.enqueue(status: 401, body: #"{"status":401,"title":"Invalid Access Token"}"#)
         StubURLProtocol.enqueue(status: 200, body: #"{"id":"user-123","email":"paul@example.com"}"#)
@@ -66,13 +66,14 @@ struct ClientTests {
 
         let info = try await client.personalInfo()
 
-        #expect(info.email == "paul@example.com")
-        #expect(await provider.count == 2)
-        #expect(StubURLProtocol.requests.count == 2)
-        #expect(StubURLProtocol.requests.last?.value(forHTTPHeaderField: "Authorization") == "Bearer token-2")
+        let tokenReadCount = await provider.count
+        XCTAssertEqual(info.email, "paul@example.com")
+        XCTAssertEqual(tokenReadCount, 2)
+        XCTAssertEqual(StubURLProtocol.requests.count, 2)
+        XCTAssertEqual(StubURLProtocol.requests.last?.value(forHTTPHeaderField: "Authorization"), "Bearer token-2")
     }
 
-    @Test func secondUnauthorizedResponseReturnsInvalidToken() async throws {
+    func testSecondUnauthorizedResponseReturnsInvalidToken() async throws {
         let provider = TokenCounter()
         StubURLProtocol.enqueue(status: 401, body: #"{"status":401,"title":"Invalid Access Token"}"#)
         StubURLProtocol.enqueue(status: 401, body: #"{"status":401,"title":"Invalid Access Token"}"#)
@@ -82,15 +83,18 @@ struct ClientTests {
 
         do {
             _ = try await client.personalInfo()
-            Issue.record("Expected invalidToken error.")
+            XCTFail("Expected invalidToken error.")
         } catch OuraError.invalidToken {
-            #expect(await provider.count == 2)
-            #expect(StubURLProtocol.requests.count == 2)
-            #expect(StubURLProtocol.requests.last?.value(forHTTPHeaderField: "Authorization") == "Bearer token-2")
+            let tokenReadCount = await provider.count
+            XCTAssertEqual(tokenReadCount, 2)
+            XCTAssertEqual(StubURLProtocol.requests.count, 2)
+            XCTAssertEqual(StubURLProtocol.requests.last?.value(forHTTPHeaderField: "Authorization"), "Bearer token-2")
+        } catch {
+            XCTFail("Expected invalidToken error, got \(error).")
         }
     }
 
-    @Test func environmentTokenOverridesKeychainAndConfigTokens() async throws {
+    func testEnvironmentTokenOverridesKeychainAndConfigTokens() async throws {
         let provider = OuraClient.tokenProvider(
             environment: { ["OURA_TOKEN": " env-token\n"] },
             keychainToken: { "keychain-token" },
@@ -98,10 +102,10 @@ struct ClientTests {
 
         let token = try await provider()
 
-        #expect(token == "env-token")
+        XCTAssertEqual(token, "env-token")
     }
 
-    @Test func configTokenIsFallbackWithoutReadingUserConfig() async throws {
+    func testConfigTokenIsFallbackWithoutReadingUserConfig() async throws {
         let configURL = try temporaryConfigURL(contents: #"{"token":"config-token"}"#)
         defer {
             try? FileManager.default.removeItem(at: configURL.deletingLastPathComponent().deletingLastPathComponent())
@@ -114,10 +118,10 @@ struct ClientTests {
 
         let token = try await provider()
 
-        #expect(token == "config-token")
+        XCTAssertEqual(token, "config-token")
     }
 
-    @Test func missingTokenThrowsWhenAllSourcesAreEmpty() async throws {
+    func testMissingTokenThrowsWhenAllSourcesAreEmpty() async throws {
         let provider = OuraClient.tokenProvider(
             environment: { ["OURA_TOKEN": "  "] },
             keychainToken: { "\n" },
@@ -126,13 +130,15 @@ struct ClientTests {
 
         do {
             _ = try await provider()
-            Issue.record("Expected missingToken error.")
+            XCTFail("Expected missingToken error.")
         } catch OuraError.missingToken {
-            #expect(Bool(true))
+            XCTAssertTrue(true)
+        } catch {
+            XCTFail("Expected missingToken error, got \(error).")
         }
     }
 
-    @Test func ambientShellProfileTokenIsFallback() throws {
+    func testAmbientShellProfileTokenIsFallback() throws {
         let home = try temporaryHome()
         let zshrc = home.appendingPathComponent(".zshrc")
         try """
@@ -146,14 +152,14 @@ struct ClientTests {
             launchctlToken: { nil },
             homeDirectory: home)
 
-        let resolved = try #require(try discovery.resolve())
+        let resolved = try XCTUnwrap(try discovery.resolve())
 
-        #expect(resolved.token == "shell-profile-token")
-        #expect(resolved.source.kind == .shellProfile)
-        #expect(resolved.source.displayName == "~/.zshrc")
+        XCTAssertEqual(resolved.token, "shell-profile-token")
+        XCTAssertEqual(resolved.source.kind, .shellProfile)
+        XCTAssertEqual(resolved.source.displayName, "~/.zshrc")
     }
 
-    @Test func tokenDiscoveryPrecedenceMatchesRuntimeOrder() throws {
+    func testTokenDiscoveryPrecedenceMatchesRuntimeOrder() throws {
         let home = try temporaryHome()
         try FileManager.default.createDirectory(
             at: home.appendingPathComponent(".oura-mcp", isDirectory: true),
@@ -173,14 +179,14 @@ struct ClientTests {
             launchctlToken: { "launchctl-token" },
             homeDirectory: home)
 
-        let resolved = try #require(try discovery.resolve())
+        let resolved = try XCTUnwrap(try discovery.resolve())
 
-        #expect(resolved.token == "env-token")
-        #expect(resolved.source.kind == .environment)
-        #expect(resolved.keychainTokenAvailable)
+        XCTAssertEqual(resolved.token, "env-token")
+        XCTAssertEqual(resolved.source.kind, .environment)
+        XCTAssertTrue(resolved.keychainTokenAvailable)
     }
 
-    @Test func sourceSummariesExposeAvailabilityWithoutTokens() throws {
+    func testSourceSummariesExposeAvailabilityWithoutTokens() throws {
         let home = try temporaryHome()
         try FileManager.default.createDirectory(
             at: home.appendingPathComponent(".oura-mcp", isDirectory: true),
@@ -203,12 +209,12 @@ struct ClientTests {
         let summaries = try discovery.sourceSummaries()
         let available = summaries.filter(\.isAvailable)
 
-        #expect(available.map(\.source.kind) == [.configFile, .shellProfile])
-        #expect(summaries.first(where: { $0.source.kind == .configFile })?.isActive == true)
-        #expect(summaries.allSatisfy { !$0.source.displayName.contains("secret") })
+        XCTAssertEqual(available.map(\.source.kind), [.configFile, .shellProfile])
+        XCTAssertEqual(summaries.first(where: { $0.source.kind == .configFile })?.isActive, true)
+        XCTAssertTrue(summaries.allSatisfy { !$0.source.displayName.contains("secret") })
     }
 
-    @Test func sourceSummariesMarkEnvironmentActiveAndKeychainAvailable() throws {
+    func testSourceSummariesMarkEnvironmentActiveAndKeychainAvailable() throws {
         let discovery = OuraTokenDiscovery(
             environment: { ["OURA_TOKEN": "env-secret"] },
             keychainToken: { "keychain-secret" },
@@ -217,17 +223,17 @@ struct ClientTests {
 
         let summaries = try discovery.sourceSummaries()
 
-        #expect(summaries.first?.source.kind == .environment)
-        #expect(summaries.first?.isActive == true)
-        #expect(summaries.first(where: { $0.source.kind == .keychain })?.isAvailable == true)
-        #expect(summaries.first(where: { $0.source.kind == .keychain })?.isActive == false)
+        XCTAssertEqual(summaries.first?.source.kind, .environment)
+        XCTAssertEqual(summaries.first?.isActive, true)
+        XCTAssertEqual(summaries.first(where: { $0.source.kind == .keychain })?.isAvailable, true)
+        XCTAssertEqual(summaries.first(where: { $0.source.kind == .keychain })?.isActive, false)
     }
 
-    @Test func tokenAssignmentParserHandlesCommonShellForms() {
-        #expect(OuraTokenDiscovery.parseTokenAssignment(in: "export OURA_TOKEN=plain") == "plain")
-        #expect(OuraTokenDiscovery.parseTokenAssignment(in: #"OURA_TOKEN="quoted value""#) == "quoted value")
-        #expect(OuraTokenDiscovery.parseTokenAssignment(in: "set -gx OURA_TOKEN fish-token") == "fish-token")
-        #expect(OuraTokenDiscovery.parseTokenAssignment(in: "# OURA_TOKEN=ignored") == nil)
+    func testTokenAssignmentParserHandlesCommonShellForms() {
+        XCTAssertEqual(OuraTokenDiscovery.parseTokenAssignment(in: "export OURA_TOKEN=plain"), "plain")
+        XCTAssertEqual(OuraTokenDiscovery.parseTokenAssignment(in: #"OURA_TOKEN="quoted value""#), "quoted value")
+        XCTAssertEqual(OuraTokenDiscovery.parseTokenAssignment(in: "set -gx OURA_TOKEN fish-token"), "fish-token")
+        XCTAssertNil(OuraTokenDiscovery.parseTokenAssignment(in: "# OURA_TOKEN=ignored"))
     }
 
     private func makeClient(token: String) -> OuraClient {

@@ -1,8 +1,8 @@
 import Foundation
-import Testing
+import XCTest
 
-struct RemBarMCPProtocolTests {
-    @Test func stdioProtocolSmoke() throws {
+final class RemBarMCPProtocolTests: XCTestCase {
+    func testStdioProtocolSmoke() throws {
         guard let executableURL = remBarMCPExecutableURL() else {
             return
         }
@@ -30,23 +30,23 @@ struct RemBarMCPProtocolTests {
         stdin.fileHandleForWriting.closeFile()
         process.waitUntilExit()
 
-        #expect(process.terminationStatus == 0)
+        XCTAssertEqual(process.terminationStatus, 0)
 
         let output = String(data: stdout.fileHandleForReading.readDataToEndOfFile(), encoding: .utf8) ?? ""
         let responses = try output
             .split(separator: "\n")
             .map { line in
                 let data = Data(line.utf8)
-                return try #require(JSONSerialization.jsonObject(with: data) as? [String: Any])
+                return try XCTUnwrap(JSONSerialization.jsonObject(with: data) as? [String: Any])
             }
 
-        #expect(responses.count == 4)
-        #expect(((responses[0]["result"] as? [String: Any])?["protocolVersion"] as? String) == "2025-11-25")
-        #expect((responses[1]["result"] as? [String: Any])?.isEmpty == true)
+        XCTAssertEqual(responses.count, 4)
+        XCTAssertEqual(((responses[0]["result"] as? [String: Any])?["protocolVersion"] as? String), "2025-11-25")
+        XCTAssertEqual((responses[1]["result"] as? [String: Any])?.isEmpty, true)
 
-        let tools = try #require((responses[2]["result"] as? [String: Any])?["tools"] as? [[String: Any]])
+        let tools = try XCTUnwrap((responses[2]["result"] as? [String: Any])?["tools"] as? [[String: Any]])
         let toolNames = tools.compactMap { $0["name"] as? String }
-        #expect(toolNames == [
+        XCTAssertEqual(toolNames, [
             "oura_daily_sleep",
             "oura_sleep_detail",
             "oura_daily_readiness",
@@ -67,8 +67,8 @@ struct RemBarMCPProtocolTests {
             "oura_personal_info",
         ])
 
-        let toolError = try #require(responses[3]["result"] as? [String: Any])
-        #expect(toolError["isError"] as? Bool == true)
+        let toolError = try XCTUnwrap(responses[3]["result"] as? [String: Any])
+        XCTAssertEqual(toolError["isError"] as? Bool, true)
     }
 
     private func remBarMCPExecutableURL() -> URL? {

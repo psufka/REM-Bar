@@ -27,7 +27,7 @@ Tiny native macOS 14+ menu-bar app for Oura Ring data. REM-Bar shows sleep, read
 
 ### GitHub Releases
 
-**How to install:** Download `REM-Bar-v0.1.0.zip` from [GitHub Releases](https://github.com/psufka/REM-Bar/releases), unzip it, and move `REM-Bar.app` to `/Applications`.
+**How to install:** Download `REM-Bar-v0.1.0.zip` [here](https://github.com/psufka/REM-Bar/releases/download/v0.1.0/REM-Bar-v0.1.0.zip), unzip it, and move `REM-Bar.app` to `/Applications`.
 
 The v0.1 release is unsigned and not notarized. If macOS blocks the first launch, run:
 

@@ -1,22 +1,22 @@
 import Foundation
-import Testing
+import XCTest
 @testable import REMBar
 
 @MainActor
-struct SettingsStoreTests {
-    @Test func defaultsEnableFirstSixMetrics() {
+final class SettingsStoreTests: XCTestCase {
+    func testDefaultsEnableFirstSixMetrics() {
         let defaults = makeDefaults()
         defer { defaults.removePersistentDomain(forName: defaultsSuiteName(defaults)) }
 
         let store = SettingsStore(userDefaults: defaults)
 
-        #expect(store.enabledMetrics == SettingsStore.defaultEnabledMetrics)
-        #expect(store.metricOrder == Array(BarMetric.allCases))
-        #expect(store.orderedEnabledMetrics == [.sleepScore, .rem, .hrv, .rhr, .readiness, .activity])
-        #expect(store.selectedMetric == .sleepScore)
+        XCTAssertEqual(store.enabledMetrics, SettingsStore.defaultEnabledMetrics)
+        XCTAssertEqual(store.metricOrder, Array(BarMetric.allCases))
+        XCTAssertEqual(store.orderedEnabledMetrics, [.sleepScore, .rem, .hrv, .rhr, .readiness, .activity])
+        XCTAssertEqual(store.selectedMetric, .sleepScore)
     }
 
-    @Test func roundTripsCadenceSelectedMetricAndEnabledMetrics() {
+    func testRoundTripsCadenceSelectedMetricAndEnabledMetrics() {
         let defaults = makeDefaults()
         defer { defaults.removePersistentDomain(forName: defaultsSuiteName(defaults)) }
 
@@ -29,30 +29,30 @@ struct SettingsStoreTests {
 
         let reloaded = SettingsStore(userDefaults: defaults)
 
-        #expect(reloaded.refreshCadence == .fifteen)
-        #expect(reloaded.temperatureUnit == .fahrenheit)
-        #expect(reloaded.selectedMetric == .dailyStress)
-        #expect(reloaded.enabledMetrics.contains(.dailyStress))
-        #expect(!reloaded.enabledMetrics.contains(.activity))
+        XCTAssertEqual(reloaded.refreshCadence, .fifteen)
+        XCTAssertEqual(reloaded.temperatureUnit, .fahrenheit)
+        XCTAssertEqual(reloaded.selectedMetric, .dailyStress)
+        XCTAssertTrue(reloaded.enabledMetrics.contains(.dailyStress))
+        XCTAssertFalse(reloaded.enabledMetrics.contains(.activity))
     }
 
-    @Test func temperatureFormattingConvertsDeviationUnits() {
-        #expect(BarMetric.bodyTemperatureDeviation.formattedValue(0.5, temperatureUnit: .celsius) == "+0.5C")
-        #expect(BarMetric.bodyTemperatureDeviation.formattedValue(0.5, temperatureUnit: .fahrenheit) == "+0.9F")
-        #expect(BarMetric.bodyTemperatureDeviation.formattedDelta(-0.5, temperatureUnit: .fahrenheit) == "-0.9F")
-        #expect(BarMetric.sleepScore.formattedValue(87, temperatureUnit: .fahrenheit) == "87")
+    func testTemperatureFormattingConvertsDeviationUnits() {
+        XCTAssertEqual(BarMetric.bodyTemperatureDeviation.formattedValue(0.5, temperatureUnit: .celsius), "+0.5C")
+        XCTAssertEqual(BarMetric.bodyTemperatureDeviation.formattedValue(0.5, temperatureUnit: .fahrenheit), "+0.9F")
+        XCTAssertEqual(BarMetric.bodyTemperatureDeviation.formattedDelta(-0.5, temperatureUnit: .fahrenheit), "-0.9F")
+        XCTAssertEqual(BarMetric.sleepScore.formattedValue(87, temperatureUnit: .fahrenheit), "87")
     }
 
-    @Test func sleepDurationsFormatAsHoursAndMinutes() {
-        #expect(BarMetric.totalSleep.formattedValue(411) == "6:51")
-        #expect(BarMetric.deepSleep.formattedValue(92) == "1:32")
-        #expect(BarMetric.lightSleep.formattedValue(185) == "3:05")
-        #expect(BarMetric.rem.formattedValue(94) == "1:34")
-        #expect(BarMetric.sleepLatency.formattedValue(9) == "0:09")
-        #expect(BarMetric.totalSleep.formattedDelta(-32) == "-0:32")
+    func testSleepDurationsFormatAsHoursAndMinutes() {
+        XCTAssertEqual(BarMetric.totalSleep.formattedValue(411), "6:51")
+        XCTAssertEqual(BarMetric.deepSleep.formattedValue(92), "1:32")
+        XCTAssertEqual(BarMetric.lightSleep.formattedValue(185), "3:05")
+        XCTAssertEqual(BarMetric.rem.formattedValue(94), "1:34")
+        XCTAssertEqual(BarMetric.sleepLatency.formattedValue(9), "0:09")
+        XCTAssertEqual(BarMetric.totalSleep.formattedDelta(-32), "-0:32")
     }
 
-    @Test func roundTripsMetricOrder() {
+    func testRoundTripsMetricOrder() {
         let defaults = makeDefaults()
         defer { defaults.removePersistentDomain(forName: defaultsSuiteName(defaults)) }
 
@@ -61,35 +61,35 @@ struct SettingsStoreTests {
 
         let reloaded = SettingsStore(userDefaults: defaults)
 
-        #expect(reloaded.metricOrder.first == .activity)
-        #expect(reloaded.orderedEnabledMetrics.first == .activity)
+        XCTAssertEqual(reloaded.metricOrder.first, .activity)
+        XCTAssertEqual(reloaded.orderedEnabledMetrics.first, .activity)
     }
 
-    @Test func movingInactiveMetricToActiveEnablesAndOrdersIt() {
+    func testMovingInactiveMetricToActiveEnablesAndOrdersIt() {
         let defaults = makeDefaults()
         defer { defaults.removePersistentDomain(forName: defaultsSuiteName(defaults)) }
 
         let store = SettingsStore(userDefaults: defaults)
         store.moveMetric(.dailyStress, before: .rem, enabled: true)
 
-        #expect(store.enabledMetrics.contains(.dailyStress))
-        #expect(Array(store.orderedEnabledMetrics.prefix(3)) == [.sleepScore, .dailyStress, .rem])
-        #expect(!store.orderedInactiveMetrics.contains(.dailyStress))
+        XCTAssertTrue(store.enabledMetrics.contains(.dailyStress))
+        XCTAssertEqual(Array(store.orderedEnabledMetrics.prefix(3)), [.sleepScore, .dailyStress, .rem])
+        XCTAssertFalse(store.orderedInactiveMetrics.contains(.dailyStress))
     }
 
-    @Test func movingActiveMetricToInactiveDisablesAndOrdersIt() {
+    func testMovingActiveMetricToInactiveDisablesAndOrdersIt() {
         let defaults = makeDefaults()
         defer { defaults.removePersistentDomain(forName: defaultsSuiteName(defaults)) }
 
         let store = SettingsStore(userDefaults: defaults)
         store.moveMetric(.activity, before: .deepSleep, enabled: false)
 
-        #expect(!store.enabledMetrics.contains(.activity))
-        #expect(store.orderedEnabledMetrics == [.sleepScore, .rem, .hrv, .rhr, .readiness])
-        #expect(Array(store.orderedInactiveMetrics.prefix(2)) == [.activity, .deepSleep])
+        XCTAssertFalse(store.enabledMetrics.contains(.activity))
+        XCTAssertEqual(store.orderedEnabledMetrics, [.sleepScore, .rem, .hrv, .rhr, .readiness])
+        XCTAssertEqual(Array(store.orderedInactiveMetrics.prefix(2)), [.activity, .deepSleep])
     }
 
-    @Test func cannotMoveOnlyActiveMetricToInactive() {
+    func testCannotMoveOnlyActiveMetricToInactive() {
         let defaults = makeDefaults()
         defer { defaults.removePersistentDomain(forName: defaultsSuiteName(defaults)) }
 
@@ -99,11 +99,11 @@ struct SettingsStoreTests {
         }
         store.moveMetric(.sleepScore, before: nil, enabled: false)
 
-        #expect(store.enabledMetrics == [.sleepScore])
-        #expect(store.orderedEnabledMetrics == [.sleepScore])
+        XCTAssertEqual(store.enabledMetrics, [.sleepScore])
+        XCTAssertEqual(store.orderedEnabledMetrics, [.sleepScore])
     }
 
-    @Test func repairsStoredMetricOrder() throws {
+    func testRepairsStoredMetricOrder() throws {
         let defaults = makeDefaults()
         defer { defaults.removePersistentDomain(forName: defaultsSuiteName(defaults)) }
         let data = try JSONEncoder().encode(["dailyStress", "dailyStress", "not-a-metric", "sleepScore"])
@@ -111,12 +111,12 @@ struct SettingsStoreTests {
 
         let store = SettingsStore(userDefaults: defaults)
 
-        #expect(Array(store.metricOrder.prefix(2)) == [.dailyStress, .sleepScore])
-        #expect(Set(store.metricOrder) == Set(BarMetric.allCases))
-        #expect(store.metricOrder.count == BarMetric.allCases.count)
+        XCTAssertEqual(Array(store.metricOrder.prefix(2)), [.dailyStress, .sleepScore])
+        XCTAssertEqual(Set(store.metricOrder), Set(BarMetric.allCases))
+        XCTAssertEqual(store.metricOrder.count, BarMetric.allCases.count)
     }
 
-    @Test func disablingSelectedMetricSwapsToFirstEnabledMetric() {
+    func testDisablingSelectedMetricSwapsToFirstEnabledMetric() {
         let defaults = makeDefaults()
         defer { defaults.removePersistentDomain(forName: defaultsSuiteName(defaults)) }
 
@@ -124,11 +124,11 @@ struct SettingsStoreTests {
         store.selectedMetric = .activity
         store.setMetric(.activity, enabled: false)
 
-        #expect(store.selectedMetric == .sleepScore)
-        #expect(!store.enabledMetrics.contains(.activity))
+        XCTAssertEqual(store.selectedMetric, .sleepScore)
+        XCTAssertFalse(store.enabledMetrics.contains(.activity))
     }
 
-    @Test func disablingSelectedMetricUsesCustomOrderFallback() {
+    func testDisablingSelectedMetricUsesCustomOrderFallback() {
         let defaults = makeDefaults()
         defer { defaults.removePersistentDomain(forName: defaultsSuiteName(defaults)) }
 
@@ -138,7 +138,7 @@ struct SettingsStoreTests {
         store.selectedMetric = .activity
         store.setMetric(.activity, enabled: false)
 
-        #expect(store.selectedMetric == .dailyStress)
+        XCTAssertEqual(store.selectedMetric, .dailyStress)
     }
 
     private func makeDefaults() -> UserDefaults {
