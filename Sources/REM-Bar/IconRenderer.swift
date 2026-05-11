@@ -149,7 +149,7 @@ enum BarMetric: String, CaseIterable, Codable, Identifiable {
         case .sleepScore, .readiness, .activity, .sleepEfficiency, .hrvBalance, .sleepBalance, .sleepRegularity, .breathingDisturbance:
             return ""
         case .rem, .deepSleep, .totalSleep, .lightSleep, .awakeTime, .timeInBed, .sleepLatency:
-            return "m"
+            return ""
         case .hrv:
             return "ms"
         case .rhr:
@@ -193,7 +193,9 @@ enum BarMetric: String, CaseIterable, Codable, Identifiable {
 
     func formattedValue(_ value: Double, temperatureUnit: TemperatureUnit = .celsius) -> String {
         switch self {
-        case .sleepScore, .readiness, .activity, .rem, .deepSleep, .totalSleep, .lightSleep, .awakeTime, .timeInBed, .sleepLatency, .hrv, .rhr, .sleepEfficiency, .hrvBalance, .sleepBalance, .sleepRegularity, .breathingDisturbance, .cardiovascularAge:
+        case .rem, .deepSleep, .totalSleep, .lightSleep, .awakeTime, .timeInBed, .sleepLatency:
+            return formattedDuration(minutes: value)
+        case .sleepScore, .readiness, .activity, .hrv, .rhr, .sleepEfficiency, .hrvBalance, .sleepBalance, .sleepRegularity, .breathingDisturbance, .cardiovascularAge:
             return "\(Int(value.rounded()))\(unit)"
         case .averageBreath, .averageSpO2, .vo2Max:
             return "\(String(format: "%.1f", value))\(unit)"
@@ -212,7 +214,9 @@ enum BarMetric: String, CaseIterable, Codable, Identifiable {
 
     func formattedDelta(_ value: Double, temperatureUnit: TemperatureUnit = .celsius) -> String {
         switch self {
-        case .sleepScore, .readiness, .activity, .rem, .deepSleep, .totalSleep, .lightSleep, .awakeTime, .timeInBed, .sleepLatency, .hrv, .rhr, .sleepEfficiency, .hrvBalance, .sleepBalance, .sleepRegularity, .breathingDisturbance, .cardiovascularAge:
+        case .rem, .deepSleep, .totalSleep, .lightSleep, .awakeTime, .timeInBed, .sleepLatency:
+            return formattedDuration(minutes: value)
+        case .sleepScore, .readiness, .activity, .hrv, .rhr, .sleepEfficiency, .hrvBalance, .sleepBalance, .sleepRegularity, .breathingDisturbance, .cardiovascularAge:
             return "\(Int(value.rounded()))\(unit)"
         case .averageBreath, .averageSpO2, .vo2Max:
             return "\(String(format: "%.1f", value))\(unit)"
@@ -267,6 +271,15 @@ enum BarMetric: String, CaseIterable, Codable, Identifiable {
         default:
             return "Exceptional"
         }
+    }
+
+    private func formattedDuration(minutes: Double) -> String {
+        let roundedMinutes = Int(minutes.rounded())
+        let sign = roundedMinutes < 0 ? "-" : ""
+        let absoluteMinutes = abs(roundedMinutes)
+        let hours = absoluteMinutes / 60
+        let minutesRemainder = absoluteMinutes % 60
+        return "\(sign)\(hours):\(String(format: "%02d", minutesRemainder))"
     }
 }
 

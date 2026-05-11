@@ -43,6 +43,15 @@ struct SettingsStoreTests {
         #expect(BarMetric.sleepScore.formattedValue(87, temperatureUnit: .fahrenheit) == "87")
     }
 
+    @Test func sleepDurationsFormatAsHoursAndMinutes() {
+        #expect(BarMetric.totalSleep.formattedValue(411) == "6:51")
+        #expect(BarMetric.deepSleep.formattedValue(92) == "1:32")
+        #expect(BarMetric.lightSleep.formattedValue(185) == "3:05")
+        #expect(BarMetric.rem.formattedValue(94) == "1:34")
+        #expect(BarMetric.sleepLatency.formattedValue(9) == "0:09")
+        #expect(BarMetric.totalSleep.formattedDelta(-32) == "-0:32")
+    }
+
     @Test func roundTripsMetricOrder() {
         let defaults = makeDefaults()
         defer { defaults.removePersistentDomain(forName: defaultsSuiteName(defaults)) }

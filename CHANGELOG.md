@@ -33,6 +33,7 @@
 - Settings now lays out metric-card options in a fixed three-column grid inside a wider Display tab so all 26 options are visible with less scrolling.
 - Settings now organizes metric cards into Active and Inactive drag-and-drop sections instead of checkbox toggles; the Active section order is the popover card order.
 - Added a Display setting for Celsius vs Fahrenheit and applied it to Body Temp in the menu bar, card value, card delta, and 7-day average.
+- Sleep duration metrics now display as hours and minutes, for example `6:51`, instead of total minutes.
 - Refresh now skips endpoint fetches when every metric driven by that endpoint is disabled, and the snapshot builder omits disabled metric series.
 - Time-series OuraClient calls default to `latest=true` when no date-time range is supplied.
 - Added offline tests for `TokenValidator`, metric color thresholds, and `SettingsStore` persistence.
