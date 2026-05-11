@@ -314,9 +314,10 @@ struct SettingsView: View {
                     title: "Oura Tokens",
                     url: "https://cloud.ouraring.com/personal-access-tokens")
                 AboutLinkRow(
-                    icon: "at",
+                    icon: "𝕏",
                     title: "@psufka",
-                    url: "https://x.com/psufka")
+                    url: "https://x.com/psufka",
+                    iconIsSystemSymbol: false)
                 AboutLinkRow(
                     icon: "doc.text",
                     title: "README",
@@ -510,6 +511,7 @@ private struct AboutLinkRow: View {
     let icon: String
     let title: String
     let url: String
+    var iconIsSystemSymbol = true
     @State private var hovering = false
 
     var body: some View {
@@ -519,8 +521,13 @@ private struct AboutLinkRow: View {
             }
         } label: {
             HStack(spacing: 12) {
-                Image(systemName: icon)
-                    .frame(width: 26)
+                if iconIsSystemSymbol {
+                    Image(systemName: icon)
+                        .frame(width: 26)
+                } else {
+                    Text(icon)
+                        .frame(width: 26)
+                }
                 Text(title)
                     .underline(hovering, color: .accentColor)
             }
