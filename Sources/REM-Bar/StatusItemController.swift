@@ -77,7 +77,7 @@ final class StatusItemController: NSObject {
         window.identifier = NSUserInterfaceItemIdentifier("com.psufka.REM-Bar.settings")
         window.styleMask = [.titled, .closable, .miniaturizable]
         window.isReleasedWhenClosed = false
-        window.setContentSize(NSSize(width: 560, height: 400))
+        window.setContentSize(NSSize(width: 640, height: 500))
         window.center()
         return window
     }

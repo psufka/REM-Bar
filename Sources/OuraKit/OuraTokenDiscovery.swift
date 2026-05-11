@@ -40,6 +40,16 @@ public struct OuraTokenSource: Equatable, Sendable {
     }
 }
 
+public struct OuraTokenSourceSummary: Equatable, Identifiable, Sendable {
+    public let source: OuraTokenSource
+    public let isAvailable: Bool
+    public let isActive: Bool
+
+    public var id: String {
+        "\(source.kind.rawValue):\(source.path ?? source.name)"
+    }
+}
+
 public struct OuraTokenDiscovery {
     public typealias EnvironmentProvider = @Sendable () -> [String: String]
     public typealias KeychainTokenProvider = @Sendable () throws -> String?
@@ -66,62 +76,37 @@ public struct OuraTokenDiscovery {
     }
 
     public func resolve() throws -> OuraResolvedToken? {
-        let keychainValue = try keychainToken()?.nonEmptyOuraToken
-        let hasKeychain = keychainValue != nil
-
-        if let token = environment()["OURA_TOKEN"]?.nonEmptyOuraToken {
-            return OuraResolvedToken(
-                token: token,
-                source: OuraTokenSource(kind: .environment, name: "OURA_TOKEN", path: nil),
-                keychainTokenAvailable: hasKeychain)
+        let candidates = try tokenCandidates()
+        let keychainAvailable = candidates.contains { candidate in
+            candidate.source.kind == .keychain && candidate.token != nil
         }
-
-        if let keychainValue {
-            return OuraResolvedToken(
-                token: keychainValue,
-                source: OuraTokenSource(kind: .keychain, name: KeychainStore.service, path: nil),
-                keychainTokenAvailable: true)
+        guard let active = candidates.first(where: { $0.token != nil }),
+              let token = active.token
+        else {
+            return nil
         }
+        return OuraResolvedToken(
+            token: token,
+            source: active.source,
+            keychainTokenAvailable: keychainAvailable)
+    }
 
-        let configURL = homeDirectory.appendingPathComponent(".oura-mcp/config.json")
-        if let token = Self.configFileToken(url: configURL)?.nonEmptyOuraToken {
-            return OuraResolvedToken(
-                token: token,
-                source: OuraTokenSource(kind: .configFile, name: "oura-mcp config", path: displayPath(configURL)),
-                keychainTokenAvailable: false)
+    public func sourceSummaries() throws -> [OuraTokenSourceSummary] {
+        let candidates = try tokenCandidates()
+        let activeID = candidates.first(where: { $0.token != nil })?.source.identity
+        return candidates.map { candidate in
+            OuraTokenSourceSummary(
+                source: candidate.source,
+                isAvailable: candidate.token != nil,
+                isActive: candidate.source.identity == activeID)
         }
-
-        if let token = launchctlToken()?.nonEmptyOuraToken {
-            return OuraResolvedToken(
-                token: token,
-                source: OuraTokenSource(kind: .launchctl, name: "OURA_TOKEN", path: nil),
-                keychainTokenAvailable: false)
-        }
-
-        if let ambient = ambientFileToken() {
-            return OuraResolvedToken(
-                token: ambient.token,
-                source: ambient.source,
-                keychainTokenAvailable: false)
-        }
-
-        return nil
     }
 
     public func ambientFileToken() -> (token: String, source: OuraTokenSource)? {
-        for url in ambientTokenCandidateURLs() {
-            guard fileManager.fileExists(atPath: url.path),
-                  let contents = try? String(contentsOf: url, encoding: .utf8),
-                  let token = Self.parseTokenAssignment(in: contents)?.nonEmptyOuraToken
-            else {
-                continue
-            }
-            let kind: OuraTokenSource.Kind = url.lastPathComponent.hasPrefix(".env") ? .dotenv : .shellProfile
-            return (
-                token,
-                OuraTokenSource(kind: kind, name: "OURA_TOKEN", path: displayPath(url)))
+        ambientTokenCandidates().first { $0.token != nil }.flatMap { candidate in
+            guard let token = candidate.token else { return nil }
+            return (token, candidate.source)
         }
-        return nil
     }
 
     public func ambientTokenCandidateURLs() -> [URL] {
@@ -195,6 +180,43 @@ public struct OuraTokenDiscovery {
         return String(data: data, encoding: .utf8)?.nonEmptyOuraToken
     }
 
+    private func tokenCandidates() throws -> [TokenCandidate] {
+        let configURL = homeDirectory.appendingPathComponent(".oura-mcp/config.json")
+        var candidates = [
+            TokenCandidate(
+                source: OuraTokenSource(kind: .environment, name: "OURA_TOKEN", path: nil),
+                token: environment()["OURA_TOKEN"]?.nonEmptyOuraToken),
+            TokenCandidate(
+                source: OuraTokenSource(kind: .keychain, name: KeychainStore.service, path: nil),
+                token: try keychainToken()?.nonEmptyOuraToken),
+            TokenCandidate(
+                source: OuraTokenSource(kind: .configFile, name: "oura-mcp config", path: displayPath(configURL)),
+                token: Self.configFileToken(url: configURL)?.nonEmptyOuraToken),
+            TokenCandidate(
+                source: OuraTokenSource(kind: .launchctl, name: "OURA_TOKEN", path: nil),
+                token: launchctlToken()?.nonEmptyOuraToken),
+        ]
+        candidates.append(contentsOf: ambientTokenCandidates())
+        return candidates
+    }
+
+    private func ambientTokenCandidates() -> [TokenCandidate] {
+        ambientTokenCandidateURLs().map { url in
+            let kind: OuraTokenSource.Kind = url.lastPathComponent.hasPrefix(".env") ? .dotenv : .shellProfile
+            let token: String?
+            if fileManager.fileExists(atPath: url.path),
+               let contents = try? String(contentsOf: url, encoding: .utf8)
+            {
+                token = Self.parseTokenAssignment(in: contents)?.nonEmptyOuraToken
+            } else {
+                token = nil
+            }
+            return TokenCandidate(
+                source: OuraTokenSource(kind: kind, name: "OURA_TOKEN", path: displayPath(url)),
+                token: token)
+        }
+    }
+
     private func displayPath(_ url: URL) -> String {
         let homePath = homeDirectory.path
         if url.path.hasPrefix(homePath + "/") {
@@ -248,6 +270,17 @@ public struct OuraTokenDiscovery {
             words.append(current)
         }
         return words
+    }
+}
+
+private struct TokenCandidate {
+    let source: OuraTokenSource
+    let token: String?
+}
+
+private extension OuraTokenSource {
+    var identity: String {
+        "\(kind.rawValue):\(path ?? name)"
     }
 }
 

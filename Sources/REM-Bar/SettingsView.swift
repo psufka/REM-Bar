@@ -8,6 +8,8 @@ struct SettingsView: View {
     @State private var isValidating = false
     @State private var tokenSource: TokenSource = .missing
     @State private var detectedTokenForImport: String?
+    @State private var sourceSummaries: [OuraTokenSourceSummary] = []
+    @FocusState private var tokenFieldFocused: Bool
 
     private let keychain = KeychainStore.shared
     private let validator = TokenValidator()
@@ -15,64 +17,105 @@ struct SettingsView: View {
     var body: some View {
         TabView {
             accountPane
-            .padding()
-            .tabItem { Label("Account", systemImage: "key") }
+                .padding(20)
+                .tabItem { Label("Account", systemImage: "key") }
 
             displayPane
-            .padding()
-            .tabItem { Label("Display", systemImage: "menubar.rectangle") }
+                .padding()
+                .tabItem { Label("Display", systemImage: "menubar.rectangle") }
 
             aboutPane
                 .padding()
                 .tabItem { Label("About", systemImage: "info.circle") }
         }
-        .frame(width: 560, height: 400)
+        .frame(width: 640, height: 500)
         .onAppear {
             reloadTokenState()
+            tokenFieldFocused = false
         }
     }
 
     private var accountPane: some View {
-        Form {
-            LabeledContent("Active token source") {
-                HStack(spacing: 6) {
-                    Image(systemName: tokenSource.symbolName)
-                        .foregroundStyle(tokenSource.tint)
-                    Text(tokenSource.label)
+        ScrollView {
+            VStack(alignment: .leading, spacing: 16) {
+                settingsSection("Oura Connection") {
+                    HStack(alignment: .top, spacing: 12) {
+                        Image(systemName: tokenSource.symbolName)
+                            .font(.title2)
+                            .foregroundStyle(tokenSource.tint)
+                            .frame(width: 26)
+                        VStack(alignment: .leading, spacing: 5) {
+                            Text(tokenSource.statusTitle)
+                                .font(.headline)
+                            Text(tokenSource.detail)
+                                .font(.callout)
+                                .foregroundStyle(.secondary)
+                                .fixedSize(horizontal: false, vertical: true)
+                        }
+                    }
                 }
-            }
 
-            Text(tokenSource.detail)
-                .font(.caption)
-                .foregroundStyle(.secondary)
+                settingsSection("Token") {
+                    VStack(alignment: .leading, spacing: 10) {
+                        SecureField("Paste Personal Access Token", text: $token)
+                            .textFieldStyle(.roundedBorder)
+                            .focused($tokenFieldFocused)
 
-            SecureField("Oura Personal Access Token", text: $token)
+                        HStack(spacing: 10) {
+                            Button(isValidating ? "Validating..." : "Validate & Save") {
+                                validateAndSave()
+                            }
+                            .disabled(isValidating || token.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty)
 
-            HStack {
-                Button(isValidating ? "Validating..." : "Validate & Save to Keychain") {
-                    validateAndSave()
+                            Button("Save Detected Token to Keychain") {
+                                saveDetectedToken()
+                            }
+                            .buttonStyle(.borderedProminent)
+                            .disabled(detectedTokenForImport == nil || isValidating)
+
+                            Spacer()
+
+                            Link("Create token", destination: URL(string: "https://cloud.ouraring.com/personal-access-tokens")!)
+                        }
+
+                        if detectedTokenForImport != nil {
+                            Text("Detected source: \(tokenSource.label). Saving copies that token into the REM-Bar Keychain without displaying it.")
+                                .font(.caption)
+                                .foregroundStyle(.secondary)
+                                .fixedSize(horizontal: false, vertical: true)
+                        }
+
+                        if !validationMessage.isEmpty {
+                            Text(validationMessage)
+                                .font(.caption)
+                                .foregroundStyle(validationMessage == "Token saved." ? .green : .red)
+                        }
+                    }
                 }
-                .disabled(isValidating || token.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty)
 
-                Button("Remove Keychain Token", role: .destructive) {
-                    removeKeychainToken()
+                settingsSection("Token Sources") {
+                    VStack(alignment: .leading, spacing: 10) {
+                        Text("Priority: Environment -> Keychain -> oura-mcp config -> launchctl -> shell and dotenv files")
+                            .font(.caption)
+                            .foregroundStyle(.secondary)
+
+                        VStack(alignment: .leading, spacing: 7) {
+                            ForEach(sourceSummaries) { summary in
+                                tokenSourceRow(summary)
+                            }
+                        }
+
+                        Divider()
+
+                        HStack {
+                            Button("Remove Keychain Token", role: .destructive) {
+                                removeKeychainToken()
+                            }
+                            .disabled(!tokenSource.hasKeychainToken)
+                            Spacer()
+                        }
+                    }
                 }
-                .disabled(!tokenSource.hasKeychainToken)
-
-                Button("Save Detected Token") {
-                    saveDetectedToken()
-                }
-                .disabled(detectedTokenForImport == nil || isValidating)
-
-                Spacer()
-
-                Link("Create token", destination: URL(string: "https://cloud.ouraring.com/personal-access-tokens")!)
-            }
-
-            if !validationMessage.isEmpty {
-                Text(validationMessage)
-                    .font(.caption)
-                    .foregroundStyle(validationMessage == "Token saved." ? .green : .red)
             }
         }
     }
@@ -159,13 +202,47 @@ struct SettingsView: View {
             keychainToken
         })
         let resolved = try? discovery.resolve()
+        let summaries = (try? discovery.sourceSummaries()) ?? []
 
         token = keychainToken ?? ""
         tokenSource = TokenSource(resolved: resolved)
+        sourceSummaries = summaries
         if let resolved, !resolved.source.isKeychain {
             detectedTokenForImport = resolved.token
         } else {
             detectedTokenForImport = nil
+        }
+    }
+
+    private func settingsSection<Content: View>(_ title: String, @ViewBuilder content: () -> Content) -> some View {
+        VStack(alignment: .leading, spacing: 10) {
+            Text(title)
+                .font(.headline)
+            content()
+        }
+        .frame(maxWidth: .infinity, alignment: .leading)
+        .padding(14)
+        .background(Color(nsColor: .controlBackgroundColor), in: RoundedRectangle(cornerRadius: 8))
+    }
+
+    private func tokenSourceRow(_ summary: OuraTokenSourceSummary) -> some View {
+        HStack(alignment: .firstTextBaseline, spacing: 8) {
+            Image(systemName: summary.isAvailable ? "checkmark.circle.fill" : "circle")
+                .foregroundStyle(summary.isAvailable ? .green : .secondary)
+                .font(.caption)
+            Text(summary.source.displayName)
+                .font(.caption)
+                .lineLimit(1)
+                .truncationMode(.middle)
+            if summary.isActive {
+                Text("Active")
+                    .font(.caption2.weight(.medium))
+                    .foregroundStyle(.white)
+                    .padding(.horizontal, 6)
+                    .padding(.vertical, 2)
+                    .background(Color.accentColor, in: Capsule())
+            }
+            Spacer(minLength: 0)
         }
     }
 }
@@ -217,6 +294,25 @@ private enum TokenSource: Equatable {
             return "Dotenv file: \(path)"
         case .missing:
             return "No token configured"
+        }
+    }
+
+    var statusTitle: String {
+        switch self {
+        case .environment:
+            return "Using OURA_TOKEN from the process environment"
+        case .keychain:
+            return "Using the REM-Bar Keychain token"
+        case .config:
+            return "Using the oura-mcp config token"
+        case .launchctl:
+            return "Using OURA_TOKEN from launchctl"
+        case let .shellProfile(path):
+            return "Using OURA_TOKEN from \(path)"
+        case let .dotenv(path):
+            return "Using OURA_TOKEN from \(path)"
+        case .missing:
+            return "No Oura token configured"
         }
     }
 

@@ -155,6 +155,49 @@ struct ClientTests {
         #expect(resolved.keychainTokenAvailable)
     }
 
+    @Test func sourceSummariesExposeAvailabilityWithoutTokens() throws {
+        let home = try temporaryHome()
+        try FileManager.default.createDirectory(
+            at: home.appendingPathComponent(".oura-mcp", isDirectory: true),
+            withIntermediateDirectories: true)
+        try #"{"token":"config-secret"}"#.write(
+            to: home.appendingPathComponent(".oura-mcp/config.json"),
+            atomically: true,
+            encoding: .utf8)
+        try #"export OURA_TOKEN="shell-secret""#.write(
+            to: home.appendingPathComponent(".zshrc"),
+            atomically: true,
+            encoding: .utf8)
+
+        let discovery = OuraTokenDiscovery(
+            environment: { [:] },
+            keychainToken: { nil },
+            launchctlToken: { nil },
+            homeDirectory: home)
+
+        let summaries = try discovery.sourceSummaries()
+        let available = summaries.filter(\.isAvailable)
+
+        #expect(available.map(\.source.kind) == [.configFile, .shellProfile])
+        #expect(summaries.first(where: { $0.source.kind == .configFile })?.isActive == true)
+        #expect(summaries.allSatisfy { !$0.source.displayName.contains("secret") })
+    }
+
+    @Test func sourceSummariesMarkEnvironmentActiveAndKeychainAvailable() throws {
+        let discovery = OuraTokenDiscovery(
+            environment: { ["OURA_TOKEN": "env-secret"] },
+            keychainToken: { "keychain-secret" },
+            launchctlToken: { nil },
+            homeDirectory: try temporaryHome())
+
+        let summaries = try discovery.sourceSummaries()
+
+        #expect(summaries.first?.source.kind == .environment)
+        #expect(summaries.first?.isActive == true)
+        #expect(summaries.first(where: { $0.source.kind == .keychain })?.isAvailable == true)
+        #expect(summaries.first(where: { $0.source.kind == .keychain })?.isActive == false)
+    }
+
     @Test func tokenAssignmentParserHandlesCommonShellForms() {
         #expect(OuraTokenDiscovery.parseTokenAssignment(in: "export OURA_TOKEN=plain") == "plain")
         #expect(OuraTokenDiscovery.parseTokenAssignment(in: #"OURA_TOKEN="quoted value""#) == "quoted value")
