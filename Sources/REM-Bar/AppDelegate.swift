@@ -12,11 +12,19 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         NSApp.setActivationPolicy(.accessory)
         let controller = StatusItemController(settings: settings, refreshCoordinator: refreshCoordinator)
         statusController = controller
-        refreshCoordinator.$sleepScore
+        refreshCoordinator.$snapshot
             .receive(on: RunLoop.main)
-            .sink { [weak controller] score in
+            .sink { [weak controller] snapshot in
                 Task { @MainActor in
-                    controller?.update(score: score)
+                    controller?.update(snapshot: snapshot)
+                }
+            }
+            .store(in: &cancellables)
+        settings.$selectedMetric
+            .receive(on: RunLoop.main)
+            .sink { [weak controller, weak refreshCoordinator] _ in
+                Task { @MainActor in
+                    controller?.update(snapshot: refreshCoordinator?.snapshot ?? .empty)
                 }
             }
             .store(in: &cancellables)

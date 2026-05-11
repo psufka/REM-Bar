@@ -34,6 +34,33 @@ enum BarMetric: String, CaseIterable, Identifiable {
             return "heart.text.square"
         }
     }
+
+    var unit: String {
+        switch self {
+        case .sleepScore, .readiness:
+            return ""
+        case .rem:
+            return "m"
+        case .hrv:
+            return "ms"
+        case .rhr:
+            return "bpm"
+        }
+    }
+
+    func formattedValue(_ value: Double) -> String {
+        switch self {
+        case .sleepScore, .readiness, .rem, .hrv, .rhr:
+            return "\(Int(value.rounded()))\(unit)"
+        }
+    }
+
+    func formattedDelta(_ value: Double) -> String {
+        switch self {
+        case .sleepScore, .readiness, .rem, .hrv, .rhr:
+            return "\(Int(value.rounded()))\(unit)"
+        }
+    }
 }
 
 enum IconRenderer {

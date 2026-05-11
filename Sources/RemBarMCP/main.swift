@@ -1,4 +1,5 @@
 import Foundation
+import OuraKit
 
-let server = Server()
-server.run()
+let server = Server(client: .live())
+await server.run()

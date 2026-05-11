@@ -33,6 +33,91 @@ struct ModelDecodingTests {
         #expect(response.data.first?.activeCalories == 520)
     }
 
+    @Test func nullableOuraFieldsDecode() throws {
+        let dailySleep = try JSONDecoder().decode(OuraCollection<DailySleep>.self, from: Data("""
+        {
+          "data": [
+            {
+              "id": "sleep-summary-2026-05-09",
+              "contributors": {
+                "deep_sleep": null,
+                "efficiency": null,
+                "latency": null,
+                "rem_sleep": null,
+                "restfulness": null,
+                "timing": null,
+                "total_sleep": null
+              },
+              "day": "2026-05-09",
+              "score": null,
+              "timestamp": null
+            }
+          ],
+          "next_token": null
+        }
+        """.utf8))
+        #expect(dailySleep.data.first?.score == nil)
+        #expect(dailySleep.data.first?.contributors?.remSleep == nil)
+
+        let sleep = try JSONDecoder().decode(OuraCollection<Sleep>.self, from: Data("""
+        {
+          "data": [
+            {
+              "id": "sleep-detail-2026-05-09",
+              "day": "2026-05-09",
+              "type": "long_sleep",
+              "average_heart_rate": null,
+              "average_hrv": null,
+              "lowest_heart_rate": null
+            }
+          ]
+        }
+        """.utf8))
+        #expect(sleep.data.first?.averageHrv == nil)
+
+        let readiness = try JSONDecoder().decode(OuraCollection<DailyReadiness>.self, from: Data("""
+        {
+          "data": [
+            {
+              "id": "readiness-2026-05-09",
+              "contributors": {
+                "activity_balance": null,
+                "body_temperature": null,
+                "hrv_balance": null,
+                "previous_day_activity": null,
+                "previous_night": null,
+                "recovery_index": null,
+                "resting_heart_rate": null,
+                "sleep_balance": null
+              },
+              "day": "2026-05-09",
+              "score": null,
+              "temperature_deviation": null,
+              "temperature_trend_deviation": null,
+              "timestamp": null
+            }
+          ]
+        }
+        """.utf8))
+        #expect(readiness.data.first?.contributors?.hrvBalance == nil)
+
+        let activity = try JSONDecoder().decode(OuraCollection<DailyActivity>.self, from: Data("""
+        {
+          "data": [
+            {
+              "id": "activity-2026-05-09",
+              "day": "2026-05-09",
+              "score": null,
+              "active_calories": null,
+              "steps": null,
+              "timestamp": null
+            }
+          ]
+        }
+        """.utf8))
+        #expect(activity.data.first?.activeCalories == nil)
+    }
+
     private func decode<T: Decodable>(_ type: T.Type, fixture: String) throws -> T {
         let url = try #require(Bundle.module.url(forResource: fixture, withExtension: "json", subdirectory: "Fixtures"))
         let data = try Data(contentsOf: url)

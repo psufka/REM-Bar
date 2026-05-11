@@ -2,6 +2,7 @@ import Foundation
 import Testing
 @testable import OuraKit
 
+@Suite(.serialized)
 struct ClientTests {
     init() {
         StubURLProtocol.reset()
@@ -46,6 +47,65 @@ struct ClientTests {
         #expect(StubURLProtocol.requests.last?.value(forHTTPHeaderField: "Authorization") == "Bearer token-2")
     }
 
+    @Test func secondUnauthorizedResponseReturnsInvalidToken() async throws {
+        let provider = TokenCounter()
+        StubURLProtocol.enqueue(status: 401, body: #"{"status":401,"title":"Invalid Access Token"}"#)
+        StubURLProtocol.enqueue(status: 401, body: #"{"status":401,"title":"Invalid Access Token"}"#)
+        let client = makeClient {
+            await provider.next()
+        }
+
+        do {
+            _ = try await client.personalInfo()
+            Issue.record("Expected invalidToken error.")
+        } catch OuraError.invalidToken {
+            #expect(await provider.count == 2)
+            #expect(StubURLProtocol.requests.count == 2)
+            #expect(StubURLProtocol.requests.last?.value(forHTTPHeaderField: "Authorization") == "Bearer token-2")
+        }
+    }
+
+    @Test func environmentTokenOverridesKeychainAndConfigTokens() async throws {
+        let provider = OuraClient.tokenProvider(
+            environment: { ["OURA_TOKEN": " env-token\n"] },
+            keychainToken: { "keychain-token" },
+            configToken: { "config-token" })
+
+        let token = try await provider()
+
+        #expect(token == "env-token")
+    }
+
+    @Test func configTokenIsFallbackWithoutReadingUserConfig() async throws {
+        let configURL = try temporaryConfigURL(contents: #"{"token":"config-token"}"#)
+        defer {
+            try? FileManager.default.removeItem(at: configURL.deletingLastPathComponent().deletingLastPathComponent())
+        }
+
+        let provider = OuraClient.tokenProvider(
+            environment: { [:] },
+            keychainToken: { nil },
+            configToken: { OuraClient.configFileToken(url: configURL) })
+
+        let token = try await provider()
+
+        #expect(token == "config-token")
+    }
+
+    @Test func missingTokenThrowsWhenAllSourcesAreEmpty() async throws {
+        let provider = OuraClient.tokenProvider(
+            environment: { ["OURA_TOKEN": "  "] },
+            keychainToken: { "\n" },
+            configToken: { "" })
+
+        do {
+            _ = try await provider()
+            Issue.record("Expected missingToken error.")
+        } catch OuraError.missingToken {
+            #expect(Bool(true))
+        }
+    }
+
     private func makeClient(token: String) -> OuraClient {
         makeClient { token }
     }
@@ -55,6 +115,16 @@ struct ClientTests {
         configuration.protocolClasses = [StubURLProtocol.self]
         let session = URLSession(configuration: configuration)
         return OuraClient(baseURL: URL(string: "https://api.ouraring.test")!, session: session, tokenProvider: tokenProvider)
+    }
+
+    private func temporaryConfigURL(contents: String) throws -> URL {
+        let directory = FileManager.default.temporaryDirectory
+            .appendingPathComponent("OuraKitTests-\(UUID().uuidString)", isDirectory: true)
+            .appendingPathComponent(".oura-mcp", isDirectory: true)
+        try FileManager.default.createDirectory(at: directory, withIntermediateDirectories: true)
+        let url = directory.appendingPathComponent("config.json")
+        try Data(contents.utf8).write(to: url)
+        return url
     }
 }
 

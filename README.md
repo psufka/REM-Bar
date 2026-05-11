@@ -1,6 +1,6 @@
 # REM-Bar
 
-![REM-Bar screenshot placeholder](docs/screenshot-placeholder.png)
+![REM-Bar screenshot placeholder](docs/screenshot-placeholder.svg)
 
 REM-Bar is a native macOS menu-bar app for Oura Ring sleep, REM, HRV, resting heart rate, and readiness data.
 

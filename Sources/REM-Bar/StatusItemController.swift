@@ -6,7 +6,7 @@ final class StatusItemController: NSObject {
     private let statusItem: NSStatusItem
     private let settings: SettingsStore
     private let refreshCoordinator: RefreshCoordinator
-    private var scoreObservation: NSKeyValueObservation?
+    private let popover = NSPopover()
 
     init(settings: SettingsStore, refreshCoordinator: RefreshCoordinator, statusBar: NSStatusBar = .system) {
         self.settings = settings
@@ -14,45 +14,46 @@ final class StatusItemController: NSObject {
         self.statusItem = statusBar.statusItem(withLength: NSStatusItem.variableLength)
         super.init()
         configure()
-        update(score: refreshCoordinator.sleepScore)
+        update(snapshot: refreshCoordinator.snapshot)
     }
 
     private func configure() {
         guard let button = statusItem.button else { return }
         button.action = #selector(handleClick)
         button.target = self
+        popover.behavior = .transient
     }
 
-    func update(score: Int?) {
+    func update(snapshot: DashboardSnapshot) {
         guard let button = statusItem.button else { return }
         let metric = settings.selectedMetric
-        button.image = IconRenderer.image(for: metric, color: ColorThresholds.color(for: Double(score ?? 0)))
-        button.contentTintColor = ColorThresholds.color(for: score.map(Double.init))
-        if let score {
-            button.title = " \(score)"
+        let series = snapshot.series(for: metric)
+        let value = series.currentValue
+        button.image = IconRenderer.image(for: metric, color: ColorThresholds.color(for: value, metric: metric))
+        button.contentTintColor = ColorThresholds.color(for: value, metric: metric)
+        if let value {
+            button.title = " \(metric.formattedValue(value))"
         } else {
             button.title = " ?"
         }
     }
 
     @objc private func handleClick() {
-        let menu = NSMenu()
-        let scoreTitle = "Sleep Score: \(refreshCoordinator.sleepScore.map(String.init) ?? "?")"
-        menu.addItem(NSMenuItem(title: scoreTitle, action: nil, keyEquivalent: ""))
-        if let error = refreshCoordinator.lastError {
-            menu.addItem(NSMenuItem(title: error, action: nil, keyEquivalent: ""))
+        guard let button = statusItem.button else { return }
+        if popover.isShown {
+            popover.performClose(nil)
+            return
         }
-        menu.addItem(.separator())
-        menu.addItem(NSMenuItem(title: "Refresh Now", action: #selector(refreshNow), keyEquivalent: "r"))
-        menu.addItem(NSMenuItem(title: "Settings...", action: #selector(openSettings), keyEquivalent: ","))
-        menu.addItem(.separator())
-        menu.addItem(NSMenuItem(title: "Quit REM-Bar", action: #selector(quit), keyEquivalent: "q"))
-        for item in menu.items {
-            item.target = self
-        }
-        statusItem.menu = menu
-        statusItem.button?.performClick(nil)
-        statusItem.menu = nil
+        popover.contentSize = NSSize(width: 430, height: 380)
+        popover.contentViewController = NSHostingController(rootView: PopoverView(
+            snapshot: refreshCoordinator.snapshot,
+            lastError: refreshCoordinator.lastError,
+            lastRefresh: refreshCoordinator.lastRefresh,
+            refresh: { [weak self] in self?.refreshNow() },
+            openSettings: { [weak self] in self?.openSettings() },
+            quit: { [weak self] in self?.quit() }))
+        popover.show(relativeTo: button.bounds, of: button, preferredEdge: .minY)
+        NSApp.activate(ignoringOtherApps: true)
     }
 
     @objc private func refreshNow() {

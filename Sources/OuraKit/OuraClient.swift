@@ -21,29 +21,44 @@ public final class OuraClient: @unchecked Sendable {
     }
 
     public static func live(keychain: KeychainStore = .shared) -> OuraClient {
-        OuraClient(tokenProvider: {
-            if let token = ProcessInfo.processInfo.environment["OURA_TOKEN"], !token.isEmpty {
-                return token
-            }
-            if let token = try keychain.readToken(), !token.isEmpty {
-                return token
-            }
-            if let token = Self.configFileToken(), !token.isEmpty {
-                return token
-            }
-            throw OuraError.missingToken
-        })
+        OuraClient(tokenProvider: tokenProvider(keychainToken: {
+            try keychain.readToken()
+        }))
     }
 
     public static func configFileToken(fileManager: FileManager = .default) -> String? {
         let home = fileManager.homeDirectoryForCurrentUser
         let url = home.appendingPathComponent(".oura-mcp/config.json")
+        return configFileToken(url: url)
+    }
+
+    public static func configFileToken(url: URL) -> String? {
         guard let data = try? Data(contentsOf: url),
               let json = try? JSONSerialization.jsonObject(with: data) as? [String: Any]
         else {
             return nil
         }
         return json["token"] as? String
+    }
+
+    static func tokenProvider(
+        environment: @escaping @Sendable () -> [String: String] = { ProcessInfo.processInfo.environment },
+        keychainToken: @escaping @Sendable () throws -> String? = { try KeychainStore.shared.readToken() },
+        configToken: @escaping @Sendable () -> String? = { OuraClient.configFileToken() })
+        -> OuraTokenProvider
+    {
+        {
+            if let token = environment()["OURA_TOKEN"]?.nonEmptyOuraToken {
+                return token
+            }
+            if let token = try keychainToken()?.nonEmptyOuraToken {
+                return token
+            }
+            if let token = configToken()?.nonEmptyOuraToken {
+                return token
+            }
+            throw OuraError.missingToken
+        }
     }
 
     public func personalInfo() async throws -> PersonalInfo {
@@ -95,7 +110,11 @@ public final class OuraClient: @unchecked Sendable {
             let retriedToken = try await retryGate.token {
                 try await self.tokenProvider()
             }
-            return try await performRequest(endpoint: endpoint, queryItems: queryItems, token: retriedToken, responseType: responseType)
+            do {
+                return try await performRequest(endpoint: endpoint, queryItems: queryItems, token: retriedToken, responseType: responseType)
+            } catch OuraError.invalidToken {
+                throw OuraError.invalidToken
+            }
         }
     }
 
@@ -143,6 +162,13 @@ public final class OuraClient: @unchecked Sendable {
             let body = String(data: data, encoding: .utf8) ?? ""
             throw OuraError.badStatus(httpResponse.statusCode, body)
         }
+    }
+}
+
+private extension String {
+    var nonEmptyOuraToken: String? {
+        let trimmed = trimmingCharacters(in: .whitespacesAndNewlines)
+        return trimmed.isEmpty ? nil : trimmed
     }
 }
 

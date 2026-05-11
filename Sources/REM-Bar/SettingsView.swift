@@ -36,6 +36,11 @@ struct SettingsView: View {
                         Text(cadence.label).tag(cadence)
                     }
                 }
+                Picker("Menu Bar Metric", selection: $settings.selectedMetric) {
+                    ForEach(BarMetric.allCases) { metric in
+                        Label(metric.label, systemImage: metric.symbolName).tag(metric)
+                    }
+                }
             }
             .padding()
             .tabItem { Label("General", systemImage: "gearshape") }

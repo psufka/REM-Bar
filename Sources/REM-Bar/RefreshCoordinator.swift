@@ -3,14 +3,17 @@ import OuraKit
 
 @MainActor
 final class RefreshCoordinator: ObservableObject {
-    @Published private(set) var sleepScore: Int? = 87
+    @Published private(set) var snapshot: DashboardSnapshot = .empty
     @Published private(set) var lastRefresh: Date?
     @Published private(set) var lastError: String?
 
     private let settings: SettingsStore
     private let client: OuraClient
-    private var timer: Timer?
+    private lazy var displayLinkDriver = DisplayLinkDriver { [weak self] in
+        self?.handleDisplayTick()
+    }
     private var refreshTask: Task<Void, Never>?
+    private var nextRefreshAfter = Date.distantPast
 
     init(settings: SettingsStore, client: OuraClient = .live()) {
         self.settings = settings
@@ -18,41 +21,49 @@ final class RefreshCoordinator: ObservableObject {
     }
 
     func start() {
-        scheduleTimer()
+        displayLinkDriver.start(fps: 1)
+        refresh()
     }
 
     func stop() {
-        timer?.invalidate()
-        timer = nil
+        displayLinkDriver.stop()
         refreshTask?.cancel()
         refreshTask = nil
     }
 
     func scheduleTimer() {
-        timer?.invalidate()
-        let interval = TimeInterval(settings.refreshCadence.rawValue)
-        timer = Timer.scheduledTimer(withTimeInterval: interval, repeats: true) { [weak self] _ in
-            Task { @MainActor [weak self] in
-                self?.refresh()
-            }
-        }
+        nextRefreshAfter = Date().addingTimeInterval(TimeInterval(settings.refreshCadence.rawValue))
+    }
+
+    private func handleDisplayTick() {
+        guard Date() >= nextRefreshAfter else { return }
+        refresh()
     }
 
     func refresh() {
         refreshTask?.cancel()
+        nextRefreshAfter = Date().addingTimeInterval(TimeInterval(settings.refreshCadence.rawValue))
         refreshTask = Task { [weak self] in
             guard let self else { return }
-            let today = Self.localDateString(Date())
+            let endDate = Self.localDateString(Date())
+            let startDate = Self.localDateString(Calendar.current.date(byAdding: .day, value: -6, to: Date()) ?? Date())
             do {
-                let collection = try await client.dailySleep(startDate: today, endDate: today)
+                async let dailySleep = client.dailySleep(startDate: startDate, endDate: endDate)
+                async let sleep = client.sleep(startDate: startDate, endDate: endDate)
+                async let readiness = client.dailyReadiness(startDate: startDate, endDate: endDate)
+                async let activity = client.dailyActivity(startDate: startDate, endDate: endDate)
+                let snapshot = try await DashboardSnapshotBuilder.make(
+                    dailySleep: dailySleep.data,
+                    sleep: sleep.data,
+                    readiness: readiness.data,
+                    activity: activity.data)
                 await MainActor.run {
-                    self.sleepScore = collection.data.first?.score ?? self.sleepScore
+                    self.snapshot = snapshot
                     self.lastRefresh = Date()
                     self.lastError = nil
                 }
             } catch OuraError.missingToken {
                 await MainActor.run {
-                    self.sleepScore = 87
                     self.lastError = "No Oura token configured."
                 }
             } catch {
@@ -63,11 +74,15 @@ final class RefreshCoordinator: ObservableObject {
         }
     }
 
-    static func localDateString(_ date: Date) -> String {
+    static let dayFormatter: DateFormatter = {
         let formatter = DateFormatter()
         formatter.calendar = Calendar(identifier: .gregorian)
         formatter.locale = Locale(identifier: "en_US_POSIX")
         formatter.dateFormat = "yyyy-MM-dd"
-        return formatter.string(from: date)
+        return formatter
+    }()
+
+    static func localDateString(_ date: Date) -> String {
+        dayFormatter.string(from: date)
     }
 }
