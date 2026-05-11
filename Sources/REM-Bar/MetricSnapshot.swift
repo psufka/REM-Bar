@@ -81,7 +81,8 @@ enum DashboardSnapshotBuilder {
         dailyStress: [DailyStress] = [],
         dailyResilience: [DailyResilience] = [],
         dailyCardiovascularAge: [DailyCardiovascularAge] = [],
-        personalInfo: PersonalInfo? = nil)
+        personalInfo: PersonalInfo? = nil,
+        enabledMetrics: Set<BarMetric> = Set(BarMetric.allCases))
         -> DashboardSnapshot
     {
         let dateFormatter = DateFormatter()
@@ -109,7 +110,9 @@ enum DashboardSnapshotBuilder {
             return MetricPoint(id: day, date: date, value: value)
         }
 
-        let metricPairs: [(BarMetric, MetricSeries)] = BarMetric.allCases.map { metric in
+        let metricPairs: [(BarMetric, MetricSeries)] = BarMetric.allCases
+            .filter { enabledMetrics.contains($0) }
+            .map { metric in
             let points = days.compactMap { day -> MetricPoint? in
                 let detail = preferredSleepDetail(from: sleepByDay[day] ?? [])
                 switch metric {

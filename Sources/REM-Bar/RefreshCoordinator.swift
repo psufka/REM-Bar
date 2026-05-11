@@ -1,5 +1,6 @@
 import Foundation
 import OuraKit
+import OSLog
 
 @MainActor
 final class RefreshCoordinator: ObservableObject {
@@ -9,6 +10,7 @@ final class RefreshCoordinator: ObservableObject {
 
     private let settings: SettingsStore
     private let client: OuraClient
+    private let logger = Logger(subsystem: "com.psufka.REM-Bar", category: "Refresh")
     private lazy var displayLinkDriver = DisplayLinkDriver { [weak self] in
         self?.handleDisplayTick()
     }
@@ -48,6 +50,7 @@ final class RefreshCoordinator: ObservableObject {
 
     func refresh() {
         guard refreshTask == nil else { return }
+        let enabledMetrics = settings.enabledMetrics
         nextRefreshAfter = Date().addingTimeInterval(TimeInterval(settings.refreshCadence.rawValue))
         refreshTask = Task { [weak self] in
             guard let self else { return }
@@ -58,13 +61,27 @@ final class RefreshCoordinator: ObservableObject {
             let startDate = Self.localDateString(Calendar.current.date(byAdding: .day, value: -6, to: Date()) ?? Date())
             let personalInfo = await self.personalInfoForRefresh()
             do {
-                async let dailySleep = client.dailySleep(startDate: startDate, endDate: endDate)
-                async let sleep = client.sleep(startDate: startDate, endDate: endDate)
-                async let readiness = client.dailyReadiness(startDate: startDate, endDate: endDate)
-                async let activity = client.dailyActivity(startDate: startDate, endDate: endDate)
-                async let dailyStress = client.dailyStress(startDate: startDate, endDate: endDate)
-                async let dailyResilience = client.dailyResilience(startDate: startDate, endDate: endDate)
-                async let dailyCardiovascularAge = client.dailyCardiovascularAge(startDate: startDate, endDate: endDate)
+                async let dailySleep = fetchIfNeeded("daily_sleep", enabledMetrics: enabledMetrics, requiredMetrics: [.sleepScore]) {
+                    (try await self.client.dailySleep(startDate: startDate, endDate: endDate)).data
+                }
+                async let sleep = fetchIfNeeded("sleep", enabledMetrics: enabledMetrics, requiredMetrics: [.rem, .hrv, .rhr, .sleepEfficiency]) {
+                    (try await self.client.sleep(startDate: startDate, endDate: endDate)).data
+                }
+                async let readiness = fetchIfNeeded("daily_readiness", enabledMetrics: enabledMetrics, requiredMetrics: [.readiness, .bodyTemperatureDeviation]) {
+                    (try await self.client.dailyReadiness(startDate: startDate, endDate: endDate)).data
+                }
+                async let activity = fetchIfNeeded("daily_activity", enabledMetrics: enabledMetrics, requiredMetrics: [.activity]) {
+                    (try await self.client.dailyActivity(startDate: startDate, endDate: endDate)).data
+                }
+                async let dailyStress = fetchIfNeeded("daily_stress", enabledMetrics: enabledMetrics, requiredMetrics: [.dailyStress]) {
+                    (try await self.client.dailyStress(startDate: startDate, endDate: endDate)).data
+                }
+                async let dailyResilience = fetchIfNeeded("daily_resilience", enabledMetrics: enabledMetrics, requiredMetrics: [.resilience]) {
+                    (try await self.client.dailyResilience(startDate: startDate, endDate: endDate)).data
+                }
+                async let dailyCardiovascularAge = fetchIfNeeded("daily_cardiovascular_age", enabledMetrics: enabledMetrics, requiredMetrics: [.cardiovascularAge]) {
+                    (try await self.client.dailyCardiovascularAge(startDate: startDate, endDate: endDate)).data
+                }
                 let snapshot = try await DashboardSnapshotBuilder.make(
                     dailySleep: dailySleep.data,
                     sleep: sleep.data,
@@ -73,7 +90,8 @@ final class RefreshCoordinator: ObservableObject {
                     dailyStress: dailyStress.data,
                     dailyResilience: dailyResilience.data,
                     dailyCardiovascularAge: dailyCardiovascularAge.data,
-                    personalInfo: personalInfo)
+                    personalInfo: personalInfo,
+                    enabledMetrics: enabledMetrics)
                 await MainActor.run {
                     self.snapshot = snapshot
                     self.lastRefresh = Date()
@@ -89,6 +107,21 @@ final class RefreshCoordinator: ObservableObject {
                 }
             }
         }
+    }
+
+    private func fetchIfNeeded<Element>(
+        _ endpointName: String,
+        enabledMetrics: Set<BarMetric>,
+        requiredMetrics: Set<BarMetric>,
+        operation: () async throws -> [Element])
+        async throws -> OuraCollection<Element>
+        where Element: Codable & Equatable & Sendable
+    {
+        guard enabledMetrics.containsAny(requiredMetrics) else {
+            logger.debug("Skipping \(endpointName, privacy: .public) fetch because dependent metrics are disabled.")
+            return OuraCollection(data: [])
+        }
+        return OuraCollection(data: try await operation())
     }
 
     private func personalInfoForRefresh() async -> PersonalInfo? {
@@ -112,5 +145,11 @@ final class RefreshCoordinator: ObservableObject {
 
     static func localDateString(_ date: Date) -> String {
         dayFormatter.string(from: date)
+    }
+}
+
+private extension Set where Element == BarMetric {
+    func containsAny(_ metrics: Set<BarMetric>) -> Bool {
+        !isDisjoint(with: metrics)
     }
 }
