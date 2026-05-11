@@ -104,7 +104,6 @@ enum DashboardSnapshotBuilder {
         let dailySleepByDay = latestByDay(dailySleep, day: \.day)
         let readinessByDay = latestByDay(readiness, day: \.day)
         let activityByDay = latestByDay(activity, day: \.day)
-        let stressByDay = latestByDay(dailyStress, day: \.day)
         let cardiovascularAgeByDay = latestByDay(dailyCardiovascularAge, day: \.day)
         let spo2ByDay = latestByDay(dailySpO2, day: \.day)
         let vo2MaxByDay = latestByDay(vo2Max, day: \.day)
@@ -172,7 +171,7 @@ enum DashboardSnapshotBuilder {
                 case .sleepEfficiency:
                     return point(day: day, value: detail?.efficiency.map(Double.init))
                 case .dailyStress:
-                    return point(day: day, value: stressByDay[day].flatMap(stressValue))
+                    return nil
                 case .resilience:
                     return nil
                 case .cardiovascularAge:
@@ -204,6 +203,14 @@ enum DashboardSnapshotBuilder {
                     categoryValue: level,
                     availabilityMessage: unavailableMessage))
             }
+            if metric == .dailyStress {
+                let summary = dailyStress.sorted { $0.day < $1.day }.last?.daySummary?.rawValue
+                return (metric, MetricSeries(
+                    metric: metric,
+                    points: [],
+                    categoryValue: summary,
+                    availabilityMessage: unavailableMessage))
+            }
             if metric == .optimalBedtime {
                 let window = sleepTime.sorted { $0.day < $1.day }.last?.optimalBedtime
                 return (metric, MetricSeries(
@@ -220,17 +227,10 @@ enum DashboardSnapshotBuilder {
                     categoryValue: recommendation,
                     availabilityMessage: unavailableMessage))
             }
-            let categoryValue: String?
-            if metric == .dailyStress {
-                categoryValue = dailyStress.sorted { $0.day < $1.day }.last?.daySummary?.rawValue
-            } else {
-                categoryValue = nil
-            }
             let baseline = metric == .cardiovascularAge ? personalInfo?.age.map(Double.init) : nil
             return (metric, MetricSeries(
                 metric: metric,
                 points: sorted,
-                categoryValue: categoryValue,
                 availabilityMessage: unavailableMessage,
                 baselineValue: baseline))
         }
@@ -271,25 +271,6 @@ enum DashboardSnapshotBuilder {
         case .sleepScore, .rem, .deepSleep, .totalSleep, .lightSleep, .awakeTime, .timeInBed, .sleepLatency, .averageBreath, .hrv, .rhr, .readiness, .activity, .hrvBalance, .sleepBalance, .sleepRegularity, .bodyTemperatureDeviation, .sleepEfficiency, .dailyStress, .resilience, .cardiovascularAge, .averageSpO2, .breathingDisturbance, .vo2Max, .optimalBedtime, .sleepTimeRecommendation:
             return nil
         }
-    }
-
-    private static func stressValue(from stress: DailyStress) -> Double? {
-        if let summary = stress.daySummary {
-            switch summary {
-            case .restored:
-                return 0
-            case .normal:
-                return 1
-            case .stressful:
-                return 2
-            }
-        }
-        guard let stressHigh = stress.stressHigh, let recoveryHigh = stress.recoveryHigh else {
-            return nil
-        }
-        if recoveryHigh > stressHigh { return 0 }
-        if stressHigh > recoveryHigh { return 2 }
-        return 1
     }
 
     private static func preferredSleepDetail(from details: [Sleep]) -> Sleep? {

@@ -73,10 +73,6 @@ enum ColorThresholds {
             return .systemRed
         case .hrvBalance, .sleepBalance, .sleepRegularity:
             return color(for: value)
-        case .dailyStress:
-            if value < 1 { return .systemGreen }
-            if value < 2 { return .systemOrange }
-            return .systemRed
         case .resilience:
             if value >= 3 { return .systemGreen }
             if value >= 2 { return .systemOrange }
@@ -99,7 +95,7 @@ enum ColorThresholds {
             if value >= 40 { return .systemGreen }
             if value >= 30 { return .systemOrange }
             return .systemRed
-        case .optimalBedtime, .sleepTimeRecommendation:
+        case .dailyStress, .optimalBedtime, .sleepTimeRecommendation:
             return .systemOrange
         }
     }

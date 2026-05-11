@@ -171,9 +171,9 @@ enum BarMetric: String, CaseIterable, Codable, Identifiable {
 
     var isCategorical: Bool {
         switch self {
-        case .resilience, .optimalBedtime, .sleepTimeRecommendation:
+        case .dailyStress, .resilience, .optimalBedtime, .sleepTimeRecommendation:
             return true
-        case .sleepScore, .rem, .hrv, .rhr, .readiness, .activity, .deepSleep, .totalSleep, .lightSleep, .awakeTime, .timeInBed, .sleepLatency, .averageBreath, .hrvBalance, .sleepBalance, .sleepRegularity, .bodyTemperatureDeviation, .sleepEfficiency, .dailyStress, .cardiovascularAge, .averageSpO2, .breathingDisturbance, .vo2Max:
+        case .sleepScore, .rem, .hrv, .rhr, .readiness, .activity, .deepSleep, .totalSleep, .lightSleep, .awakeTime, .timeInBed, .sleepLatency, .averageBreath, .hrvBalance, .sleepBalance, .sleepRegularity, .bodyTemperatureDeviation, .sleepEfficiency, .cardiovascularAge, .averageSpO2, .breathingDisturbance, .vo2Max:
             return false
         }
     }
@@ -182,11 +182,13 @@ enum BarMetric: String, CaseIterable, Codable, Identifiable {
         switch self {
         case .resilience:
             return "Long-term resilience level"
+        case .dailyStress:
+            return "Daily stress summary"
         case .optimalBedtime:
             return "Recommended bedtime window"
         case .sleepTimeRecommendation:
             return "Oura sleep-time guidance"
-        case .sleepScore, .rem, .hrv, .rhr, .readiness, .activity, .deepSleep, .totalSleep, .lightSleep, .awakeTime, .timeInBed, .sleepLatency, .averageBreath, .hrvBalance, .sleepBalance, .sleepRegularity, .bodyTemperatureDeviation, .sleepEfficiency, .dailyStress, .cardiovascularAge, .averageSpO2, .breathingDisturbance, .vo2Max:
+        case .sleepScore, .rem, .hrv, .rhr, .readiness, .activity, .deepSleep, .totalSleep, .lightSleep, .awakeTime, .timeInBed, .sleepLatency, .averageBreath, .hrvBalance, .sleepBalance, .sleepRegularity, .bodyTemperatureDeviation, .sleepEfficiency, .cardiovascularAge, .averageSpO2, .breathingDisturbance, .vo2Max:
             return ""
         }
     }
@@ -203,11 +205,9 @@ enum BarMetric: String, CaseIterable, Codable, Identifiable {
             let converted = temperatureUnit.convertDeviationFromCelsius(value)
             let prefix = converted >= 0 ? "+" : ""
             return "\(prefix)\(String(format: "%.1f", converted))\(unit(temperatureUnit: temperatureUnit))"
-        case .dailyStress:
-            return stressLabel(for: value)
         case .resilience:
             return resilienceLabel(for: value)
-        case .optimalBedtime, .sleepTimeRecommendation:
+        case .dailyStress, .optimalBedtime, .sleepTimeRecommendation:
             return ""
         }
     }
@@ -244,17 +244,6 @@ enum BarMetric: String, CaseIterable, Codable, Identifiable {
                 .joined(separator: " ")
         case .sleepScore, .rem, .deepSleep, .totalSleep, .lightSleep, .awakeTime, .timeInBed, .sleepLatency, .averageBreath, .hrv, .rhr, .readiness, .activity, .hrvBalance, .sleepBalance, .sleepRegularity, .bodyTemperatureDeviation, .sleepEfficiency, .cardiovascularAge, .averageSpO2, .breathingDisturbance, .vo2Max, .optimalBedtime:
             return category
-        }
-    }
-
-    private func stressLabel(for value: Double) -> String {
-        switch Int(value.rounded()) {
-        case ..<1:
-            return "Restored"
-        case 1:
-            return "Normal"
-        default:
-            return "Stressful"
         }
     }
 

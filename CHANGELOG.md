@@ -37,6 +37,8 @@
 - Added an Account settings help sheet with step-by-step Oura Personal Access Token setup instructions.
 - Replaced the app icon with a dark moon-and-sleep symbol that matches REM-Bar's sleep status icon.
 - Reordered Settings tabs to Display, Account, About so display customization is first.
+- Daily Stress now follows the categorical-card convention and renders the latest day summary without a sparkline.
+- Popover cards now use 1-4 columns by enabled-card count and scroll at a capped height when many cards are active.
 - Refresh now skips endpoint fetches when every metric driven by that endpoint is disabled, and the snapshot builder omits disabled metric series.
 - Time-series OuraClient calls default to `latest=true` when no date-time range is supplied.
 - Added offline tests for `TokenValidator`, metric color thresholds, and `SettingsStore` persistence.

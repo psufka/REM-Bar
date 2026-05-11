@@ -1,5 +1,13 @@
 # REM-Bar Session Log
 
+## Pre-tag polish audit (2026-05-11)
+
+| Concern | Status | Evidence | Fix |
+|---------|--------|----------|-----|
+| DailyStress categorical/numeric inconsistency | STILL PRESENT | `IconRenderer.swift`: `dailyStress` is listed in the non-categorical branch of `isCategorical`; `MetricSnapshot.swift`: `.dailyStress` builds numeric points with `stressValue` and also assigns `categoryValue` from `daySummary`; `ColorThresholds.swift` has both numeric and category color paths; `MetricCardView.swift` renders whichever `MetricSeries` supplies. | Flip `dailyStress` to categorical, remove the numeric extraction path, and keep `daySummary` category color mapping. |
+| Popover height with many cards enabled | STILL PRESENT | `PopoverView.swift`: the grid is not wrapped in a scroll view and `gridColumns` uses `visibleMetrics.count > 2 ? 3 : 2`, so 15-26 enabled cards can produce a very tall popover. | Add the requested 1/2/3/4 column rule and cap the grid in a scroll view with `maxHeight: 600`. |
+| Drag-reorder under rapid input | NO ACTION | Current request explicitly marks this concern as no-action; `SettingsStore` repair behavior is left untouched. | none |
+
 ## PLAN2 baseline audit (2026-05-11)
 
 | Item | Status | Evidence | Remaining work |
