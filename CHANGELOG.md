@@ -2,9 +2,21 @@
 
 ## Unreleased
 
+## 0.1.1 - 2026-05-11
+
+### Fixed
+
+- Fixed the release package so `REM-Bar.app` contains SwiftPM resources only under `Contents/Resources` and verifies with an ad-hoc app bundle signature after unzipping.
+
+### Changed
+
+- Removed custom XCTest framework search-path fallbacks from `Package.swift`; local and CI test runs now use standard `swift test` with the full Xcode toolchain.
+
+## 0.1.0 - 2026-05-11
+
 ### Added
 
-- Added `Scripts/package_app.sh` to build `dist/REM-Bar.app` and `dist/REM-Bar-v0.1.0.zip` from SwiftPM release products, bundling `RemBarMCP` at the documented MCP path.
+- Added `Scripts/package_app.sh` to build `dist/REM-Bar.app` and release zips from SwiftPM release products, bundling `RemBarMCP` at the documented MCP path.
 - Replaced the README with a CodexBar-style public draft covering install, first run, token sources, MCP setup, privacy, and source builds.
 - Replaced the README screenshot placeholder with a real REM-Bar popover screenshot.
 - Converted tests from Swift Testing to XCTest for GitHub Actions macOS 14 compatibility.
@@ -46,7 +58,7 @@
 - Popover sizing now uses the actual space below the menu-bar button so active cards can grow closer to the bottom of the display before scrolling.
 - Popover card sizing is now deterministic across the controller, grid, and card views so the last row is not partially clipped before scrolling starts.
 - README now clarifies that the bundled MCP server can be used by Claude Code, Codex, or any other MCP-capable LLM client.
-- README install instructions now link directly to the `REM-Bar-v0.1.0.zip` release asset.
+- README install instructions now link directly to the release zip asset.
 - Refresh now skips endpoint fetches when every metric driven by that endpoint is disabled, and the snapshot builder omits disabled metric series.
 - Time-series OuraClient calls default to `latest=true` when no date-time range is supplied.
 - Added offline tests for `TokenValidator`, metric color thresholds, and `SettingsStore` persistence.
@@ -57,6 +69,5 @@
 
 - Used SwiftPM target name `REMBar` with executable product name `REM-Bar` because Swift module names cannot reliably use hyphens.
 - Implemented personal-access-token 401 retry as a serialized token re-read/re-validation gate. Oura PATs do not expose refresh tokens, so the retry mirrors the promise-lock shape without OAuth refresh.
-- Added a test-only CommandLineTools `Testing.framework` search path when present because this machine's selected CLT SwiftPM does not auto-discover XCTest or Swift Testing, while `/Applications/Xcode.app` cannot be used until its license is accepted.
 - Used `NSScreen.displayLink` on macOS 15+ with a `CVDisplayLink` fallback on macOS 14 because the current SDK exposes `NSScreen.displayLink` as macOS 15+ despite the locked macOS 14 minimum.
 - Named the Oura tag model `OuraTag` to avoid a source-level collision with Swift Testing's `Tag` type.

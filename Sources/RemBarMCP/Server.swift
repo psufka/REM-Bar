@@ -125,7 +125,7 @@ final class Server {
             "serverInfo": [
                 "name": "rem-bar",
                 "title": "REM-Bar MCP",
-                "version": "0.1.0",
+                "version": "0.1.1",
             ],
             "instructions": "Read-only Oura Ring data from REM-Bar.",
         ]

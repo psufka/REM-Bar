@@ -121,7 +121,6 @@ fi
 BUILD_DIR=$(dirname "$(resolve_binary_path "$APP_NAME" "${ARCH_LIST[0]}")")
 RESOURCE_BUNDLE="$BUILD_DIR/REM-Bar_REMBar.bundle"
 if [[ -d "$RESOURCE_BUNDLE" ]]; then
-  cp -R "$RESOURCE_BUNDLE" "$APP/"
   cp -R "$RESOURCE_BUNDLE" "$APP/Contents/Resources/"
 else
   echo "ERROR: Missing SwiftPM resource bundle: $RESOURCE_BUNDLE" >&2
@@ -131,6 +130,9 @@ fi
 plutil -lint "$APP/Contents/Info.plist" >/dev/null
 xattr -cr "$APP"
 find "$APP" -name '._*' -delete
+codesign --force --sign - "$APP/Contents/MacOS/$MCP_NAME" >/dev/null
+codesign --force --sign - "$APP" >/dev/null
+codesign --verify --deep --strict --verbose=2 "$APP" >/dev/null
 
 (
   cd "$DIST"
