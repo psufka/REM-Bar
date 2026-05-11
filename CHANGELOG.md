@@ -42,6 +42,7 @@
 - Daily Stress now follows the categorical-card convention and renders the latest day summary without a sparkline.
 - Popover cards now use 1-4 columns by enabled-card count and scroll at a capped height when many cards are active.
 - Popover sizing now uses the actual space below the menu-bar button so active cards can grow closer to the bottom of the display before scrolling.
+- Popover card sizing is now deterministic across the controller, grid, and card views so the last row is not partially clipped before scrolling starts.
 - Refresh now skips endpoint fetches when every metric driven by that endpoint is disabled, and the snapshot builder omits disabled metric series.
 - Time-series OuraClient calls default to `latest=true` when no date-time range is supplied.
 - Added offline tests for `TokenValidator`, metric color thresholds, and `SettingsStore` persistence.

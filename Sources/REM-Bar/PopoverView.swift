@@ -5,7 +5,7 @@ struct PopoverView: View {
     let enabledMetrics: Set<BarMetric>
     let metricOrder: [BarMetric]
     let temperatureUnit: TemperatureUnit
-    let gridMaxHeight: CGFloat
+    let gridViewportHeight: CGFloat
     let lastError: String?
     let tokenNeedsUpdate: Bool
     let lastRefresh: Date?
@@ -14,9 +14,9 @@ struct PopoverView: View {
     let quit: () -> Void
 
     var body: some View {
-        VStack(alignment: .leading, spacing: 14) {
+        VStack(alignment: .leading, spacing: PopoverLayoutMetrics.contentSpacing) {
             ScrollView {
-                LazyVGrid(columns: gridColumns, spacing: 10) {
+                LazyVGrid(columns: gridColumns, spacing: PopoverLayoutMetrics.cardSpacing) {
                     ForEach(visibleMetrics) { metric in
                         let series = snapshot.series(for: metric)
                         if metric.isCategorical {
@@ -27,7 +27,7 @@ struct PopoverView: View {
                     }
                 }
             }
-            .frame(maxHeight: gridMaxHeight)
+            .frame(height: gridViewportHeight)
 
             if snapshot.metrics.values.allSatisfy({ $0.points.isEmpty && $0.categoryValue == nil && $0.availabilityMessage == nil }), lastError == nil {
                 Text("No Oura data loaded yet. Add a token in Settings or refresh after saving one.")
@@ -83,8 +83,8 @@ struct PopoverView: View {
                 .font(.caption2)
                 .foregroundStyle(.secondary)
         }
-        .padding(14)
-        .frame(width: 540)
+        .padding(PopoverLayoutMetrics.contentPadding)
+        .frame(width: PopoverLayoutMetrics.popoverWidth)
         .background(.regularMaterial)
     }
 
@@ -93,18 +93,11 @@ struct PopoverView: View {
     }
 
     private var gridColumns: [GridItem] {
-        Array(repeating: GridItem(.flexible(), spacing: 10), count: gridColumnCount)
+        Array(repeating: GridItem(.flexible(), spacing: PopoverLayoutMetrics.cardSpacing), count: gridColumnCount)
     }
 
     private var gridColumnCount: Int {
-        switch visibleMetrics.count {
-        case ...1:
-            return 1
-        case 2:
-            return 2
-        default:
-            return 3
-        }
+        PopoverLayoutMetrics.columnCount(for: visibleMetrics.count)
     }
 
     private var lastRefreshText: String {

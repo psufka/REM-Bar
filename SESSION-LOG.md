@@ -7,6 +7,7 @@
 - The app bundle now includes `Contents/MacOS/REM-Bar`, `Contents/MacOS/RemBarMCP`, `Contents/Resources/Icon.icns`, `Contents/Info.plist`, and the SwiftPM resource bundle needed by `Bundle.module`.
 - Verified the packaged MCP server from `dist/REM-Bar.app/Contents/MacOS/RemBarMCP` with `initialize` and `tools/list`; it reports all 18 read-only Oura tools.
 - Adjusted popover sizing to use the actual space below the menu-bar button so cards can extend closer to the bottom of the display before the grid scrolls.
+- Tightened the popover layout by sharing card/grid/footer constants and making metric cards fixed-height; the grid now gets an exact viewport height instead of a max-height guess.
 
 ### Build-time decisions
 
