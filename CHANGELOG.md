@@ -27,6 +27,7 @@
 - Settings now shows the exact active token source and can save a detected ambient token into the REM-Bar Keychain.
 - Refresh now skips endpoint fetches when every metric driven by that endpoint is disabled, and the snapshot builder omits disabled metric series.
 - Added offline tests for `TokenValidator`, metric color thresholds, and `SettingsStore` persistence.
+- Updated `PLAN.md` to describe v0.1 actuals: 11 metrics, 8 MCP tools, ambient token discovery, fetch gating, and the three Gen3+/Membership-gated endpoints.
 
 ### Build-time decisions
 
