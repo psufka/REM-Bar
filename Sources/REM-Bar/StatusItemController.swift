@@ -76,6 +76,7 @@ final class StatusItemController: NSObject, NSWindowDelegate {
             metricOrder: settings.metricOrder,
             temperatureUnit: settings.temperatureUnit,
             averageWindow: settings.averageWindow,
+            sleepTarget: settings.sleepTarget,
             iconStyle: settings.iconStyle,
             gridViewportHeight: layout.gridViewportHeight,
             lastError: refreshCoordinator.lastError,

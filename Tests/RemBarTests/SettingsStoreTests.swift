@@ -62,7 +62,10 @@ final class SettingsStoreTests: XCTestCase {
         XCTAssertEqual(SettingsStore.AverageWindow.fourteen.averageLabel, "14-day avg")
         XCTAssertEqual(SettingsStore.AverageWindow.thirty.averageLabel, "30-day avg")
         XCTAssertEqual(SleepTarget.eight.label, "8:00")
+        XCTAssertEqual(SleepTarget.eightFifteen.label, "8:15")
         XCTAssertEqual(SleepTarget.eightThirty.label, "8:30")
+        XCTAssertEqual(SleepTarget.eightFortyFive.label, "8:45")
+        XCTAssertEqual(SleepTarget.allCases.map(\.minutes), Array(stride(from: 360, through: 600, by: 15)))
     }
 
     func testTemperatureFormattingConvertsDeviationUnits() {

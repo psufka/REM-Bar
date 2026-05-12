@@ -4,6 +4,7 @@ struct MetricCardView: View {
     let series: MetricSeries
     let temperatureUnit: TemperatureUnit
     let averageWindow: SettingsStore.AverageWindow
+    let sleepTarget: SleepTarget
     let iconStyle: IconStyle
 
     var body: some View {
@@ -62,11 +63,16 @@ struct MetricCardView: View {
         HStack(spacing: 6) {
             Image(systemName: series.metric.symbolName)
                 .foregroundStyle(iconColor)
-            Text(series.metric.label)
+            Text(metricTitle)
                 .foregroundStyle(.secondary)
                 .lineLimit(1)
         }
         .font(.caption)
+    }
+
+    private var metricTitle: String {
+        guard series.metric == .sleepDebt else { return series.metric.label }
+        return "\(series.metric.label) (goal: \(sleepTarget.label))"
     }
 
     private var iconColor: Color {

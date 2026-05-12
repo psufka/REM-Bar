@@ -7,6 +7,7 @@ struct PopoverView: View {
     let metricOrder: [BarMetric]
     let temperatureUnit: TemperatureUnit
     let averageWindow: SettingsStore.AverageWindow
+    let sleepTarget: SleepTarget
     let iconStyle: IconStyle
     let gridViewportHeight: CGFloat
     let lastError: String?
@@ -29,6 +30,7 @@ struct PopoverView: View {
                                 series: series,
                                 temperatureUnit: temperatureUnit,
                                 averageWindow: averageWindow,
+                                sleepTarget: sleepTarget,
                                 iconStyle: iconStyle)
                         }
                     }

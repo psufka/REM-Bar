@@ -44,13 +44,21 @@ enum IconStyle: String, CaseIterable, Identifiable {
 
 enum SleepTarget: Int, CaseIterable, Identifiable {
     case six = 360
+    case sixFifteen = 375
     case sixThirty = 390
+    case sixFortyFive = 405
     case seven = 420
+    case sevenFifteen = 435
     case sevenThirty = 450
+    case sevenFortyFive = 465
     case eight = 480
+    case eightFifteen = 495
     case eightThirty = 510
+    case eightFortyFive = 525
     case nine = 540
+    case nineFifteen = 555
     case nineThirty = 570
+    case nineFortyFive = 585
     case ten = 600
 
     var id: Int { rawValue }
