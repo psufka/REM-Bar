@@ -20,6 +20,7 @@
 - About now links to @psufka on X instead of the MCP docs, using the X mark in the link row.
 - First-install default cards now include Sleep Debt instead of Average SpO2.
 - Sleep target choices now use 15-minute intervals, and the Sleep Debt card title shows the active goal.
+- Popover footer now notes that Oura Cloud/API data can take a couple hours to sync.
 
 ### Build-time decisions
 
