@@ -23,6 +23,7 @@
 - Popover footer now shows the latest synced Oura sleep day and dated bedtime range, with a note that Oura Cloud/API data can take a couple hours to sync.
 - Latest sleep footer timestamps now handle Oura timestamp variants more defensively.
 - Latest sleep footer copy now presents the sleep interval directly to reduce date confusion.
+- Added footer help for forcing an Oura Cloud sync, including links to Oura's missing-data instructions and Oura on the Web.
 
 ### Build-time decisions
 

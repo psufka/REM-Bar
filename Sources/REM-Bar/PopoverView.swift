@@ -16,6 +16,7 @@ struct PopoverView: View {
     let refresh: () -> Void
     let openSettings: () -> Void
     let quit: () -> Void
+    @State private var showingSyncHelp = false
 
     var body: some View {
         VStack(alignment: .leading, spacing: PopoverLayoutMetrics.contentSpacing) {
@@ -95,11 +96,25 @@ struct PopoverView: View {
                         .foregroundStyle(.secondary)
                         .lineLimit(1)
                         .minimumScaleFactor(0.8)
-                    Text("Data can take a couple hours to sync to Oura Cloud/API.")
-                        .font(.caption2)
+                    HStack(alignment: .firstTextBaseline, spacing: 4) {
+                        Text("Data can take a couple hours to sync to Oura Cloud/API.")
+                            .font(.caption2)
+                            .foregroundStyle(.secondary)
+                            .lineLimit(1)
+                            .minimumScaleFactor(0.8)
+                        Button {
+                            showingSyncHelp = true
+                        } label: {
+                            Image(systemName: "questionmark.circle")
+                                .font(.caption2)
+                        }
+                        .buttonStyle(.plain)
                         .foregroundStyle(.secondary)
-                        .lineLimit(1)
-                        .minimumScaleFactor(0.8)
+                        .help("How to force Oura Cloud sync")
+                        .popover(isPresented: $showingSyncHelp, arrowEdge: .bottom) {
+                            OuraSyncHelpView()
+                        }
+                    }
                 }
                 Spacer(minLength: 8)
                 Text(appFooterText)
@@ -195,5 +210,53 @@ struct PopoverView: View {
 
     private var appVersion: String {
         Bundle.main.object(forInfoDictionaryKey: "CFBundleShortVersionString") as? String ?? RemBarVersion.current
+    }
+}
+
+private struct OuraSyncHelpView: View {
+    private let supportURL = URL(string: "https://support.ouraring.com/hc/en-us/articles/360025587353-Oura-on-the-Web")!
+    private let cloudURL = URL(string: "https://cloud.ouraring.com")!
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: 10) {
+            Text("Force Oura Cloud Sync")
+                .font(.headline)
+
+            Text("REM-Bar can only read sleep data after it reaches Oura Cloud/API.")
+                .font(.caption)
+                .foregroundStyle(.secondary)
+                .fixedSize(horizontal: false, vertical: true)
+
+            VStack(alignment: .leading, spacing: 6) {
+                instruction("1.", "Put your ring on the charger for a few minutes.")
+                instruction("2.", "Open the Oura iPhone app and wait for the ring sync.")
+                instruction("3.", "In Oura: menu > Settings > Back up all data.")
+                instruction("4.", "After backup completes, check Oura on the Web.")
+                instruction("5.", "If the sleep appears there, refresh REM-Bar.")
+            }
+
+            HStack(spacing: 12) {
+                Link(destination: supportURL) {
+                    Label("Oura instructions", systemImage: "safari")
+                }
+                Link(destination: cloudURL) {
+                    Label("Oura Web", systemImage: "globe")
+                }
+            }
+            .font(.caption)
+        }
+        .padding(14)
+        .frame(width: 340)
+    }
+
+    private func instruction(_ number: String, _ text: String) -> some View {
+        HStack(alignment: .top, spacing: 6) {
+            Text(number)
+                .font(.caption.weight(.semibold))
+                .frame(width: 18, alignment: .trailing)
+            Text(text)
+                .font(.caption)
+                .fixedSize(horizontal: false, vertical: true)
+        }
     }
 }
