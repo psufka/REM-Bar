@@ -41,6 +41,6 @@ let package = Package(
             ]),
         .testTarget(
             name: "RemBarTests",
-            dependencies: ["REMBar"],
+            dependencies: ["REMBar", "OuraKit"],
             path: "Tests/RemBarTests"),
     ])

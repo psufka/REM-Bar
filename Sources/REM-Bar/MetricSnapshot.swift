@@ -69,11 +69,28 @@ struct MetricSeries: Identifiable, Equatable {
     }
 }
 
+struct LatestSleepSummary: Equatable {
+    let day: String
+    let bedtimeStart: Date?
+    let bedtimeEnd: Date?
+}
+
 struct DashboardSnapshot: Equatable {
     var metrics: [BarMetric: MetricSeries]
     var lastUpdated: Date?
+    var latestSleep: LatestSleepSummary?
 
-    static let empty = DashboardSnapshot(metrics: [:], lastUpdated: nil)
+    init(
+        metrics: [BarMetric: MetricSeries],
+        lastUpdated: Date? = nil,
+        latestSleep: LatestSleepSummary? = nil)
+    {
+        self.metrics = metrics
+        self.lastUpdated = lastUpdated
+        self.latestSleep = latestSleep
+    }
+
+    static let empty = DashboardSnapshot(metrics: [:])
 
     func series(for metric: BarMetric) -> MetricSeries {
         metrics[metric] ?? MetricSeries(metric: metric, points: [])
@@ -242,7 +259,8 @@ enum DashboardSnapshotBuilder {
 
         return DashboardSnapshot(
             metrics: Dictionary(uniqueKeysWithValues: metricPairs),
-            lastUpdated: Date())
+            lastUpdated: Date(),
+            latestSleep: latestSleepSummary(from: sleep))
     }
 
     private static func latestByDay<T>(_ values: [T], day keyPath: KeyPath<T, String>) -> [String: T] {
@@ -282,6 +300,24 @@ enum DashboardSnapshotBuilder {
         details.first { $0.type == "long_sleep" } ?? details.max {
             ($0.totalSleepDuration ?? 0) < ($1.totalSleepDuration ?? 0)
         }
+    }
+
+    private static func latestSleepSummary(from sleep: [Sleep]) -> LatestSleepSummary? {
+        let sleepByDay = Dictionary(grouping: sleep, by: \.day)
+        guard let day = sleepByDay.keys.sorted().last,
+              let detail = preferredSleepDetail(from: sleepByDay[day] ?? [])
+        else {
+            return nil
+        }
+        return LatestSleepSummary(
+            day: day,
+            bedtimeStart: isoDate(from: detail.bedtimeStart),
+            bedtimeEnd: isoDate(from: detail.bedtimeEnd))
+    }
+
+    private static func isoDate(from string: String?) -> Date? {
+        guard let string else { return nil }
+        return ISO8601DateFormatter().date(from: string)
     }
 
     private static func bedtimeWindowString(from window: SleepTime.OptimalBedtimeWindow?) -> String? {

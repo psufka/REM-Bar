@@ -1,4 +1,5 @@
 import Foundation
+import OuraKit
 import XCTest
 @testable import REMBar
 
@@ -83,6 +84,42 @@ final class SettingsStoreTests: XCTestCase {
         XCTAssertEqual(BarMetric.sleepDebt.formattedValue(73), "1:13")
         XCTAssertEqual(BarMetric.sleepLatency.formattedValue(9), "0:09")
         XCTAssertEqual(BarMetric.totalSleep.formattedDelta(-32), "-0:32")
+    }
+
+    func testSnapshotCarriesLatestSleepSyncedSummary() throws {
+        let sleep = try JSONDecoder().decode(OuraCollection<Sleep>.self, from: Data("""
+        {
+          "data": [
+            {
+              "id": "nap-2026-05-11",
+              "day": "2026-05-11",
+              "type": "rest",
+              "bedtime_start": "2026-05-11T14:00:00-05:00",
+              "bedtime_end": "2026-05-11T14:35:00-05:00",
+              "total_sleep_duration": 1800
+            },
+            {
+              "id": "sleep-detail-2026-05-12",
+              "day": "2026-05-12",
+              "type": "long_sleep",
+              "bedtime_start": "2026-05-11T22:44:00-05:00",
+              "bedtime_end": "2026-05-12T06:32:00-05:00",
+              "total_sleep_duration": 24660
+            }
+          ]
+        }
+        """.utf8)).data
+
+        let snapshot = DashboardSnapshotBuilder.make(
+            dailySleep: [],
+            sleep: sleep,
+            readiness: [],
+            activity: [],
+            enabledMetrics: [.totalSleep])
+
+        XCTAssertEqual(snapshot.latestSleep?.day, "2026-05-12")
+        XCTAssertNotNil(snapshot.latestSleep?.bedtimeStart)
+        XCTAssertNotNil(snapshot.latestSleep?.bedtimeEnd)
     }
 
     func testRoundTripsMetricOrder() {

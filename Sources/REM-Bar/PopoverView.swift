@@ -88,15 +88,19 @@ struct PopoverView: View {
             }
             .buttonStyle(.borderless)
 
-            HStack(alignment: .firstTextBaseline, spacing: 8) {
-                Text(lastRefreshText)
-                    .font(.caption2)
-                    .foregroundStyle(.secondary)
-                Text("(Oura Cloud/API can take a couple hours to sync)")
-                    .font(.caption2)
-                    .foregroundStyle(.secondary)
-                    .lineLimit(1)
-                    .minimumScaleFactor(0.8)
+            HStack(alignment: .top, spacing: 8) {
+                VStack(alignment: .leading, spacing: 2) {
+                    Text(syncStatusText)
+                        .font(.caption2)
+                        .foregroundStyle(.secondary)
+                        .lineLimit(1)
+                        .minimumScaleFactor(0.8)
+                    Text("Data can take a couple hours to sync to Oura Cloud/API.")
+                        .font(.caption2)
+                        .foregroundStyle(.secondary)
+                        .lineLimit(1)
+                        .minimumScaleFactor(0.8)
+                }
                 Spacer(minLength: 8)
                 Text(appFooterText)
                     .font(.caption2)
@@ -126,6 +130,50 @@ struct PopoverView: View {
         let formatter = RelativeDateTimeFormatter()
         formatter.unitsStyle = .short
         return "Updated \(formatter.localizedString(for: lastRefresh, relativeTo: Date()))"
+    }
+
+    private var syncStatusText: String {
+        guard let latestSleepText else { return lastRefreshText }
+        return "\(latestSleepText) - \(lastRefreshText)"
+    }
+
+    private var latestSleepText: String? {
+        guard let latestSleep = snapshot.latestSleep else { return nil }
+        let day = formattedSleepDay(latestSleep.day)
+        guard let bedtimeRange = formattedBedtimeRange(latestSleep) else {
+            return "Latest sleep synced: \(day)"
+        }
+        return "Latest sleep synced: \(day) [\(bedtimeRange)]"
+    }
+
+    private func formattedSleepDay(_ day: String) -> String {
+        let parser = DateFormatter()
+        parser.calendar = Calendar(identifier: .gregorian)
+        parser.locale = Locale(identifier: "en_US_POSIX")
+        parser.dateFormat = "yyyy-MM-dd"
+        guard let date = parser.date(from: day) else { return day }
+
+        let formatter = DateFormatter()
+        formatter.locale = .current
+        formatter.setLocalizedDateFormatFromTemplate("MMM d")
+        return formatter.string(from: date)
+    }
+
+    private func formattedBedtimeRange(_ latestSleep: LatestSleepSummary) -> String? {
+        guard let bedtimeStart = latestSleep.bedtimeStart,
+              let bedtimeEnd = latestSleep.bedtimeEnd
+        else {
+            return nil
+        }
+        return "\(formattedSleepTime(bedtimeStart)) - \(formattedSleepTime(bedtimeEnd))"
+    }
+
+    private func formattedSleepTime(_ date: Date) -> String {
+        let formatter = DateFormatter()
+        formatter.locale = .current
+        formatter.dateStyle = .none
+        formatter.timeStyle = .short
+        return formatter.string(from: date)
     }
 
     private var appFooterText: String {
