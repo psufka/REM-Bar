@@ -139,11 +139,10 @@ struct PopoverView: View {
 
     private var latestSleepText: String? {
         guard let latestSleep = snapshot.latestSleep else { return nil }
-        let day = formattedSleepDay(latestSleep.day)
         guard let bedtimeRange = formattedBedtimeRange(latestSleep) else {
-            return "Latest sleep synced: \(day)"
+            return "Latest sleep synced: \(formattedSleepDay(latestSleep.day))"
         }
-        return "Latest sleep synced: \(day) [\(bedtimeRange)]"
+        return "Latest sleep synced: \(bedtimeRange)"
     }
 
     private func formattedSleepDay(_ day: String) -> String {
