@@ -165,14 +165,13 @@ struct PopoverView: View {
         else {
             return nil
         }
-        return "\(formattedSleepTime(bedtimeStart)) - \(formattedSleepTime(bedtimeEnd))"
+        return "\(formattedSleepDateTime(bedtimeStart)) - \(formattedSleepDateTime(bedtimeEnd))"
     }
 
-    private func formattedSleepTime(_ date: Date) -> String {
+    private func formattedSleepDateTime(_ date: Date) -> String {
         let formatter = DateFormatter()
         formatter.locale = .current
-        formatter.dateStyle = .none
-        formatter.timeStyle = .short
+        formatter.setLocalizedDateFormatFromTemplate("MMM d h:mm a")
         return formatter.string(from: date)
     }
 
