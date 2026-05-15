@@ -160,12 +160,12 @@ struct PopoverView: View {
     }
 
     private func formattedBedtimeRange(_ latestSleep: LatestSleepSummary) -> String? {
-        guard let bedtimeStart = latestSleep.bedtimeStart,
-              let bedtimeEnd = latestSleep.bedtimeEnd
-        else {
-            return nil
-        }
-        return "\(formattedSleepDateTime(bedtimeStart)) - \(formattedSleepDateTime(bedtimeEnd))"
+        let start = latestSleep.bedtimeStart.map(formattedSleepDateTime)
+            ?? formattedRawSleepDateTime(latestSleep.bedtimeStartRaw)
+        let end = latestSleep.bedtimeEnd.map(formattedSleepDateTime)
+            ?? formattedRawSleepDateTime(latestSleep.bedtimeEndRaw)
+        guard let start, let end else { return nil }
+        return "\(start) - \(end)"
     }
 
     private func formattedSleepDateTime(_ date: Date) -> String {
@@ -173,6 +173,21 @@ struct PopoverView: View {
         formatter.locale = .current
         formatter.setLocalizedDateFormatFromTemplate("MMM d h:mm a")
         return formatter.string(from: date)
+    }
+
+    private func formattedRawSleepDateTime(_ string: String?) -> String? {
+        guard let string else { return nil }
+        let trimmed = string.trimmingCharacters(in: .whitespacesAndNewlines)
+        guard !trimmed.isEmpty else { return nil }
+
+        let localPart = trimmed.split(separator: "T", maxSplits: 1).dropFirst().first
+        let dayPart = trimmed.split(separator: "T", maxSplits: 1).first.map(String.init)
+        guard let localPart, let dayPart else { return trimmed }
+
+        let day = formattedSleepDay(dayPart)
+        let timePrefix = localPart.prefix(5)
+        guard timePrefix.count == 5 else { return "\(day) \(localPart)" }
+        return "\(day) \(timePrefix)"
     }
 
     private var appFooterText: String {

@@ -118,6 +118,35 @@ final class SettingsStoreTests: XCTestCase {
             enabledMetrics: [.totalSleep])
 
         XCTAssertEqual(snapshot.latestSleep?.day, "2026-05-12")
+        XCTAssertEqual(snapshot.latestSleep?.bedtimeStartRaw, "2026-05-11T22:44:00-05:00")
+        XCTAssertEqual(snapshot.latestSleep?.bedtimeEndRaw, "2026-05-12T06:32:00-05:00")
+        XCTAssertNotNil(snapshot.latestSleep?.bedtimeStart)
+        XCTAssertNotNil(snapshot.latestSleep?.bedtimeEnd)
+    }
+
+    func testSnapshotParsesOuraSleepTimestampsWithFractionalSeconds() throws {
+        let sleep = try JSONDecoder().decode(OuraCollection<Sleep>.self, from: Data("""
+        {
+          "data": [
+            {
+              "id": "sleep-detail-2026-05-14",
+              "day": "2026-05-14",
+              "type": "long_sleep",
+              "bedtime_start": "2026-05-13T22:44:00.000-05:00",
+              "bedtime_end": "2026-05-14T06:32:00.000-05:00",
+              "total_sleep_duration": 24660
+            }
+          ]
+        }
+        """.utf8)).data
+
+        let snapshot = DashboardSnapshotBuilder.make(
+            dailySleep: [],
+            sleep: sleep,
+            readiness: [],
+            activity: [],
+            enabledMetrics: [.totalSleep])
+
         XCTAssertNotNil(snapshot.latestSleep?.bedtimeStart)
         XCTAssertNotNil(snapshot.latestSleep?.bedtimeEnd)
     }

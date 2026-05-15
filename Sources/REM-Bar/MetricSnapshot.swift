@@ -71,6 +71,8 @@ struct MetricSeries: Identifiable, Equatable {
 
 struct LatestSleepSummary: Equatable {
     let day: String
+    let bedtimeStartRaw: String?
+    let bedtimeEndRaw: String?
     let bedtimeStart: Date?
     let bedtimeEnd: Date?
 }
@@ -311,13 +313,38 @@ enum DashboardSnapshotBuilder {
         }
         return LatestSleepSummary(
             day: day,
+            bedtimeStartRaw: detail.bedtimeStart,
+            bedtimeEndRaw: detail.bedtimeEnd,
             bedtimeStart: isoDate(from: detail.bedtimeStart),
             bedtimeEnd: isoDate(from: detail.bedtimeEnd))
     }
 
     private static func isoDate(from string: String?) -> Date? {
         guard let string else { return nil }
-        return ISO8601DateFormatter().date(from: string)
+        let isoFormatter = ISO8601DateFormatter()
+        if let date = isoFormatter.date(from: string) {
+            return date
+        }
+        isoFormatter.formatOptions = [.withInternetDateTime, .withFractionalSeconds]
+        if let date = isoFormatter.date(from: string) {
+            return date
+        }
+
+        let dateFormatter = DateFormatter()
+        dateFormatter.locale = Locale(identifier: "en_US_POSIX")
+        dateFormatter.calendar = Calendar(identifier: .gregorian)
+        for format in [
+            "yyyy-MM-dd'T'HH:mm:ssZ",
+            "yyyy-MM-dd'T'HH:mm:ss.SSSZ",
+            "yyyy-MM-dd'T'HH:mm:ssXXXXX",
+            "yyyy-MM-dd'T'HH:mm:ss.SSSXXXXX",
+        ] {
+            dateFormatter.dateFormat = format
+            if let date = dateFormatter.date(from: string) {
+                return date
+            }
+        }
+        return nil
     }
 
     private static func bedtimeWindowString(from window: SleepTime.OptimalBedtimeWindow?) -> String? {
