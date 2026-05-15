@@ -146,7 +146,7 @@ open dist/REM-Bar.app
 Generate the signed Sparkle appcast for a release zip:
 
 ```bash
-./Scripts/make_appcast.sh dist/REM-Bar-v0.1.3.zip
+./Scripts/make_appcast.sh dist/REM-Bar-v0.1.4.zip
 ```
 
 The Sparkle private key is intentionally not stored in this repo. Release maintainers need it at `~/.rem-bar/sparkle-ed25519-private-key.txt`.
