@@ -140,11 +140,9 @@ enum DashboardSnapshotBuilder {
                 + vo2Max.map(\.day)
                 + sleepTime.map(\.day))
             .sorted()
-        let sleepDebtByDay = sleepDebtValues(
-            days: days,
-            sleepByDay: sleepByDay,
-            sleepTargetMinutes: sleepTargetMinutes,
-            dateFormatter: dateFormatter)
+        let sleepDebtByDay = Dictionary(uniqueKeysWithValues: SleepDebtTrendCalculator
+            .points(from: sleep, sleepTargetMinutes: sleepTargetMinutes)
+            .map { ($0.id, $0.minutes) })
 
         func point(day: String, value: Double?) -> MetricPoint? {
             guard let value, let date = dateFormatter.date(from: day) else { return nil }
@@ -279,37 +277,6 @@ enum DashboardSnapshotBuilder {
 
     private static func latestPoints(_ points: [MetricPoint], dayCount: Int) -> [MetricPoint] {
         Array(points.sorted { $0.date < $1.date }.suffix(dayCount))
-    }
-
-    private static func sleepDebtValues(
-        days: [String],
-        sleepByDay: [String: [Sleep]],
-        sleepTargetMinutes: Int,
-        dateFormatter: DateFormatter)
-        -> [String: Double]
-    {
-        let datedDays = days.compactMap { day -> (day: String, date: Date)? in
-            guard let date = dateFormatter.date(from: day) else { return nil }
-            return (day, date)
-        }
-
-        return Dictionary(uniqueKeysWithValues: datedDays.compactMap { currentDay, currentDate in
-            guard totalSleepMinutesForDebt(from: sleepByDay[currentDay] ?? []) != nil else { return nil }
-            guard let startDate = Calendar.current.date(
-                byAdding: .day,
-                value: -(SleepDebtTrendCalculator.lookbackDays - 1),
-                to: currentDate)
-            else {
-                return nil
-            }
-
-            var debt = 0.0
-            for (day, date) in datedDays where date >= startDate && date <= currentDate {
-                guard let sleepMinutes = totalSleepMinutesForDebt(from: sleepByDay[day] ?? []) else { continue }
-                debt = max(0, debt + Double(sleepTargetMinutes) - sleepMinutes)
-            }
-            return (currentDay, debt)
-        })
     }
 
     static func totalSleepMinutesForDebt(from details: [Sleep]) -> Double? {

@@ -44,7 +44,8 @@ final class SleepDebtTrendTests: XCTestCase {
         let points = SleepDebtTrendCalculator.points(from: sleep, sleepTargetMinutes: 480)
 
         XCTAssertEqual(points.map(\.id), ["2026-05-01", "2026-05-02"])
-        XCTAssertEqual(points.map(\.minutes), [30, 10])
+        XCTAssertEqual(points[0].minutes, 30, accuracy: 0.1)
+        XCTAssertEqual(points[1].minutes, 3.8, accuracy: 0.1)
     }
 
     func testSleepDebtTrendFiltersRangeAndStats() throws {
@@ -79,9 +80,10 @@ final class SleepDebtTrendTests: XCTestCase {
         let stats = SleepDebtTrendCalculator.stats(for: displayed)
 
         XCTAssertEqual(displayed.map(\.id), ["2026-05-14", "2026-05-15"])
-        XCTAssertEqual(displayed.map(\.minutes), [140, 40])
-        XCTAssertEqual(stats.currentMinutes, 40)
-        XCTAssertEqual(stats.averageMinutes, 90)
+        XCTAssertEqual(displayed[0].minutes, 64, accuracy: 0.1)
+        XCTAssertEqual(displayed[1].minutes, 27.6, accuracy: 0.1)
+        XCTAssertEqual(stats.currentMinutes, 27.6, accuracy: 0.1)
+        XCTAssertEqual(stats.averageMinutes, 45.8, accuracy: 0.1)
         XCTAssertEqual(stats.debtFreeDays, 0)
         XCTAssertEqual(stats.dataDays, 2)
     }
@@ -123,8 +125,9 @@ final class SleepDebtTrendTests: XCTestCase {
         let series = snapshot.series(for: .sleepDebt)
 
         XCTAssertEqual(series.points.map(\.id), ["2026-05-02", "2026-05-03"])
-        XCTAssertEqual(series.points.map(\.value), [40, 40])
-        XCTAssertEqual(series.currentValue, 40)
+        XCTAssertEqual(series.points[0].value, 27.6, accuracy: 0.1)
+        XCTAssertEqual(series.points[1].value, 21.9, accuracy: 0.1)
+        XCTAssertEqual(series.currentValue ?? -1, 21.9, accuracy: 0.1)
     }
 
     private func decodeSleep(_ json: String) throws -> [Sleep] {

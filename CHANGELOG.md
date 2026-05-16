@@ -18,7 +18,7 @@
 - Moved card info buttons to the lower-right corner so long metric titles have more room.
 - Stabilized the menu-bar metric selector width in Display settings.
 - Moved About-pane build details into the version hover help.
-- Changed the Sleep Debt card to show a running 14-day debt balance instead of a single-night shortfall.
+- Changed the Sleep Debt card to show a weighted 14-day debt balance instead of a single-night shortfall.
 
 ## 0.1.4 - 2026-05-15
 

@@ -150,7 +150,7 @@ extension BarMetric {
         case .totalSleep:
             return MetricExplanation(summary: "Total asleep time from the latest sleep period.", source: "Sleep detail total_sleep_duration", interpretation: "Longer is generally better until it reaches your personal goal; REM-Bar colors this against broad adult sleep ranges.")
         case .sleepDebt:
-            return MetricExplanation(summary: "How far total sleep fell below your selected sleep target.", source: "REM-Bar calculation from total sleep and Sleep target", interpretation: "Lower is better. Zero means the latest sleep met or exceeded your selected target.")
+            return MetricExplanation(summary: "A weighted 14-day estimate of sleep missed versus your selected sleep target.", source: "REM-Bar calculation from Oura sleep detail and Sleep target", interpretation: "Lower is better. Recent nights count more heavily, and over-goal sleep can reduce prior debt.")
         case .lightSleep:
             return MetricExplanation(summary: "Minutes spent in light sleep.", source: "Sleep detail light_sleep_duration", interpretation: "Light sleep usually makes up much of total sleep; interpret it alongside total, REM, and deep sleep.")
         case .awakeTime:
