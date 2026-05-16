@@ -9,7 +9,6 @@
 - Added metric presets for Sleep Focus, Recovery, Cardio, Minimal, and Everything.
 - Added card group filtering in Display settings.
 - Added per-metric threshold customization for supported numeric cards.
-- Added a mini 14-day history strip below the popover cards.
 - Added a saved Custom metric preset so users can quickly restore their favorite card set.
 
 ### Changed

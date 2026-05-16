@@ -39,10 +39,6 @@ struct PopoverView: View {
                             }
                         }
                     }
-
-                    if let historySeries {
-                        MiniHistoryView(series: historySeries, thresholdOverrides: thresholdOverrides)
-                    }
                 }
             }
             .frame(height: gridViewportHeight)
@@ -148,13 +144,6 @@ struct PopoverView: View {
         PopoverLayoutMetrics.columnCount(for: visibleMetrics.count)
     }
 
-    private var historySeries: MetricSeries? {
-        let preferredMetric = visibleMetrics.first { $0 == .sleepScore } ?? visibleMetrics.first
-        guard let preferredMetric else { return nil }
-        let series = snapshot.series(for: preferredMetric)
-        return series.points.isEmpty ? nil : series
-    }
-
     private var lastRefreshText: String {
         guard let lastRefresh else { return "Not refreshed yet" }
         let formatter = RelativeDateTimeFormatter()
@@ -225,48 +214,6 @@ struct PopoverView: View {
 
     private var appVersion: String {
         Bundle.main.object(forInfoDictionaryKey: "CFBundleShortVersionString") as? String ?? RemBarVersion.current
-    }
-}
-
-private struct MiniHistoryView: View {
-    let series: MetricSeries
-    let thresholdOverrides: [BarMetric: MetricThresholdOverride]
-
-    var body: some View {
-        VStack(alignment: .leading, spacing: 6) {
-            HStack {
-                Label("14-day \(series.metric.label)", systemImage: "calendar")
-                    .font(.caption.weight(.semibold))
-                    .foregroundStyle(.secondary)
-                Spacer(minLength: 0)
-            }
-
-            HStack(spacing: 4) {
-                ForEach(historyPoints) { point in
-                    RoundedRectangle(cornerRadius: 3)
-                        .fill(Color(nsColor: ColorThresholds.color(
-                            for: point.value,
-                            metric: series.metric,
-                            baseline: series.baselineValue,
-                            thresholdOverrides: thresholdOverrides)))
-                        .frame(height: 14)
-                        .help("\(dayLabel(point.date)): \(series.metric.formattedValue(point.value))")
-                }
-            }
-        }
-        .padding(9)
-        .background(Color(nsColor: .controlBackgroundColor).opacity(0.78), in: RoundedRectangle(cornerRadius: 8))
-    }
-
-    private var historyPoints: [MetricPoint] {
-        Array(series.points.sorted { $0.date < $1.date }.suffix(14))
-    }
-
-    private func dayLabel(_ date: Date) -> String {
-        let formatter = DateFormatter()
-        formatter.locale = .current
-        formatter.setLocalizedDateFormatFromTemplate("MMM d")
-        return formatter.string(from: date)
     }
 }
 
