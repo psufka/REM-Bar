@@ -422,6 +422,7 @@ struct SettingsView: View {
                 Text("Version \(appVersionString)")
                     .font(.title3.weight(.semibold))
                     .foregroundStyle(.secondary)
+                    .help(versionHelpText)
                 if let buildString {
                     Text("Built \(buildString)")
                         .font(.footnote.weight(.semibold))
@@ -649,15 +650,41 @@ struct SettingsView: View {
     }
 
     private var appVersionString: String {
-        let version = Bundle.main.object(forInfoDictionaryKey: "CFBundleShortVersionString") as? String ?? RemBarVersion.current
-        let build = Bundle.main.object(forInfoDictionaryKey: "CFBundleVersion") as? String
-        return build.map { "\(version) (\($0))" } ?? version
+        Bundle.main.object(forInfoDictionaryKey: "CFBundleShortVersionString") as? String ?? RemBarVersion.current
+    }
+
+    private var versionHelpText: String {
+        var lines = ["Version \(appVersionString)"]
+        if let build = Bundle.main.object(forInfoDictionaryKey: "CFBundleVersion") as? String {
+            lines.append("Build \(build)")
+        }
+        if let commit = Bundle.main.object(forInfoDictionaryKey: "REMBarGitCommit") as? String, !commit.isEmpty {
+            lines.append("Commit \(commit)")
+        }
+        if let buildTimestamp = Bundle.main.object(forInfoDictionaryKey: "REMBarBuildTimestamp") as? String,
+           let formattedTimestamp = formattedBuildTimestamp(buildTimestamp)
+        {
+            lines.append("Packaged \(formattedTimestamp)")
+        }
+        if let bundleIdentifier = Bundle.main.bundleIdentifier {
+            lines.append(bundleIdentifier)
+        }
+        return lines.joined(separator: "\n")
     }
 
     private var buildString: String? {
         guard let date = try? Bundle.main.executableURL?.resourceValues(forKeys: [.contentModificationDateKey]).contentModificationDate else {
             return nil
         }
+        let formatter = DateFormatter()
+        formatter.dateStyle = .medium
+        formatter.timeStyle = .short
+        formatter.locale = .current
+        return formatter.string(from: date)
+    }
+
+    private func formattedBuildTimestamp(_ timestamp: String) -> String? {
+        guard let date = ISO8601DateFormatter().date(from: timestamp) else { return nil }
         let formatter = DateFormatter()
         formatter.dateStyle = .medium
         formatter.timeStyle = .short

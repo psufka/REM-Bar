@@ -16,6 +16,7 @@
 - Bumped the local development version to 0.1.5.
 - Moved card info buttons to the lower-right corner so long metric titles have more room.
 - Stabilized the menu-bar metric selector width in Display settings.
+- Moved About-pane build details into the version hover help.
 
 ## 0.1.4 - 2026-05-15
 
