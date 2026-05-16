@@ -131,17 +131,22 @@ final class SleepDebtTrendWindowController {
 }
 
 struct SleepDebtTrendView: View {
-    let sleepTarget: SleepTarget
+    @ObservedObject private var settings: SettingsStore
     let client: OuraClient
 
     @State private var selectedRange: SleepDebtTrendRange = .fourteen
-    @State private var points: [SleepDebtTrendPoint] = []
+    @State private var sleepRecords: [Sleep] = []
     @State private var isLoading = false
     @State private var errorMessage: String?
 
+    @MainActor
     init(sleepTarget: SleepTarget, client: OuraClient = .live()) {
-        self.sleepTarget = sleepTarget
+        self.init(sleepTarget: sleepTarget, client: client, settings: SettingsStore.shared)
+    }
+
+    init(sleepTarget _: SleepTarget, client: OuraClient, settings: SettingsStore) {
         self.client = client
+        _settings = ObservedObject(wrappedValue: settings)
     }
 
     var body: some View {
@@ -180,21 +185,38 @@ struct SleepDebtTrendView: View {
             VStack(alignment: .leading, spacing: 4) {
                 Text("Sleep Debt Trend")
                     .font(.title2.weight(.semibold))
-                Text("Goal: \(sleepTarget.label) sleep/night")
-                    .font(.callout)
-                    .foregroundStyle(.secondary)
                 Text("Running \(SleepDebtTrendCalculator.lookbackDays)-day balance; older debt decays.")
                     .font(.caption)
                     .foregroundStyle(.secondary)
             }
             Spacer()
-            Picker("Range", selection: $selectedRange) {
-                ForEach(SleepDebtTrendRange.allCases) { range in
-                    Text(range.label).tag(range)
+            VStack(alignment: .trailing, spacing: 8) {
+                HStack(spacing: 8) {
+                    Text("Range")
+                        .font(.caption.weight(.medium))
+                        .foregroundStyle(.secondary)
+                    Picker("Range", selection: $selectedRange) {
+                        ForEach(SleepDebtTrendRange.allCases) { range in
+                            Text(range.label).tag(range)
+                        }
+                    }
+                    .pickerStyle(.segmented)
+                    .frame(width: 260)
+                }
+
+                HStack(spacing: 8) {
+                    Text("Sleep goal")
+                        .font(.caption.weight(.medium))
+                        .foregroundStyle(.secondary)
+                    Picker("Sleep goal", selection: $settings.sleepTarget) {
+                        ForEach(SleepTarget.allCases) { target in
+                            Text(target.label).tag(target)
+                        }
+                    }
+                    .labelsHidden()
+                    .frame(width: 112)
                 }
             }
-            .pickerStyle(.segmented)
-            .frame(width: 260)
         }
     }
 
@@ -258,6 +280,10 @@ struct SleepDebtTrendView: View {
         SleepDebtTrendCalculator.points(points, in: selectedRange)
     }
 
+    private var points: [SleepDebtTrendPoint] {
+        SleepDebtTrendCalculator.points(from: sleepRecords, sleepTargetMinutes: settings.sleepTarget.minutes)
+    }
+
     private var stats: SleepDebtTrendStats {
         SleepDebtTrendCalculator.stats(for: displayedPoints)
     }
@@ -276,7 +302,7 @@ struct SleepDebtTrendView: View {
         let startDate = localDateString(Calendar.current.date(byAdding: .day, value: -(fetchDays - 1), to: Date()) ?? Date())
         do {
             let sleep = try await client.sleep(startDate: startDate, endDate: endDate).data
-            points = SleepDebtTrendCalculator.points(from: sleep, sleepTargetMinutes: sleepTarget.minutes)
+            sleepRecords = sleep
             selectedRange = .fourteen
         } catch {
             errorMessage = error.localizedDescription
