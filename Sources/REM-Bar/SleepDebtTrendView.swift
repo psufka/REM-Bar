@@ -136,6 +136,7 @@ struct SleepDebtTrendView: View {
 
     @State private var selectedRange: SleepDebtTrendRange = .fourteen
     @State private var sleepRecords: [Sleep] = []
+    @State private var hoveredPoint: SleepDebtTrendPoint?
     @State private var isLoading = false
     @State private var errorMessage: String?
 
@@ -253,6 +254,15 @@ struct SleepDebtTrendView: View {
 
             RuleMark(y: .value("Goal", 0))
                 .foregroundStyle(.green.opacity(0.45))
+
+            if let hoveredPoint {
+                RuleMark(x: .value("Selected Day", hoveredPoint.date, unit: .day))
+                    .foregroundStyle(.secondary.opacity(0.35))
+                    .lineStyle(StrokeStyle(lineWidth: 1, dash: [4, 4]))
+                    .annotation(position: .top, alignment: .center, spacing: 6) {
+                        hoverAnnotation(for: hoveredPoint)
+                    }
+            }
         }
         .chartYAxis {
             AxisMarks(position: .leading) { value in
@@ -273,6 +283,16 @@ struct SleepDebtTrendView: View {
             }
         }
         .chartYScale(domain: 0...chartMaxMinutes)
+        .chartOverlay { proxy in
+            GeometryReader { geometry in
+                Rectangle()
+                    .fill(.clear)
+                    .contentShape(Rectangle())
+                    .onContinuousHover { phase in
+                        updateHoveredPoint(phase: phase, proxy: proxy, geometry: geometry)
+                    }
+            }
+        }
         .frame(minHeight: 280)
     }
 
@@ -290,6 +310,44 @@ struct SleepDebtTrendView: View {
 
     private var chartMaxMinutes: Double {
         max(60, (displayedPoints.map(\.minutes).max() ?? 60) * 1.15)
+    }
+
+    private func hoverAnnotation(for point: SleepDebtTrendPoint) -> some View {
+        Text("\(shortDateString(point.date)): \(durationString(point.minutes))")
+            .font(.caption.weight(.semibold))
+            .monospacedDigit()
+            .padding(.horizontal, 8)
+            .padding(.vertical, 5)
+            .background(.regularMaterial, in: Capsule())
+    }
+
+    private func updateHoveredPoint(phase: HoverPhase, proxy: ChartProxy, geometry: GeometryProxy) {
+        guard case let .active(location) = phase,
+              let plotFrame = proxy.plotFrame
+        else {
+            hoveredPoint = nil
+            return
+        }
+
+        let frame = geometry[plotFrame]
+        guard frame.contains(location) else {
+            hoveredPoint = nil
+            return
+        }
+
+        let x = location.x - frame.origin.x
+        guard let date: Date = proxy.value(atX: x) else {
+            hoveredPoint = nil
+            return
+        }
+
+        hoveredPoint = nearestPoint(to: date)
+    }
+
+    private func nearestPoint(to date: Date) -> SleepDebtTrendPoint? {
+        displayedPoints.min { first, second in
+            abs(first.date.timeIntervalSince(date)) < abs(second.date.timeIntervalSince(date))
+        }
     }
 
     private func loadTrend() async {
@@ -324,6 +382,14 @@ struct SleepDebtTrendView: View {
         formatter.calendar = Calendar(identifier: .gregorian)
         formatter.locale = Locale(identifier: "en_US_POSIX")
         formatter.dateFormat = "yyyy-MM-dd"
+        return formatter.string(from: date)
+    }
+
+    private func shortDateString(_ date: Date) -> String {
+        let formatter = DateFormatter()
+        formatter.calendar = Calendar(identifier: .gregorian)
+        formatter.locale = Locale(identifier: "en_US_POSIX")
+        formatter.setLocalizedDateFormatFromTemplate("MMM d")
         return formatter.string(from: date)
     }
 }

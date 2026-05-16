@@ -12,6 +12,7 @@
 - Added a saved Custom metric preset so users can quickly restore their favorite card set.
 - Added a running Sleep Debt Trend window with 7, 14, 30, and 90 day ranges.
 - Added a sleep-goal picker directly in the Sleep Debt Trend window.
+- Added hover values to Sleep Debt Trend bars.
 
 ### Changed
 
