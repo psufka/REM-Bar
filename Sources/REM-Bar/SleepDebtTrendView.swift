@@ -30,7 +30,7 @@ enum SleepDebtTrendRange: Int, CaseIterable, Identifiable {
 
 enum SleepDebtTrendCalculator {
     static let lookbackDays = 14
-    static let recencyHalfLifeDays = 3.0
+    static let debtHalfLifeDays = 6.5
 
     static func points(from sleep: [Sleep], sleepTargetMinutes: Int) -> [SleepDebtTrendPoint] {
         let sleepByDay = Dictionary(grouping: sleep, by: \.day)
@@ -45,14 +45,19 @@ enum SleepDebtTrendCalculator {
             else { return nil }
 
             var debt = 0.0
+            var previousDate: Date?
             for (day, date) in datedDays where date >= startDate && date <= currentDate {
                 guard let sleepMinutes = DashboardSnapshotBuilder.totalSleepMinutesForDebt(from: sleepByDay[day] ?? []) else { continue }
-                debt += (Double(sleepTargetMinutes) - sleepMinutes) * recencyWeight(daysBeforeCurrent: daysBetween(date, currentDate))
+                if let previousDate {
+                    debt *= debtDecay(daysBetween: daysBetween(previousDate, date))
+                }
+                debt = max(0, debt + Double(sleepTargetMinutes) - sleepMinutes)
+                previousDate = date
             }
             return SleepDebtTrendPoint(
                 id: currentDay,
                 date: currentDate,
-                minutes: max(0, debt))
+                minutes: debt)
         }
     }
 
@@ -82,8 +87,8 @@ enum SleepDebtTrendCalculator {
         return formatter
     }()
 
-    private static func recencyWeight(daysBeforeCurrent: Int) -> Double {
-        pow(0.5, Double(daysBeforeCurrent) / recencyHalfLifeDays)
+    private static func debtDecay(daysBetween: Int) -> Double {
+        pow(0.5, Double(max(0, daysBetween)) / debtHalfLifeDays)
     }
 
     private static func daysBetween(_ earlier: Date, _ later: Date) -> Int {
@@ -178,7 +183,7 @@ struct SleepDebtTrendView: View {
                 Text("Goal: \(sleepTarget.label) sleep/night")
                     .font(.callout)
                     .foregroundStyle(.secondary)
-                Text("Weighted \(SleepDebtTrendCalculator.lookbackDays)-day balance; recent nights count most.")
+                Text("Running \(SleepDebtTrendCalculator.lookbackDays)-day balance; older debt decays.")
                     .font(.caption)
                     .foregroundStyle(.secondary)
             }
