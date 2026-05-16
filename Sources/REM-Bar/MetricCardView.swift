@@ -47,14 +47,14 @@ struct MetricCardView: View {
                     .font(.caption2)
                     .foregroundStyle(.secondary)
                     .lineLimit(1)
-                    .padding(.trailing, 22)
+                    .padding(.trailing, bottomControlPadding)
             }
         }
         .padding(10)
         .frame(height: PopoverLayoutMetrics.cardHeight)
         .background(Color(nsColor: .controlBackgroundColor), in: RoundedRectangle(cornerRadius: 8))
         .overlay(alignment: .bottomTrailing) {
-            infoButton
+            bottomControls
                 .padding(8)
         }
     }
@@ -94,6 +94,25 @@ struct MetricCardView: View {
         .popover(isPresented: $showingExplanation, arrowEdge: .bottom) {
             MetricInfoPopoverView(metric: series.metric)
         }
+    }
+
+    private var bottomControls: some View {
+        HStack(spacing: 7) {
+            if series.metric == .sleepDebt {
+                Button("Trend") {
+                    SleepDebtTrendWindowController.shared.show(sleepTarget: sleepTarget)
+                }
+                .font(.caption2.weight(.semibold))
+                .buttonStyle(.plain)
+                .foregroundStyle(.secondary)
+                .help("Open sleep debt trend")
+            }
+            infoButton
+        }
+    }
+
+    private var bottomControlPadding: CGFloat {
+        series.metric == .sleepDebt ? 72 : 22
     }
 
     private var metricTitle: String {

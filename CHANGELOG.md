@@ -10,6 +10,7 @@
 - Added card group filtering in Display settings.
 - Added per-metric threshold customization for supported numeric cards.
 - Added a saved Custom metric preset so users can quickly restore their favorite card set.
+- Added a Sleep Debt Trend window with 7, 14, 30, and 90 day ranges.
 
 ### Changed
 
