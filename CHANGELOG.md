@@ -15,6 +15,7 @@
 - Added hover values to Sleep Debt Trend bars.
 - Kept the card popover visible when opening REM-Bar trend windows.
 - Added trend windows to sleep, recovery, activity, cardiovascular, and breathing metric cards where a numeric trend is useful.
+- Positioned trend windows beside the card popover instead of centered behind it.
 
 ### Changed
 

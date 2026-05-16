@@ -17,11 +17,13 @@ final class MetricTrendWindowController {
     private var window: NSWindow?
 
     func show(metric: BarMetric) {
+        let sourceWindow = TrendWindowPlacement.currentSourceWindow(excluding: window)
         let content = MetricTrendView(metric: metric)
 
         if let window {
             window.title = "\(metric.label) Trend"
             window.contentViewController = NSHostingController(rootView: content)
+            TrendWindowPlacement.place(window, beside: sourceWindow)
             window.makeKeyAndOrderFront(nil)
             NSApp.activate(ignoringOtherApps: true)
             return
@@ -34,8 +36,8 @@ final class MetricTrendWindowController {
             defer: false)
         window.title = "\(metric.label) Trend"
         window.contentViewController = NSHostingController(rootView: content)
-        window.center()
         window.isReleasedWhenClosed = false
+        TrendWindowPlacement.place(window, beside: sourceWindow)
         window.makeKeyAndOrderFront(nil)
         NSApp.activate(ignoringOtherApps: true)
         self.window = window

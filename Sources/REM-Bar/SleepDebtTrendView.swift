@@ -106,10 +106,12 @@ final class SleepDebtTrendWindowController {
     private var window: NSWindow?
 
     func show(sleepTarget: SleepTarget) {
+        let sourceWindow = TrendWindowPlacement.currentSourceWindow(excluding: window)
         let content = SleepDebtTrendView(sleepTarget: sleepTarget)
 
         if let window {
             window.contentViewController = NSHostingController(rootView: content)
+            TrendWindowPlacement.place(window, beside: sourceWindow)
             window.makeKeyAndOrderFront(nil)
             NSApp.activate(ignoringOtherApps: true)
             return
@@ -122,8 +124,8 @@ final class SleepDebtTrendWindowController {
             defer: false)
         window.title = "Sleep Debt Trend"
         window.contentViewController = NSHostingController(rootView: content)
-        window.center()
         window.isReleasedWhenClosed = false
+        TrendWindowPlacement.place(window, beside: sourceWindow)
         window.makeKeyAndOrderFront(nil)
         NSApp.activate(ignoringOtherApps: true)
         self.window = window
