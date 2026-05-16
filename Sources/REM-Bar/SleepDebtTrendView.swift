@@ -313,12 +313,16 @@ struct SleepDebtTrendView: View {
     }
 
     private func hoverAnnotation(for point: SleepDebtTrendPoint) -> some View {
-        Text("\(shortDateString(point.date)): \(durationString(point.minutes))")
-            .font(.caption.weight(.semibold))
-            .monospacedDigit()
-            .padding(.horizontal, 8)
-            .padding(.vertical, 5)
-            .background(.regularMaterial, in: Capsule())
+        VStack(spacing: 1) {
+            Text(shortDateString(point.date))
+            Text(durationString(point.minutes))
+                .monospacedDigit()
+        }
+        .font(.caption.weight(.semibold))
+        .multilineTextAlignment(.center)
+        .padding(.horizontal, 8)
+        .padding(.vertical, 5)
+        .background(.regularMaterial, in: RoundedRectangle(cornerRadius: 10))
     }
 
     private func updateHoveredPoint(phase: HoverPhase, proxy: ChartProxy, geometry: GeometryProxy) {

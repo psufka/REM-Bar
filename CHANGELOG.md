@@ -13,6 +13,7 @@
 - Added a running Sleep Debt Trend window with 7, 14, 30, and 90 day ranges.
 - Added a sleep-goal picker directly in the Sleep Debt Trend window.
 - Added hover values to Sleep Debt Trend bars.
+- Kept the card popover visible when opening REM-Bar trend windows.
 
 ### Changed
 
@@ -22,6 +23,7 @@
 - Moved About-pane build details into the version hover help.
 - Changed the Sleep Debt card to show a decaying 14-day running balance that follows the selected sleep goal.
 - Moved the Sleep Debt goal into the card footer so the title row no longer truncates.
+- Changed Sleep Debt Trend hover values to a compact two-line date/value label.
 
 ## 0.1.4 - 2026-05-15
 

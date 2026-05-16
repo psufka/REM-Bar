@@ -29,7 +29,7 @@ final class StatusItemController: NSObject, NSWindowDelegate {
         guard let button = statusItem.button else { return }
         button.action = #selector(handleClick)
         button.target = self
-        popover.behavior = .transient
+        popover.behavior = .semitransient
     }
 
     func update(snapshot: DashboardSnapshot) {
