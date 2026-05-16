@@ -113,7 +113,8 @@ enum DashboardSnapshotBuilder {
         sleepTime: [SleepTime] = [],
         personalInfo: PersonalInfo? = nil,
         sleepTargetMinutes: Int = 480,
-        enabledMetrics: Set<BarMetric> = Set(BarMetric.allCases))
+        enabledMetrics: Set<BarMetric> = Set(BarMetric.allCases),
+        displayWindowDays: Int? = nil)
         -> DashboardSnapshot
     {
         let dateFormatter = DateFormatter()
@@ -139,6 +140,11 @@ enum DashboardSnapshotBuilder {
                 + vo2Max.map(\.day)
                 + sleepTime.map(\.day))
             .sorted()
+        let sleepDebtByDay = sleepDebtValues(
+            days: days,
+            sleepByDay: sleepByDay,
+            sleepTargetMinutes: sleepTargetMinutes,
+            dateFormatter: dateFormatter)
 
         func point(day: String, value: Double?) -> MetricPoint? {
             guard let value, let date = dateFormatter.date(from: day) else { return nil }
@@ -160,9 +166,7 @@ enum DashboardSnapshotBuilder {
                 case .totalSleep:
                     return point(day: day, value: detail?.totalSleepDuration.map { Double($0) / 60.0 })
                 case .sleepDebt:
-                    guard let totalSleepDuration = detail?.totalSleepDuration else { return nil }
-                    let sleepMinutes = Double(totalSleepDuration) / 60.0
-                    return point(day: day, value: max(0, Double(sleepTargetMinutes) - sleepMinutes))
+                    return point(day: day, value: sleepDebtByDay[day])
                 case .lightSleep:
                     return point(day: day, value: detail?.lightSleepDuration.map { Double($0) / 60.0 })
                 case .awakeTime:
@@ -210,7 +214,7 @@ enum DashboardSnapshotBuilder {
                     return nil
                 }
             }
-            let sorted = points.sorted { $0.date < $1.date }
+            let sorted = displayWindowDays.map { latestPoints(points, dayCount: $0) } ?? points.sorted { $0.date < $1.date }
             let unavailableMessage = unavailableMessage(
                 for: metric,
                 dailyStress: dailyStress,
@@ -271,6 +275,53 @@ enum DashboardSnapshotBuilder {
             latest[value[keyPath: keyPath]] = value
         }
         return latest
+    }
+
+    private static func latestPoints(_ points: [MetricPoint], dayCount: Int) -> [MetricPoint] {
+        Array(points.sorted { $0.date < $1.date }.suffix(dayCount))
+    }
+
+    private static func sleepDebtValues(
+        days: [String],
+        sleepByDay: [String: [Sleep]],
+        sleepTargetMinutes: Int,
+        dateFormatter: DateFormatter)
+        -> [String: Double]
+    {
+        let datedDays = days.compactMap { day -> (day: String, date: Date)? in
+            guard let date = dateFormatter.date(from: day) else { return nil }
+            return (day, date)
+        }
+
+        return Dictionary(uniqueKeysWithValues: datedDays.compactMap { currentDay, currentDate in
+            guard totalSleepMinutesForDebt(from: sleepByDay[currentDay] ?? []) != nil else { return nil }
+            guard let startDate = Calendar.current.date(
+                byAdding: .day,
+                value: -(SleepDebtTrendCalculator.lookbackDays - 1),
+                to: currentDate)
+            else {
+                return nil
+            }
+
+            var debt = 0.0
+            for (day, date) in datedDays where date >= startDate && date <= currentDate {
+                guard let sleepMinutes = totalSleepMinutesForDebt(from: sleepByDay[day] ?? []) else { continue }
+                debt = max(0, debt + Double(sleepTargetMinutes) - sleepMinutes)
+            }
+            return (currentDay, debt)
+        })
+    }
+
+    static func totalSleepMinutesForDebt(from details: [Sleep]) -> Double? {
+        let sleepSessions = details.filter { detail in
+            guard detail.totalSleepDuration != nil else { return false }
+            return detail.type?.lowercased() != "rest"
+        }
+        let sleepSessionSeconds = sleepSessions.map { $0.totalSleepDuration ?? 0 }.reduce(0, +)
+        if sleepSessionSeconds > 0 {
+            return Double(sleepSessionSeconds) / 60.0
+        }
+        return preferredSleepDetail(from: details)?.totalSleepDuration.map { Double($0) / 60.0 }
     }
 
     private static func unavailableMessage(

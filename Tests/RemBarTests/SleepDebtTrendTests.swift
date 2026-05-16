@@ -4,7 +4,7 @@ import XCTest
 @testable import REMBar
 
 final class SleepDebtTrendTests: XCTestCase {
-    func testSleepDebtTrendPrefersLongSleepAndCalculatesDebt() throws {
+    func testSleepDebtTrendUsesRunningBalanceAndShortSleepSessions() throws {
         let sleep = try decodeSleep("""
         {
           "data": [
@@ -19,6 +19,12 @@ final class SleepDebtTrendTests: XCTestCase {
               "day": "2026-05-01",
               "type": "long_sleep",
               "total_sleep_duration": 25200
+            },
+            {
+              "id": "short-2026-05-01",
+              "day": "2026-05-01",
+              "type": "sleep",
+              "total_sleep_duration": 1800
             },
             {
               "id": "long-2026-05-02",
@@ -38,7 +44,7 @@ final class SleepDebtTrendTests: XCTestCase {
         let points = SleepDebtTrendCalculator.points(from: sleep, sleepTargetMinutes: 480)
 
         XCTAssertEqual(points.map(\.id), ["2026-05-01", "2026-05-02"])
-        XCTAssertEqual(points.map(\.minutes), [60, 0])
+        XCTAssertEqual(points.map(\.minutes), [30, 10])
     }
 
     func testSleepDebtTrendFiltersRangeAndStats() throws {
@@ -73,10 +79,52 @@ final class SleepDebtTrendTests: XCTestCase {
         let stats = SleepDebtTrendCalculator.stats(for: displayed)
 
         XCTAssertEqual(displayed.map(\.id), ["2026-05-14", "2026-05-15"])
-        XCTAssertEqual(stats.totalMinutes, 60)
-        XCTAssertEqual(stats.averageMinutes, 30)
-        XCTAssertEqual(stats.goalMetDays, 1)
+        XCTAssertEqual(displayed.map(\.minutes), [140, 40])
+        XCTAssertEqual(stats.currentMinutes, 40)
+        XCTAssertEqual(stats.averageMinutes, 90)
+        XCTAssertEqual(stats.debtFreeDays, 0)
         XCTAssertEqual(stats.dataDays, 2)
+    }
+
+    func testSnapshotSleepDebtCardUsesRunningDebtAndDisplayWindow() throws {
+        let sleep = try decodeSleep("""
+        {
+          "data": [
+            {
+              "id": "long-2026-05-01",
+              "day": "2026-05-01",
+              "type": "long_sleep",
+              "total_sleep_duration": 25200
+            },
+            {
+              "id": "long-2026-05-02",
+              "day": "2026-05-02",
+              "type": "long_sleep",
+              "total_sleep_duration": 30000
+            },
+            {
+              "id": "long-2026-05-03",
+              "day": "2026-05-03",
+              "type": "long_sleep",
+              "total_sleep_duration": 28800
+            }
+          ]
+        }
+        """)
+
+        let snapshot = DashboardSnapshotBuilder.make(
+            dailySleep: [],
+            sleep: sleep,
+            readiness: [],
+            activity: [],
+            sleepTargetMinutes: 480,
+            enabledMetrics: [.sleepDebt],
+            displayWindowDays: 2)
+        let series = snapshot.series(for: .sleepDebt)
+
+        XCTAssertEqual(series.points.map(\.id), ["2026-05-02", "2026-05-03"])
+        XCTAssertEqual(series.points.map(\.value), [40, 40])
+        XCTAssertEqual(series.currentValue, 40)
     }
 
     private func decodeSleep(_ json: String) throws -> [Sleep] {

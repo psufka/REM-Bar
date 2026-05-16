@@ -9,9 +9,9 @@ struct SleepDebtTrendPoint: Identifiable, Equatable {
 }
 
 struct SleepDebtTrendStats: Equatable {
-    let totalMinutes: Double
+    let currentMinutes: Double
     let averageMinutes: Double
-    let goalMetDays: Int
+    let debtFreeDays: Int
     let dataDays: Int
 }
 
@@ -29,19 +29,29 @@ enum SleepDebtTrendRange: Int, CaseIterable, Identifiable {
 }
 
 enum SleepDebtTrendCalculator {
+    static let lookbackDays = 14
+
     static func points(from sleep: [Sleep], sleepTargetMinutes: Int) -> [SleepDebtTrendPoint] {
         let sleepByDay = Dictionary(grouping: sleep, by: \.day)
-        return sleepByDay.keys.sorted().compactMap { day in
-            guard let date = dayFormatter.date(from: day),
-                  let totalSleepDuration = preferredSleepDetail(from: sleepByDay[day] ?? [])?.totalSleepDuration
-            else {
-                return nil
+        let datedDays = sleepByDay.keys.sorted().compactMap { day -> (day: String, date: Date)? in
+            guard let date = dayFormatter.date(from: day) else { return nil }
+            return (day, date)
+        }
+
+        return datedDays.compactMap { currentDay, currentDate in
+            guard DashboardSnapshotBuilder.totalSleepMinutesForDebt(from: sleepByDay[currentDay] ?? []) != nil,
+                  let startDate = Calendar.current.date(byAdding: .day, value: -(lookbackDays - 1), to: currentDate)
+            else { return nil }
+
+            var debt = 0.0
+            for (day, date) in datedDays where date >= startDate && date <= currentDate {
+                guard let sleepMinutes = DashboardSnapshotBuilder.totalSleepMinutesForDebt(from: sleepByDay[day] ?? []) else { continue }
+                debt = max(0, debt + Double(sleepTargetMinutes) - sleepMinutes)
             }
-            let sleepMinutes = Double(totalSleepDuration) / 60.0
             return SleepDebtTrendPoint(
-                id: day,
-                date: date,
-                minutes: max(0, Double(sleepTargetMinutes) - sleepMinutes))
+                id: currentDay,
+                date: currentDate,
+                minutes: debt)
         }
     }
 
@@ -57,16 +67,10 @@ enum SleepDebtTrendCalculator {
     static func stats(for points: [SleepDebtTrendPoint]) -> SleepDebtTrendStats {
         let total = points.map(\.minutes).reduce(0, +)
         return SleepDebtTrendStats(
-            totalMinutes: total,
+            currentMinutes: points.sorted { $0.date < $1.date }.last?.minutes ?? 0,
             averageMinutes: points.isEmpty ? 0 : total / Double(points.count),
-            goalMetDays: points.filter { $0.minutes == 0 }.count,
+            debtFreeDays: points.filter { $0.minutes == 0 }.count,
             dataDays: points.count)
-    }
-
-    private static func preferredSleepDetail(from details: [Sleep]) -> Sleep? {
-        details.first { $0.type == "long_sleep" } ?? details.max {
-            ($0.totalSleepDuration ?? 0) < ($1.totalSleepDuration ?? 0)
-        }
     }
 
     private static let dayFormatter: DateFormatter = {
@@ -162,6 +166,9 @@ struct SleepDebtTrendView: View {
                 Text("Goal: \(sleepTarget.label) sleep/night")
                     .font(.callout)
                     .foregroundStyle(.secondary)
+                Text("Running \(SleepDebtTrendCalculator.lookbackDays)-day balance; over-goal sleep pays down prior debt.")
+                    .font(.caption)
+                    .foregroundStyle(.secondary)
             }
             Spacer()
             Picker("Range", selection: $selectedRange) {
@@ -176,9 +183,9 @@ struct SleepDebtTrendView: View {
 
     private var statsGrid: some View {
         HStack(spacing: 10) {
-            trendStat("Total debt", durationString(stats.totalMinutes))
-            trendStat("Average/day", durationString(stats.averageMinutes))
-            trendStat("Goal met", "\(stats.goalMetDays)/\(stats.dataDays) nights")
+            trendStat("Current debt", durationString(stats.currentMinutes))
+            trendStat("Avg balance", durationString(stats.averageMinutes))
+            trendStat("Debt-free", "\(stats.debtFreeDays)/\(stats.dataDays) nights")
         }
     }
 
@@ -248,7 +255,8 @@ struct SleepDebtTrendView: View {
         defer { isLoading = false }
 
         let endDate = localDateString(Date())
-        let startDate = localDateString(Calendar.current.date(byAdding: .day, value: -89, to: Date()) ?? Date())
+        let fetchDays = SleepDebtTrendRange.ninety.rawValue + SleepDebtTrendCalculator.lookbackDays - 1
+        let startDate = localDateString(Calendar.current.date(byAdding: .day, value: -(fetchDays - 1), to: Date()) ?? Date())
         do {
             let sleep = try await client.sleep(startDate: startDate, endDate: endDate).data
             points = SleepDebtTrendCalculator.points(from: sleep, sleepTargetMinutes: sleepTarget.minutes)

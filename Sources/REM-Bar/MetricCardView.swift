@@ -99,7 +99,7 @@ struct MetricCardView: View {
     private var bottomControls: some View {
         HStack(spacing: 7) {
             if series.metric == .sleepDebt {
-                Button("Trend") {
+                Button("📊 Trend") {
                     SleepDebtTrendWindowController.shared.show(sleepTarget: sleepTarget)
                 }
                 .font(.caption2.weight(.semibold))

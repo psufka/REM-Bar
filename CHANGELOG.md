@@ -10,7 +10,7 @@
 - Added card group filtering in Display settings.
 - Added per-metric threshold customization for supported numeric cards.
 - Added a saved Custom metric preset so users can quickly restore their favorite card set.
-- Added a Sleep Debt Trend window with 7, 14, 30, and 90 day ranges.
+- Added a running Sleep Debt Trend window with 7, 14, 30, and 90 day ranges.
 
 ### Changed
 
@@ -18,6 +18,7 @@
 - Moved card info buttons to the lower-right corner so long metric titles have more room.
 - Stabilized the menu-bar metric selector width in Display settings.
 - Moved About-pane build details into the version hover help.
+- Changed the Sleep Debt card to show a running 14-day debt balance instead of a single-night shortfall.
 
 ## 0.1.4 - 2026-05-15
 

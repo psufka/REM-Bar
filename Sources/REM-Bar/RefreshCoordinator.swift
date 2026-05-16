@@ -62,9 +62,12 @@ final class RefreshCoordinator: ObservableObject {
                 self.refreshTask = nil
             }
             let endDate = Self.localDateString(Date())
+            let requestWindowDays = enabledMetrics.contains(.sleepDebt)
+                ? max(averageWindow.dayCount, SleepDebtTrendCalculator.lookbackDays)
+                : averageWindow.dayCount
             let startDate = Self.localDateString(Calendar.current.date(
                 byAdding: .day,
-                value: -(averageWindow.dayCount - 1),
+                value: -(requestWindowDays - 1),
                 to: Date()) ?? Date())
             let personalInfo = await self.personalInfoForRefresh()
             do {
@@ -133,7 +136,8 @@ final class RefreshCoordinator: ObservableObject {
                     sleepTime: sleepTimeResult.data,
                     personalInfo: personalInfo,
                     sleepTargetMinutes: sleepTarget.minutes,
-                    enabledMetrics: enabledMetrics)
+                    enabledMetrics: enabledMetrics,
+                    displayWindowDays: averageWindow.dayCount)
                 await MainActor.run {
                     self.snapshot = snapshot
                     self.settings.noteMetricAvailability(from: snapshot)
