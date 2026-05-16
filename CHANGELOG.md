@@ -20,6 +20,7 @@
 - Stabilized the menu-bar metric selector width in Display settings.
 - Moved About-pane build details into the version hover help.
 - Changed the Sleep Debt card to show a decaying 14-day running balance that follows the selected sleep goal.
+- Moved the Sleep Debt goal into the card footer so the title row no longer truncates.
 
 ## 0.1.4 - 2026-05-15
 

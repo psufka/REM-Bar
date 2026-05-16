@@ -32,13 +32,9 @@ struct MetricCardView: View {
                 Spacer(minLength: 0)
             } else {
                 SparklineView(points: series.points)
-                    .frame(height: 34)
+                    .frame(height: sparklineHeight)
                     .opacity(series.points.isEmpty ? 0.25 : 1)
-                Text("\(averageWindow.averageLabel) \(series.average.map { series.metric.formattedValue($0, temperatureUnit: temperatureUnit) } ?? "?")")
-                    .font(.caption2)
-                    .foregroundStyle(.secondary)
-                    .lineLimit(1)
-                    .padding(.trailing, 22)
+                footerText
             }
         }
         .padding(10)
@@ -124,8 +120,24 @@ struct MetricCardView: View {
     }
 
     private var metricTitle: String {
-        guard series.metric == .sleepDebt else { return series.metric.label }
-        return "\(series.metric.label) (goal: \(sleepTarget.label))"
+        series.metric.label
+    }
+
+    private var sparklineHeight: CGFloat {
+        series.metric == .sleepDebt ? 26 : 34
+    }
+
+    private var footerText: some View {
+        VStack(alignment: .leading, spacing: 1) {
+            Text("\(averageWindow.averageLabel) \(series.average.map { series.metric.formattedValue($0, temperatureUnit: temperatureUnit) } ?? "?")")
+            if series.metric == .sleepDebt {
+                Text("Goal \(sleepTarget.label)")
+            }
+        }
+        .font(.caption2)
+        .foregroundStyle(.secondary)
+        .lineLimit(1)
+        .padding(.trailing, 22)
     }
 
     private var iconColor: Color {
