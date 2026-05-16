@@ -190,16 +190,9 @@ struct SettingsView: View {
                         HStack {
                             Text("Menu-bar metric")
                                 .frame(width: 130, alignment: .leading)
-                            Picker("Menu-bar metric", selection: $settings.selectedMetric) {
-                                Label("Icon only", systemImage: "moon.zzz")
-                                    .tag(nil as BarMetric?)
-                                ForEach(settings.orderedAvailableEnabledMetrics) { metric in
-                                    Label(metric.label, systemImage: metric.symbolName)
-                                        .tag(Optional(metric))
-                                }
-                            }
-                            .labelsHidden()
-                            .frame(width: 280)
+                            MenuBarMetricPicker(
+                                selectedMetric: $settings.selectedMetric,
+                                metrics: settings.orderedAvailableEnabledMetrics)
                             Spacer(minLength: 0)
                         }
 
@@ -894,6 +887,56 @@ private struct TokenSetupStep: View {
                     .foregroundStyle(.secondary)
                     .fixedSize(horizontal: false, vertical: true)
             }
+        }
+    }
+}
+
+private struct MenuBarMetricPicker: View {
+    @Binding var selectedMetric: BarMetric?
+    let metrics: [BarMetric]
+
+    var body: some View {
+        Menu {
+            metricButton(nil)
+            Divider()
+            ForEach(metrics) { metric in
+                metricButton(metric)
+            }
+        } label: {
+            HStack(spacing: 8) {
+                Image(systemName: selectedSymbolName)
+                    .frame(width: 20, alignment: .center)
+                Text(selectedLabel)
+                    .lineLimit(1)
+                Spacer(minLength: 0)
+                Image(systemName: "chevron.up.chevron.down")
+                    .font(.body.weight(.semibold))
+            }
+            .font(.body)
+            .foregroundStyle(.primary)
+            .padding(.horizontal, 12)
+            .frame(width: 300, height: 38, alignment: .leading)
+            .background(Color(nsColor: .controlBackgroundColor), in: RoundedRectangle(cornerRadius: 8))
+            .contentShape(RoundedRectangle(cornerRadius: 8))
+        }
+        .buttonStyle(.plain)
+        .help("Choose the metric shown in the menu bar")
+    }
+
+    private var selectedLabel: String {
+        selectedMetric?.label ?? "Icon only"
+    }
+
+    private var selectedSymbolName: String {
+        selectedMetric?.symbolName ?? "moon.zzz"
+    }
+
+    @ViewBuilder
+    private func metricButton(_ metric: BarMetric?) -> some View {
+        Button {
+            selectedMetric = metric
+        } label: {
+            Label(metric?.label ?? "Icon only", systemImage: metric?.symbolName ?? "moon.zzz")
         }
     }
 }
