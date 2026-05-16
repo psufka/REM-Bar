@@ -283,6 +283,7 @@ struct SleepDebtTrendView: View {
             }
         }
         .chartYScale(domain: 0...chartMaxMinutes)
+        .chartXScale(domain: chartXDomain)
         .chartOverlay { proxy in
             GeometryReader { geometry in
                 Rectangle()
@@ -310,6 +311,18 @@ struct SleepDebtTrendView: View {
 
     private var chartMaxMinutes: Double {
         max(60, (displayedPoints.map(\.minutes).max() ?? 60) * 1.15)
+    }
+
+    private var chartXDomain: ClosedRange<Date> {
+        guard let first = displayedPoints.first?.date,
+              let last = displayedPoints.last?.date
+        else {
+            let now = Date()
+            return now...now
+        }
+        let calendar = Calendar.current
+        let rightEdge = calendar.date(byAdding: .hour, value: 30, to: last) ?? last
+        return first...rightEdge
     }
 
     private func hoverAnnotation(for point: SleepDebtTrendPoint) -> some View {

@@ -14,6 +14,7 @@
 - Added a sleep-goal picker directly in the Sleep Debt Trend window.
 - Added hover values to Sleep Debt Trend bars.
 - Kept the card popover visible when opening REM-Bar trend windows.
+- Added trend windows to sleep, recovery, activity, cardiovascular, and breathing metric cards where a numeric trend is useful.
 
 ### Changed
 
@@ -24,6 +25,7 @@
 - Changed the Sleep Debt card to show a decaying 14-day running balance that follows the selected sleep goal.
 - Moved the Sleep Debt goal into the card footer so the title row no longer truncates.
 - Changed Sleep Debt Trend hover values to a compact two-line date/value label.
+- Added extra right-side chart space so hover labels do not crowd the latest point.
 
 ## 0.1.4 - 2026-05-15
 

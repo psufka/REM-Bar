@@ -236,4 +236,13 @@ extension BarMetric {
     static var thresholdCustomizableMetrics: [BarMetric] {
         allCases.filter { $0.defaultThresholdOverride != nil }
     }
+
+    var supportsTrendWindow: Bool {
+        switch self {
+        case .dailyStress, .resilience, .optimalBedtime, .sleepTimeRecommendation:
+            return false
+        case .sleepScore, .rem, .deepSleep, .totalSleep, .sleepDebt, .lightSleep, .awakeTime, .timeInBed, .sleepLatency, .averageBreath, .hrv, .rhr, .readiness, .activity, .hrvBalance, .sleepBalance, .sleepRegularity, .bodyTemperatureDeviation, .sleepEfficiency, .cardiovascularAge, .averageSpO2, .breathingDisturbance, .vo2Max:
+            return true
+        }
+    }
 }

@@ -63,16 +63,7 @@ struct MetricCardView: View {
                 .lineLimit(1)
                 .minimumScaleFactor(0.82)
 
-            if series.metric == .sleepDebt, series.availabilityMessage == nil {
-                Button {
-                    SleepDebtTrendWindowController.shared.show(sleepTarget: sleepTarget)
-                } label: {
-                    Text("📊")
-                        .font(.callout)
-                }
-                .buttonStyle(.plain)
-                .help("Open sleep debt trend")
-            }
+            trendButton
 
             Spacer(minLength: 0)
         }
@@ -117,6 +108,24 @@ struct MetricCardView: View {
 
     private var bottomControls: some View {
         infoButton
+    }
+
+    @ViewBuilder
+    private var trendButton: some View {
+        if series.metric.supportsTrendWindow, series.availabilityMessage == nil {
+            Button {
+                if series.metric == .sleepDebt {
+                    SleepDebtTrendWindowController.shared.show(sleepTarget: sleepTarget)
+                } else {
+                    MetricTrendWindowController.shared.show(metric: series.metric)
+                }
+            } label: {
+                Text("📊")
+                    .font(.callout)
+            }
+            .buttonStyle(.plain)
+            .help("Open trend")
+        }
     }
 
     private var metricTitle: String {
