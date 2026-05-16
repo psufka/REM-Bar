@@ -202,6 +202,12 @@ final class SettingsStore: ObservableObject {
         }
     }
 
+    @Published private(set) var customPresetMetrics: [BarMetric] {
+        didSet {
+            saveCustomPresetMetrics()
+        }
+    }
+
     @Published private(set) var hasCompletedOnboarding: Bool {
         didSet {
             userDefaults.set(hasCompletedOnboarding, forKey: Keys.hasCompletedOnboarding)
@@ -232,6 +238,10 @@ final class SettingsStore: ObservableObject {
         !hasCompletedOnboarding
     }
 
+    var hasCustomPreset: Bool {
+        !customPresetMetrics.isEmpty
+    }
+
     private let userDefaults: UserDefaults
 
     init(userDefaults: UserDefaults = .standard) {
@@ -242,6 +252,7 @@ final class SettingsStore: ObservableObject {
         self.enabledMetrics = enabledMetrics
         self.knownUnavailableMetrics = Self.loadKnownUnavailableMetrics(from: userDefaults)
         self.thresholdOverrides = Self.loadThresholdOverrides(from: userDefaults)
+        self.customPresetMetrics = Self.loadCustomPresetMetrics(from: userDefaults)
         if userDefaults.object(forKey: Keys.hasCompletedOnboarding) == nil {
             self.hasCompletedOnboarding = Self.hasExistingConfiguration(in: userDefaults)
         } else {
@@ -331,7 +342,20 @@ final class SettingsStore: ObservableObject {
     }
 
     func applyPreset(_ preset: MetricPreset) {
-        let metrics = preset.metrics
+        applyMetrics(preset.metrics)
+    }
+
+    func applyCustomPreset() {
+        guard !customPresetMetrics.isEmpty else { return }
+        applyMetrics(customPresetMetrics)
+    }
+
+    func saveCurrentAsCustomPreset() {
+        customPresetMetrics = orderedEnabledMetrics
+    }
+
+    private func applyMetrics(_ metrics: [BarMetric]) {
+        guard !metrics.isEmpty else { return }
         metricOrder = Self.repairedMetricOrder(metrics + metricOrder.filter { !metrics.contains($0) })
         enabledMetrics = Set(metrics)
         if let selectedMetric, !enabledMetrics.contains(selectedMetric) {
@@ -386,6 +410,7 @@ final class SettingsStore: ObservableObject {
         static let sleepTarget = "sleepTarget"
         static let knownUnavailableMetrics = "knownUnavailableMetrics"
         static let thresholdOverrides = "thresholdOverrides"
+        static let customPresetMetrics = "customPresetMetrics"
         static let hasCompletedOnboarding = "hasCompletedOnboarding"
     }
 
@@ -466,6 +491,15 @@ final class SettingsStore: ObservableObject {
         return Set(rawValues.compactMap(BarMetric.init(rawValue:)))
     }
 
+    private static func loadCustomPresetMetrics(from userDefaults: UserDefaults) -> [BarMetric] {
+        guard let data = userDefaults.data(forKey: Keys.customPresetMetrics),
+              let rawValues = try? JSONDecoder().decode([String].self, from: data)
+        else {
+            return []
+        }
+        return uniqueMetrics(rawValues.compactMap(BarMetric.init(rawValue:)))
+    }
+
     private static func loadThresholdOverrides(from userDefaults: UserDefaults) -> [BarMetric: MetricThresholdOverride] {
         guard let data = userDefaults.data(forKey: Keys.thresholdOverrides),
               let rawValues = try? JSONDecoder().decode([String: MetricThresholdOverride].self, from: data)
@@ -489,7 +523,15 @@ final class SettingsStore: ObservableObject {
             Keys.iconStyle,
             Keys.sleepTarget,
             Keys.knownUnavailableMetrics,
+            Keys.customPresetMetrics,
         ].contains { userDefaults.object(forKey: $0) != nil }
+    }
+
+    private static func uniqueMetrics(_ metrics: [BarMetric]) -> [BarMetric] {
+        var seen = Set<BarMetric>()
+        return metrics.filter { metric in
+            seen.insert(metric).inserted
+        }
     }
 
     private func saveEnabledMetrics() {
@@ -523,6 +565,13 @@ final class SettingsStore: ObservableObject {
         })
         if let data = try? JSONEncoder().encode(rawValues) {
             userDefaults.set(data, forKey: Keys.thresholdOverrides)
+        }
+    }
+
+    private func saveCustomPresetMetrics() {
+        let rawValues = customPresetMetrics.map(\.rawValue)
+        if let data = try? JSONEncoder().encode(rawValues) {
+            userDefaults.set(data, forKey: Keys.customPresetMetrics)
         }
     }
 

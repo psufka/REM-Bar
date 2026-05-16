@@ -316,6 +316,26 @@ final class SettingsStoreTests: XCTestCase {
         XCTAssertEqual(store.selectedMetric, MetricPreset.cardio.metrics.first)
     }
 
+    func testCustomPresetRoundTripsAndApplies() {
+        let defaults = makeDefaults()
+        defer { defaults.removePersistentDomain(forName: defaultsSuiteName(defaults)) }
+
+        let store = SettingsStore(userDefaults: defaults)
+        store.applyPreset(.minimal)
+        store.saveCurrentAsCustomPreset()
+
+        let reloaded = SettingsStore(userDefaults: defaults)
+
+        XCTAssertEqual(reloaded.customPresetMetrics, MetricPreset.minimal.metrics)
+        XCTAssertTrue(reloaded.hasCustomPreset)
+
+        reloaded.applyPreset(.cardio)
+        reloaded.applyCustomPreset()
+
+        XCTAssertEqual(reloaded.enabledMetrics, Set(MetricPreset.minimal.metrics))
+        XCTAssertEqual(Array(reloaded.metricOrder.prefix(MetricPreset.minimal.metrics.count)), MetricPreset.minimal.metrics)
+    }
+
     func testThresholdOverridesRoundTripAndSanitize() {
         let defaults = makeDefaults()
         defer { defaults.removePersistentDomain(forName: defaultsSuiteName(defaults)) }

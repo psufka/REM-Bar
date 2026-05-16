@@ -13,6 +13,7 @@ struct MetricCardView: View {
         VStack(alignment: .leading, spacing: 4) {
             HStack {
                 metricLabel
+                    .layoutPriority(1)
                 Spacer(minLength: 4)
                 let formattedDelta = series.formattedDelta(using: temperatureUnit)
                 if !formattedDelta.isEmpty {
@@ -46,11 +47,16 @@ struct MetricCardView: View {
                     .font(.caption2)
                     .foregroundStyle(.secondary)
                     .lineLimit(1)
+                    .padding(.trailing, 22)
             }
         }
         .padding(10)
         .frame(height: PopoverLayoutMetrics.cardHeight)
         .background(Color(nsColor: .controlBackgroundColor), in: RoundedRectangle(cornerRadius: 8))
+        .overlay(alignment: .bottomTrailing) {
+            infoButton
+                .padding(8)
+        }
     }
 
     private var deltaColor: Color {
@@ -69,20 +75,25 @@ struct MetricCardView: View {
             Text(metricTitle)
                 .foregroundStyle(.secondary)
                 .lineLimit(1)
-            Button {
-                showingExplanation = true
-            } label: {
-                Image(systemName: "info.circle")
-                    .font(.caption2)
-            }
-            .buttonStyle(.plain)
-            .foregroundStyle(.secondary)
-            .help("Metric details")
-            .popover(isPresented: $showingExplanation, arrowEdge: .bottom) {
-                MetricInfoPopoverView(metric: series.metric)
-            }
+                .minimumScaleFactor(0.72)
         }
         .font(.caption)
+    }
+
+    private var infoButton: some View {
+        Button {
+            showingExplanation = true
+        } label: {
+            Image(systemName: "info.circle")
+                .font(.caption2)
+                .padding(2)
+        }
+        .buttonStyle(.plain)
+        .foregroundStyle(.secondary)
+        .help("Metric details")
+        .popover(isPresented: $showingExplanation, arrowEdge: .bottom) {
+            MetricInfoPopoverView(metric: series.metric)
+        }
     }
 
     private var metricTitle: String {
@@ -124,12 +135,17 @@ struct CategoricalMetricCardView: View {
                 .foregroundStyle(.secondary)
                 .lineLimit(2)
                 .fixedSize(horizontal: false, vertical: true)
+                .padding(.trailing, 22)
 
             Spacer(minLength: 0)
         }
         .padding(10)
         .frame(height: PopoverLayoutMetrics.cardHeight)
         .background(Color(nsColor: .controlBackgroundColor), in: RoundedRectangle(cornerRadius: 8))
+        .overlay(alignment: .bottomTrailing) {
+            infoButton
+                .padding(8)
+        }
     }
 
     private var metricLabel: some View {
@@ -139,20 +155,24 @@ struct CategoricalMetricCardView: View {
             Text(series.metric.label)
                 .foregroundStyle(.secondary)
                 .lineLimit(1)
-            Button {
-                showingExplanation = true
-            } label: {
-                Image(systemName: "info.circle")
-                    .font(.caption2)
-            }
-            .buttonStyle(.plain)
-            .foregroundStyle(.secondary)
-            .help("Metric details")
-            .popover(isPresented: $showingExplanation, arrowEdge: .bottom) {
-                MetricInfoPopoverView(metric: series.metric)
-            }
         }
         .font(.caption)
+    }
+
+    private var infoButton: some View {
+        Button {
+            showingExplanation = true
+        } label: {
+            Image(systemName: "info.circle")
+                .font(.caption2)
+                .padding(2)
+        }
+        .buttonStyle(.plain)
+        .foregroundStyle(.secondary)
+        .help("Metric details")
+        .popover(isPresented: $showingExplanation, arrowEdge: .bottom) {
+            MetricInfoPopoverView(metric: series.metric)
+        }
     }
 
     private var iconColor: Color {

@@ -256,16 +256,41 @@ struct SettingsView: View {
                 }
 
                 settingsSection("Metric presets") {
-                    LazyVGrid(columns: presetColumns, alignment: .leading, spacing: 8) {
-                        ForEach(MetricPreset.allCases) { preset in
+                    VStack(alignment: .leading, spacing: 8) {
+                        LazyVGrid(columns: presetColumns, alignment: .leading, spacing: 8) {
+                            ForEach(MetricPreset.allCases) { preset in
+                                Button {
+                                    settings.applyPreset(preset)
+                                    selectedMetricGroup = .all
+                                } label: {
+                                    Label(preset.label, systemImage: preset.symbolName)
+                                        .frame(maxWidth: .infinity, alignment: .leading)
+                                }
+                                .buttonStyle(.bordered)
+                            }
                             Button {
-                                settings.applyPreset(preset)
+                                settings.applyCustomPreset()
                                 selectedMetricGroup = .all
                             } label: {
-                                Label(preset.label, systemImage: preset.symbolName)
+                                Label("Custom", systemImage: "star")
                                     .frame(maxWidth: .infinity, alignment: .leading)
                             }
                             .buttonStyle(.bordered)
+                            .disabled(!settings.hasCustomPreset)
+                        }
+
+                        HStack(spacing: 10) {
+                            Button {
+                                settings.saveCurrentAsCustomPreset()
+                            } label: {
+                                Label("Save current cards as Custom", systemImage: "star.fill")
+                            }
+                            .buttonStyle(.bordered)
+
+                            Text(settings.hasCustomPreset ? customPresetSummary : "No custom card group saved yet.")
+                                .font(.caption)
+                                .foregroundStyle(.secondary)
+                                .lineLimit(1)
                         }
                     }
                 }
@@ -483,13 +508,22 @@ struct SettingsView: View {
     }
 
     private var presetColumns: [GridItem] {
-        Array(repeating: GridItem(.flexible(minimum: 160), spacing: 8, alignment: .topLeading), count: 5)
+        Array(repeating: GridItem(.flexible(minimum: 150), spacing: 8, alignment: .topLeading), count: 6)
     }
 
     private var emptyGroupText: some View {
         Text("No cards in this group.")
             .font(.caption)
             .foregroundStyle(.secondary)
+    }
+
+    private var customPresetSummary: String {
+        let labels = settings.customPresetMetrics.prefix(3).map(\.label).joined(separator: ", ")
+        let remaining = settings.customPresetMetrics.count - 3
+        if remaining > 0 {
+            return "Custom: \(labels) + \(remaining) more"
+        }
+        return "Custom: \(labels)"
     }
 
     private func filteredMetrics(_ metrics: [BarMetric]) -> [BarMetric] {

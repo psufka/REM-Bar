@@ -10,10 +10,12 @@
 - Added card group filtering in Display settings.
 - Added per-metric threshold customization for supported numeric cards.
 - Added a mini 14-day history strip below the popover cards.
+- Added a saved Custom metric preset so users can quickly restore their favorite card set.
 
 ### Changed
 
 - Bumped the local development version to 0.1.5.
+- Moved card info buttons to the lower-right corner so long metric titles have more room.
 
 ## 0.1.4 - 2026-05-15
 
