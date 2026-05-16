@@ -26,6 +26,7 @@
 - Moved the Sleep Debt goal into the card footer so the title row no longer truncates.
 - Changed Sleep Debt Trend hover values to a compact two-line date/value label.
 - Added extra right-side chart space so hover labels do not crowd the latest point.
+- Renamed the Sleep Debt Trend average stat to "Avg debt".
 
 ## 0.1.4 - 2026-05-15
 

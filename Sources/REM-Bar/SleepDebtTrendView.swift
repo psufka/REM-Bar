@@ -224,7 +224,7 @@ struct SleepDebtTrendView: View {
     private var statsGrid: some View {
         HStack(spacing: 10) {
             trendStat("Current debt", durationString(stats.currentMinutes))
-            trendStat("Avg balance", durationString(stats.averageMinutes))
+            trendStat("Avg debt", durationString(stats.averageMinutes))
             trendStat("Debt-free", "\(stats.debtFreeDays)/\(stats.dataDays) nights")
         }
     }
