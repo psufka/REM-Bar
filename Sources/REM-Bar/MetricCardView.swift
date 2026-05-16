@@ -22,16 +22,7 @@ struct MetricCardView: View {
                         .foregroundStyle(deltaColor)
                 }
             }
-            Text(series.formattedCurrentValue(using: temperatureUnit))
-                .font(.title2.weight(.semibold))
-                .foregroundStyle(Color(nsColor: ColorThresholds.color(
-                    for: series.currentValue,
-                    metric: series.metric,
-                    baseline: series.baselineValue,
-                    category: series.categoryValue,
-                    thresholdOverrides: thresholdOverrides)))
-                .lineLimit(1)
-                .minimumScaleFactor(0.82)
+            currentValueRow
             if let availabilityMessage = series.availabilityMessage {
                 Text(availabilityMessage)
                     .font(.caption2)
@@ -47,7 +38,7 @@ struct MetricCardView: View {
                     .font(.caption2)
                     .foregroundStyle(.secondary)
                     .lineLimit(1)
-                    .padding(.trailing, bottomControlPadding)
+                    .padding(.trailing, 22)
             }
         }
         .padding(10)
@@ -66,6 +57,38 @@ struct MetricCardView: View {
             return delta < 0 ? .green : .red
         }
         return delta > 0 ? .green : .red
+    }
+
+    private var currentValueRow: some View {
+        HStack(alignment: .firstTextBaseline, spacing: 7) {
+            Text(series.formattedCurrentValue(using: temperatureUnit))
+                .font(.title2.weight(.semibold))
+                .foregroundStyle(valueColor)
+                .lineLimit(1)
+                .minimumScaleFactor(0.82)
+
+            if series.metric == .sleepDebt, series.availabilityMessage == nil {
+                Button {
+                    SleepDebtTrendWindowController.shared.show(sleepTarget: sleepTarget)
+                } label: {
+                    Text("📊")
+                        .font(.callout)
+                }
+                .buttonStyle(.plain)
+                .help("Open sleep debt trend")
+            }
+
+            Spacer(minLength: 0)
+        }
+    }
+
+    private var valueColor: Color {
+        Color(nsColor: ColorThresholds.color(
+            for: series.currentValue,
+            metric: series.metric,
+            baseline: series.baselineValue,
+            category: series.categoryValue,
+            thresholdOverrides: thresholdOverrides))
     }
 
     private var metricLabel: some View {
@@ -97,22 +120,7 @@ struct MetricCardView: View {
     }
 
     private var bottomControls: some View {
-        HStack(spacing: 7) {
-            if series.metric == .sleepDebt {
-                Button("📊 Trend") {
-                    SleepDebtTrendWindowController.shared.show(sleepTarget: sleepTarget)
-                }
-                .font(.caption2.weight(.semibold))
-                .buttonStyle(.plain)
-                .foregroundStyle(.secondary)
-                .help("Open sleep debt trend")
-            }
-            infoButton
-        }
-    }
-
-    private var bottomControlPadding: CGFloat {
-        series.metric == .sleepDebt ? 72 : 22
+        infoButton
     }
 
     private var metricTitle: String {
