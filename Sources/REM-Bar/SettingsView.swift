@@ -12,7 +12,10 @@ struct SettingsView: View {
     @State private var detectedTokenForImport: String?
     @State private var sourceSummaries: [OuraTokenSourceSummary] = []
     @State private var draggedMetric: BarMetric?
+    @State private var selectedMetricGroup: MetricDisplayGroup = .all
+    @State private var selectedThresholdMetric: BarMetric = .sleepScore
     @State private var showingTokenSetup = false
+    @State private var showingOnboarding = false
     @State private var didLoadUpdaterState = false
     @StateObject private var loginItemController = LoginItemController()
     @AppStorage("autoUpdateEnabled") private var autoUpdateEnabled = true
@@ -40,6 +43,9 @@ struct SettingsView: View {
             tokenFieldFocused = false
             loginItemController.refresh()
             syncUpdaterStateIfNeeded()
+            if settings.needsOnboarding {
+                showingOnboarding = true
+            }
             Task {
                 await reloadTokenState()
             }
@@ -50,6 +56,11 @@ struct SettingsView: View {
         }
         .sheet(isPresented: $showingTokenSetup) {
             TokenSetupInstructionsView()
+        }
+        .sheet(isPresented: $showingOnboarding, onDismiss: {
+            settings.completeOnboarding()
+        }) {
+            FirstRunOnboardingView(settings: settings)
         }
     }
 
@@ -244,9 +255,67 @@ struct SettingsView: View {
                     }
                 }
 
+                settingsSection("Metric presets") {
+                    LazyVGrid(columns: presetColumns, alignment: .leading, spacing: 8) {
+                        ForEach(MetricPreset.allCases) { preset in
+                            Button {
+                                settings.applyPreset(preset)
+                                selectedMetricGroup = .all
+                            } label: {
+                                Label(preset.label, systemImage: preset.symbolName)
+                                    .frame(maxWidth: .infinity, alignment: .leading)
+                            }
+                            .buttonStyle(.bordered)
+                        }
+                    }
+                }
+
+                settingsSection("Card groups") {
+                    HStack {
+                        Text("Show")
+                            .frame(width: 130, alignment: .leading)
+                        Picker("Card group", selection: $selectedMetricGroup) {
+                            ForEach(MetricDisplayGroup.allCases) { group in
+                                Text(group.label).tag(group)
+                            }
+                        }
+                        .labelsHidden()
+                        .pickerStyle(.segmented)
+                        .frame(width: 520)
+                        Spacer(minLength: 0)
+                    }
+                }
+
+                settingsSection("Thresholds") {
+                    VStack(alignment: .leading, spacing: 12) {
+                        HStack {
+                            Text("Metric")
+                                .frame(width: 130, alignment: .leading)
+                            Picker("Threshold metric", selection: $selectedThresholdMetric) {
+                                ForEach(BarMetric.thresholdCustomizableMetrics) { metric in
+                                    Label(metric.label, systemImage: metric.symbolName).tag(metric)
+                                }
+                            }
+                            .labelsHidden()
+                            .frame(width: 260)
+
+                            Button("Reset") {
+                                settings.resetThreshold(for: selectedThresholdMetric)
+                            }
+                            .disabled(settings.thresholdOverrides[selectedThresholdMetric] == nil)
+
+                            Spacer(minLength: 0)
+                        }
+
+                        if let threshold = settings.threshold(for: selectedThresholdMetric) {
+                            thresholdEditor(metric: selectedThresholdMetric, threshold: threshold)
+                        }
+                    }
+                }
+
                 settingsSection("Active cards") {
                     LazyVGrid(columns: metricCardColumns, alignment: .leading, spacing: 8) {
-                        ForEach(settings.orderedAvailableEnabledMetrics) { metric in
+                        ForEach(filteredMetrics(settings.orderedAvailableEnabledMetrics)) { metric in
                             MetricOrderRow(metric: metric, isActive: true)
                                 .onDrag {
                                     draggedMetric = metric
@@ -268,11 +337,14 @@ struct SettingsView: View {
                             targetMetric: nil,
                             settings: settings,
                             draggedMetric: $draggedMetric))
+                    if filteredMetrics(settings.orderedAvailableEnabledMetrics).isEmpty {
+                        emptyGroupText
+                    }
                 }
 
                 settingsSection("Inactive cards") {
                     LazyVGrid(columns: metricCardColumns, alignment: .leading, spacing: 8) {
-                        ForEach(settings.orderedAvailableInactiveMetrics) { metric in
+                        ForEach(filteredMetrics(settings.orderedAvailableInactiveMetrics)) { metric in
                             MetricOrderRow(metric: metric, isActive: false)
                                 .onDrag {
                                     draggedMetric = metric
@@ -294,12 +366,15 @@ struct SettingsView: View {
                             targetMetric: nil,
                             settings: settings,
                             draggedMetric: $draggedMetric))
+                    if filteredMetrics(settings.orderedAvailableInactiveMetrics).isEmpty {
+                        emptyGroupText
+                    }
                 }
 
-                if !settings.orderedUnavailableMetrics.isEmpty {
+                if !filteredMetrics(settings.orderedUnavailableMetrics).isEmpty {
                     settingsSection("Unavailable with your ring") {
                         LazyVGrid(columns: metricCardColumns, alignment: .leading, spacing: 8) {
-                            ForEach(settings.orderedUnavailableMetrics) { metric in
+                            ForEach(filteredMetrics(settings.orderedUnavailableMetrics)) { metric in
                                 MetricOrderRow(metric: metric, isActive: false, isUnavailable: true)
                             }
                         }
@@ -405,6 +480,133 @@ struct SettingsView: View {
 
     private var metricCardColumns: [GridItem] {
         Array(repeating: GridItem(.flexible(minimum: 295), spacing: 10, alignment: .topLeading), count: 3)
+    }
+
+    private var presetColumns: [GridItem] {
+        Array(repeating: GridItem(.flexible(minimum: 160), spacing: 8, alignment: .topLeading), count: 5)
+    }
+
+    private var emptyGroupText: some View {
+        Text("No cards in this group.")
+            .font(.caption)
+            .foregroundStyle(.secondary)
+    }
+
+    private func filteredMetrics(_ metrics: [BarMetric]) -> [BarMetric] {
+        guard selectedMetricGroup != .all else { return metrics }
+        return metrics.filter { $0.displayGroup == selectedMetricGroup }
+    }
+
+    private func thresholdEditor(metric: BarMetric, threshold: MetricThresholdOverride) -> some View {
+        VStack(alignment: .leading, spacing: 8) {
+            HStack(spacing: 16) {
+                thresholdStepper(
+                    label: threshold.direction.greenLabel,
+                    value: thresholdValueBinding(metric: metric, field: .green),
+                    metric: metric)
+                thresholdStepper(
+                    label: threshold.direction.orangeLabel,
+                    value: thresholdValueBinding(metric: metric, field: .orange),
+                    metric: metric)
+            }
+            Text(thresholdHelpText(for: metric, threshold: threshold))
+                .font(.caption)
+                .foregroundStyle(.secondary)
+        }
+    }
+
+    private func thresholdStepper(label: String, value: Binding<Double>, metric: BarMetric) -> some View {
+        HStack(spacing: 8) {
+            Text(label)
+                .frame(width: 120, alignment: .leading)
+            Stepper(value: value, in: thresholdRange(for: metric), step: thresholdStep(for: metric)) {
+                Text(thresholdDisplayValue(value.wrappedValue, metric: metric))
+                    .monospacedDigit()
+                    .frame(width: 70, alignment: .leading)
+            }
+        }
+    }
+
+    private enum ThresholdField {
+        case green
+        case orange
+    }
+
+    private func thresholdValueBinding(metric: BarMetric, field: ThresholdField) -> Binding<Double> {
+        Binding(
+            get: {
+                let threshold = settings.threshold(for: metric) ?? metric.defaultThresholdOverride
+                switch field {
+                case .green:
+                    return threshold?.green ?? 0
+                case .orange:
+                    return threshold?.orange ?? 0
+                }
+            },
+            set: { newValue in
+                guard var threshold = settings.threshold(for: metric) ?? metric.defaultThresholdOverride else { return }
+                switch field {
+                case .green:
+                    threshold.green = newValue
+                case .orange:
+                    threshold.orange = newValue
+                }
+                settings.setThreshold(threshold, for: metric)
+            })
+    }
+
+    private func thresholdRange(for metric: BarMetric) -> ClosedRange<Double> {
+        switch metric {
+        case .bodyTemperatureDeviation:
+            return 0...3
+        case .averageSpO2:
+            return 70...100
+        case .vo2Max:
+            return 10...80
+        case .rem, .deepSleep, .totalSleep, .sleepDebt, .lightSleep, .awakeTime, .sleepLatency:
+            return 0...720
+        case .rhr:
+            return 30...120
+        case .hrv:
+            return 0...200
+        case .sleepScore, .readiness, .activity, .hrvBalance, .sleepBalance, .sleepRegularity, .sleepEfficiency, .breathingDisturbance:
+            return 0...100
+        case .timeInBed, .averageBreath, .dailyStress, .resilience, .cardiovascularAge, .optimalBedtime, .sleepTimeRecommendation:
+            return 0...100
+        }
+    }
+
+    private func thresholdStep(for metric: BarMetric) -> Double {
+        switch metric {
+        case .bodyTemperatureDeviation, .averageSpO2:
+            return 0.1
+        case .rem, .deepSleep, .totalSleep, .sleepDebt, .lightSleep, .awakeTime, .sleepLatency:
+            return 5
+        default:
+            return 1
+        }
+    }
+
+    private func thresholdDisplayValue(_ value: Double, metric: BarMetric) -> String {
+        switch metric {
+        case .bodyTemperatureDeviation, .averageSpO2:
+            return String(format: "%.1f", value)
+        case .rem, .deepSleep, .totalSleep, .sleepDebt, .lightSleep, .awakeTime, .sleepLatency:
+            return BarMetric.totalSleep.formattedValue(value)
+        default:
+            return "\(Int(value.rounded()))"
+        }
+    }
+
+    private func thresholdHelpText(for metric: BarMetric, threshold: MetricThresholdOverride) -> String {
+        switch threshold.direction {
+        case .higherIsBetter:
+            return "\(metric.label) is green at or above \(thresholdDisplayValue(threshold.green, metric: metric)), orange at or above \(thresholdDisplayValue(threshold.orange, metric: metric)), and red below that."
+        case .lowerIsBetter:
+            return "\(metric.label) is green at or below \(thresholdDisplayValue(threshold.green, metric: metric)), orange at or below \(thresholdDisplayValue(threshold.orange, metric: metric)), and red above that."
+        case .closerToZeroIsBetter:
+            return "\(metric.label) is green within \(thresholdDisplayValue(threshold.green, metric: metric)) of baseline, orange within \(thresholdDisplayValue(threshold.orange, metric: metric)), and red beyond that."
+        }
     }
 
     private var iconColorEnabled: Binding<Bool> {
@@ -662,10 +864,87 @@ private struct TokenSetupStep: View {
     }
 }
 
+private struct FirstRunOnboardingView: View {
+    @ObservedObject var settings: SettingsStore
+    @Environment(\.dismiss) private var dismiss
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: 18) {
+            HStack {
+                Label("Set Up REM-Bar", systemImage: "moon.zzz")
+                    .font(.title2.weight(.semibold))
+                Spacer()
+                Button {
+                    finish()
+                } label: {
+                    Image(systemName: "xmark.circle.fill")
+                        .font(.title3)
+                        .foregroundStyle(.secondary)
+                }
+                .buttonStyle(.plain)
+                .help("Close")
+            }
+
+            Text("Choose a starting card set, connect your Oura token, and adjust display preferences when you are ready.")
+                .font(.callout)
+                .foregroundStyle(.secondary)
+                .fixedSize(horizontal: false, vertical: true)
+
+            VStack(alignment: .leading, spacing: 10) {
+                Text("Start with a preset")
+                    .font(.headline)
+                LazyVGrid(columns: Array(repeating: GridItem(.flexible(), spacing: 8), count: 3), alignment: .leading, spacing: 8) {
+                    ForEach(MetricPreset.allCases.filter { $0 != .everything }) { preset in
+                        Button {
+                            settings.applyPreset(preset)
+                        } label: {
+                            Label(preset.label, systemImage: preset.symbolName)
+                                .frame(maxWidth: .infinity, alignment: .leading)
+                        }
+                        .buttonStyle(.bordered)
+                    }
+                }
+            }
+
+            VStack(alignment: .leading, spacing: 8) {
+                Text("Connect Oura")
+                    .font(.headline)
+                Text("Create or paste a Personal Access Token in Account settings. REM-Bar can also detect common OURA_TOKEN locations.")
+                    .font(.caption)
+                    .foregroundStyle(.secondary)
+                    .fixedSize(horizontal: false, vertical: true)
+                Button {
+                    if let url = URL(string: "https://cloud.ouraring.com/personal-access-tokens") {
+                        NSWorkspace.shared.open(url)
+                    }
+                } label: {
+                    Label("Open Oura Token Page", systemImage: "safari")
+                }
+            }
+
+            HStack {
+                Spacer()
+                Button("Done") {
+                    finish()
+                }
+                .buttonStyle(.borderedProminent)
+            }
+        }
+        .padding(24)
+        .frame(width: 620)
+    }
+
+    private func finish() {
+        settings.completeOnboarding()
+        dismiss()
+    }
+}
+
 private struct MetricOrderRow: View {
     let metric: BarMetric
     let isActive: Bool
     var isUnavailable = false
+    @State private var showingExplanation = false
 
     var body: some View {
         HStack(spacing: 8) {
@@ -687,6 +966,23 @@ private struct MetricOrderRow: View {
                 .foregroundStyle(rowForeground)
 
             Spacer(minLength: 0)
+
+            Text(metric.displayGroup.label)
+                .font(.caption2.weight(.medium))
+                .foregroundStyle(.secondary)
+
+            Button {
+                showingExplanation = true
+            } label: {
+                Image(systemName: "info.circle")
+                    .font(.caption)
+            }
+            .buttonStyle(.plain)
+            .foregroundStyle(.secondary)
+            .help("Metric details")
+            .popover(isPresented: $showingExplanation, arrowEdge: .bottom) {
+                MetricInfoPopoverView(metric: metric)
+            }
 
             if isUnavailable {
                 Text("Unavailable")

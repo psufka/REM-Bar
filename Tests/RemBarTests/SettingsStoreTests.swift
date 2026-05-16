@@ -57,6 +57,31 @@ final class SettingsStoreTests: XCTestCase {
         XCTAssertEqual(defaults.string(forKey: "selectedMetric"), SettingsStore.iconOnlyMenuBarMetricRawValue)
     }
 
+    func testFreshInstallNeedsOnboardingUntilCompleted() {
+        let defaults = makeDefaults()
+        defer { defaults.removePersistentDomain(forName: defaultsSuiteName(defaults)) }
+
+        let store = SettingsStore(userDefaults: defaults)
+
+        XCTAssertTrue(store.needsOnboarding)
+
+        store.completeOnboarding()
+        let reloaded = SettingsStore(userDefaults: defaults)
+
+        XCTAssertFalse(reloaded.needsOnboarding)
+    }
+
+    func testExistingConfigurationSkipsOnboarding() {
+        let defaults = makeDefaults()
+        defer { defaults.removePersistentDomain(forName: defaultsSuiteName(defaults)) }
+        defaults.set(SettingsStore.iconOnlyMenuBarMetricRawValue, forKey: "selectedMetric")
+
+        let store = SettingsStore(userDefaults: defaults)
+
+        XCTAssertFalse(store.needsOnboarding)
+        XCTAssertNil(store.selectedMetric)
+    }
+
     func testAverageWindowLabels() {
         XCTAssertEqual(SettingsStore.AverageWindow.three.averageLabel, "3-day avg")
         XCTAssertEqual(SettingsStore.AverageWindow.seven.averageLabel, "7-day avg")
@@ -276,6 +301,46 @@ final class SettingsStoreTests: XCTestCase {
 
         XCTAssertFalse(store.knownUnavailableMetrics.contains(.vo2Max))
         XCTAssertTrue(store.orderedAvailableEnabledMetrics.contains(.vo2Max))
+    }
+
+    func testApplyPresetSetsEnabledMetricsAndOrder() {
+        let defaults = makeDefaults()
+        defer { defaults.removePersistentDomain(forName: defaultsSuiteName(defaults)) }
+
+        let store = SettingsStore(userDefaults: defaults)
+        store.selectedMetric = .sleepDebt
+        store.applyPreset(.cardio)
+
+        XCTAssertEqual(store.enabledMetrics, Set(MetricPreset.cardio.metrics))
+        XCTAssertEqual(Array(store.metricOrder.prefix(MetricPreset.cardio.metrics.count)), MetricPreset.cardio.metrics)
+        XCTAssertEqual(store.selectedMetric, MetricPreset.cardio.metrics.first)
+    }
+
+    func testThresholdOverridesRoundTripAndSanitize() {
+        let defaults = makeDefaults()
+        defer { defaults.removePersistentDomain(forName: defaultsSuiteName(defaults)) }
+
+        let store = SettingsStore(userDefaults: defaults)
+        store.setThreshold(
+            MetricThresholdOverride(direction: .higherIsBetter, green: 60, orange: 90),
+            for: .sleepScore)
+        store.setThreshold(
+            MetricThresholdOverride(direction: .lowerIsBetter, green: 80, orange: 30),
+            for: .rhr)
+        store.setThreshold(
+            MetricThresholdOverride(direction: .higherIsBetter, green: 1, orange: 0),
+            for: .dailyStress)
+
+        let reloaded = SettingsStore(userDefaults: defaults)
+
+        XCTAssertEqual(reloaded.thresholdOverrides[.sleepScore], MetricThresholdOverride(direction: .higherIsBetter, green: 90, orange: 60))
+        XCTAssertEqual(reloaded.thresholdOverrides[.rhr], MetricThresholdOverride(direction: .lowerIsBetter, green: 30, orange: 80))
+        XCTAssertNil(reloaded.thresholdOverrides[.dailyStress])
+
+        reloaded.resetThreshold(for: .sleepScore)
+
+        XCTAssertNil(reloaded.thresholdOverrides[.sleepScore])
+        XCTAssertEqual(reloaded.threshold(for: .sleepScore), BarMetric.sleepScore.defaultThresholdOverride)
     }
 
     private func makeDefaults() -> UserDefaults {

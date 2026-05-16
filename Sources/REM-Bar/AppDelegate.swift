@@ -53,6 +53,14 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
                 }
             }
             .store(in: &cancellables)
+        settings.$thresholdOverrides
+            .receive(on: RunLoop.main)
+            .sink { [weak controller, weak refreshCoordinator] _ in
+                Task { @MainActor in
+                    controller?.update(snapshot: refreshCoordinator?.snapshot ?? .empty)
+                }
+            }
+            .store(in: &cancellables)
         settings.$refreshCadence
             .receive(on: RunLoop.main)
             .sink { [weak refreshCoordinator] _ in
@@ -85,6 +93,11 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
             name: .remBarTokenDidChange,
             object: nil)
         refreshCoordinator.start()
+        if settings.needsOnboarding {
+            DispatchQueue.main.asyncAfter(deadline: .now() + 0.6) { [weak controller] in
+                controller?.openSettings()
+            }
+        }
     }
 
     func applicationWillTerminate(_: Notification) {

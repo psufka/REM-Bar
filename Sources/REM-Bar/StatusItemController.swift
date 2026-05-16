@@ -47,7 +47,8 @@ final class StatusItemController: NSObject, NSWindowDelegate {
             for: value,
             metric: metric,
             baseline: series.baselineValue,
-            category: series.categoryValue),
+            category: series.categoryValue,
+            thresholdOverrides: settings.thresholdOverrides),
             style: settings.iconStyle)
         button.contentTintColor = nil
         button.imagePosition = .imageLeft
@@ -78,6 +79,7 @@ final class StatusItemController: NSObject, NSWindowDelegate {
             averageWindow: settings.averageWindow,
             sleepTarget: settings.sleepTarget,
             iconStyle: settings.iconStyle,
+            thresholdOverrides: settings.thresholdOverrides,
             gridViewportHeight: layout.gridViewportHeight,
             lastError: refreshCoordinator.lastError,
             tokenNeedsUpdate: refreshCoordinator.tokenNeedsUpdate,
@@ -114,7 +116,7 @@ final class StatusItemController: NSObject, NSWindowDelegate {
             gridViewportHeight: gridHeight)
     }
 
-    @objc private func openSettings() {
+    @objc func openSettings() {
         popover.performClose(nil)
         let window = settingsWindow ?? makeSettingsWindow()
         settingsWindow = window

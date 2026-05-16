@@ -14,11 +14,21 @@ enum ColorThresholds {
         return .systemRed
     }
 
-    static func color(for value: Double?, metric: BarMetric, baseline: Double? = nil, category: String? = nil) -> NSColor {
+    static func color(
+        for value: Double?,
+        metric: BarMetric,
+        baseline: Double? = nil,
+        category: String? = nil,
+        thresholdOverrides: [BarMetric: MetricThresholdOverride] = [:])
+        -> NSColor
+    {
         if let category {
             return color(forCategory: category, metric: metric)
         }
         guard let value else { return .systemRed }
+        if let threshold = thresholdOverrides[metric] {
+            return color(for: value, threshold: threshold)
+        }
         switch metric {
         case .sleepScore, .readiness, .activity:
             return color(for: value)
@@ -101,6 +111,24 @@ enum ColorThresholds {
             return .systemRed
         case .dailyStress, .optimalBedtime, .sleepTimeRecommendation:
             return .systemOrange
+        }
+    }
+
+    private static func color(for value: Double, threshold: MetricThresholdOverride) -> NSColor {
+        switch threshold.direction {
+        case .higherIsBetter:
+            if value >= threshold.green { return .systemGreen }
+            if value >= threshold.orange { return .systemOrange }
+            return .systemRed
+        case .lowerIsBetter:
+            if value <= threshold.green { return .systemGreen }
+            if value <= threshold.orange { return .systemOrange }
+            return .systemRed
+        case .closerToZeroIsBetter:
+            let absoluteValue = abs(value)
+            if absoluteValue <= threshold.green { return .systemGreen }
+            if absoluteValue <= threshold.orange { return .systemOrange }
+            return .systemRed
         }
     }
 

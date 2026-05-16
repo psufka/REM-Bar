@@ -1,5 +1,20 @@
 # Changelog
 
+## Unreleased
+
+### Added
+
+- Added first-run onboarding with token guidance and starter metric presets.
+- Added metric explanation popovers on cards and card settings rows.
+- Added metric presets for Sleep Focus, Recovery, Cardio, Minimal, and Everything.
+- Added card group filtering in Display settings.
+- Added per-metric threshold customization for supported numeric cards.
+- Added a mini 14-day history strip below the popover cards.
+
+### Changed
+
+- Bumped the local development version to 0.1.5.
+
 ## 0.1.4 - 2026-05-15
 
 ### Added

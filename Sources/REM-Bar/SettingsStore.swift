@@ -196,6 +196,18 @@ final class SettingsStore: ObservableObject {
         }
     }
 
+    @Published private(set) var thresholdOverrides: [BarMetric: MetricThresholdOverride] {
+        didSet {
+            saveThresholdOverrides()
+        }
+    }
+
+    @Published private(set) var hasCompletedOnboarding: Bool {
+        didSet {
+            userDefaults.set(hasCompletedOnboarding, forKey: Keys.hasCompletedOnboarding)
+        }
+    }
+
     var orderedEnabledMetrics: [BarMetric] {
         metricOrder.filter { enabledMetrics.contains($0) }
     }
@@ -216,6 +228,10 @@ final class SettingsStore: ObservableObject {
         metricOrder.filter { knownUnavailableMetrics.contains($0) }
     }
 
+    var needsOnboarding: Bool {
+        !hasCompletedOnboarding
+    }
+
     private let userDefaults: UserDefaults
 
     init(userDefaults: UserDefaults = .standard) {
@@ -225,6 +241,12 @@ final class SettingsStore: ObservableObject {
         let enabledMetrics = Self.loadEnabledMetrics(from: userDefaults)
         self.enabledMetrics = enabledMetrics
         self.knownUnavailableMetrics = Self.loadKnownUnavailableMetrics(from: userDefaults)
+        self.thresholdOverrides = Self.loadThresholdOverrides(from: userDefaults)
+        if userDefaults.object(forKey: Keys.hasCompletedOnboarding) == nil {
+            self.hasCompletedOnboarding = Self.hasExistingConfiguration(in: userDefaults)
+        } else {
+            self.hasCompletedOnboarding = userDefaults.bool(forKey: Keys.hasCompletedOnboarding)
+        }
         let rawCadence = userDefaults.integer(forKey: Keys.refreshCadence)
         self.refreshCadence = RefreshCadence(rawValue: rawCadence) ?? .five
         let rawAverageWindow = userDefaults.integer(forKey: Keys.averageWindow)
@@ -308,6 +330,36 @@ final class SettingsStore: ObservableObject {
         enabledMetrics = Set(activeMetrics)
     }
 
+    func applyPreset(_ preset: MetricPreset) {
+        let metrics = preset.metrics
+        metricOrder = Self.repairedMetricOrder(metrics + metricOrder.filter { !metrics.contains($0) })
+        enabledMetrics = Set(metrics)
+        if let selectedMetric, !enabledMetrics.contains(selectedMetric) {
+            self.selectedMetric = metrics.first
+        } else if selectedMetric == nil {
+            self.selectedMetric = nil
+        } else {
+            self.selectedMetric = selectedMetric ?? metrics.first
+        }
+    }
+
+    func threshold(for metric: BarMetric) -> MetricThresholdOverride? {
+        thresholdOverrides[metric] ?? metric.defaultThresholdOverride
+    }
+
+    func setThreshold(_ threshold: MetricThresholdOverride, for metric: BarMetric) {
+        guard metric.defaultThresholdOverride != nil else { return }
+        thresholdOverrides[metric] = sanitizedThreshold(threshold)
+    }
+
+    func resetThreshold(for metric: BarMetric) {
+        thresholdOverrides.removeValue(forKey: metric)
+    }
+
+    func completeOnboarding() {
+        hasCompletedOnboarding = true
+    }
+
     func noteMetricAvailability(from snapshot: DashboardSnapshot) {
         var updated = knownUnavailableMetrics
         for (metric, series) in snapshot.metrics {
@@ -333,6 +385,8 @@ final class SettingsStore: ObservableObject {
         static let iconStyle = "iconStyle"
         static let sleepTarget = "sleepTarget"
         static let knownUnavailableMetrics = "knownUnavailableMetrics"
+        static let thresholdOverrides = "thresholdOverrides"
+        static let hasCompletedOnboarding = "hasCompletedOnboarding"
     }
 
     static let defaultEnabledMetrics: Set<BarMetric> = [
@@ -412,6 +466,32 @@ final class SettingsStore: ObservableObject {
         return Set(rawValues.compactMap(BarMetric.init(rawValue:)))
     }
 
+    private static func loadThresholdOverrides(from userDefaults: UserDefaults) -> [BarMetric: MetricThresholdOverride] {
+        guard let data = userDefaults.data(forKey: Keys.thresholdOverrides),
+              let rawValues = try? JSONDecoder().decode([String: MetricThresholdOverride].self, from: data)
+        else {
+            return [:]
+        }
+        return Dictionary(uniqueKeysWithValues: rawValues.compactMap { rawMetric, threshold in
+            guard let metric = BarMetric(rawValue: rawMetric), metric.defaultThresholdOverride != nil else { return nil }
+            return (metric, sanitizedThreshold(threshold))
+        })
+    }
+
+    private static func hasExistingConfiguration(in userDefaults: UserDefaults) -> Bool {
+        [
+            Keys.refreshCadence,
+            Keys.averageWindow,
+            Keys.selectedMetric,
+            Keys.enabledMetrics,
+            Keys.metricOrder,
+            Keys.temperatureUnit,
+            Keys.iconStyle,
+            Keys.sleepTarget,
+            Keys.knownUnavailableMetrics,
+        ].contains { userDefaults.object(forKey: $0) != nil }
+    }
+
     private func saveEnabledMetrics() {
         let rawValues = metricOrder
             .filter { enabledMetrics.contains($0) }
@@ -435,5 +515,33 @@ final class SettingsStore: ObservableObject {
         if let data = try? JSONEncoder().encode(rawValues) {
             userDefaults.set(data, forKey: Keys.knownUnavailableMetrics)
         }
+    }
+
+    private func saveThresholdOverrides() {
+        let rawValues = Dictionary(uniqueKeysWithValues: thresholdOverrides.map { metric, threshold in
+            (metric.rawValue, threshold)
+        })
+        if let data = try? JSONEncoder().encode(rawValues) {
+            userDefaults.set(data, forKey: Keys.thresholdOverrides)
+        }
+    }
+
+    private static func sanitizedThreshold(_ threshold: MetricThresholdOverride) -> MetricThresholdOverride {
+        var threshold = threshold
+        switch threshold.direction {
+        case .higherIsBetter:
+            if threshold.green < threshold.orange {
+                swap(&threshold.green, &threshold.orange)
+            }
+        case .lowerIsBetter, .closerToZeroIsBetter:
+            if threshold.green > threshold.orange {
+                swap(&threshold.green, &threshold.orange)
+            }
+        }
+        return threshold
+    }
+
+    private func sanitizedThreshold(_ threshold: MetricThresholdOverride) -> MetricThresholdOverride {
+        Self.sanitizedThreshold(threshold)
     }
 }

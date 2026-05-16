@@ -10,6 +10,18 @@ final class ColorThresholdsTests: XCTestCase {
         XCTAssertEqual(ColorThresholds.color(for: 70), .systemOrange)
     }
 
+    func testThresholdOverrideChangesMetricColor() {
+        let overrides: [BarMetric: MetricThresholdOverride] = [
+            .sleepScore: MetricThresholdOverride(direction: .higherIsBetter, green: 95, orange: 80),
+            .sleepDebt: MetricThresholdOverride(direction: .lowerIsBetter, green: 15, orange: 45),
+            .bodyTemperatureDeviation: MetricThresholdOverride(direction: .closerToZeroIsBetter, green: 0.1, orange: 0.3),
+        ]
+
+        XCTAssertEqual(ColorThresholds.color(for: 85, metric: .sleepScore, thresholdOverrides: overrides), .systemOrange)
+        XCTAssertEqual(ColorThresholds.color(for: 60, metric: .sleepDebt, thresholdOverrides: overrides), .systemRed)
+        XCTAssertEqual(ColorThresholds.color(for: -0.2, metric: .bodyTemperatureDeviation, thresholdOverrides: overrides), .systemOrange)
+    }
+
     func testOptionalMetricBoundaries() {
         XCTAssertEqual(ColorThresholds.color(for: 0.19, metric: .bodyTemperatureDeviation), .systemGreen)
         XCTAssertEqual(ColorThresholds.color(for: -0.5, metric: .bodyTemperatureDeviation), .systemOrange)

@@ -6,6 +6,8 @@ struct MetricCardView: View {
     let averageWindow: SettingsStore.AverageWindow
     let sleepTarget: SleepTarget
     let iconStyle: IconStyle
+    let thresholdOverrides: [BarMetric: MetricThresholdOverride]
+    @State private var showingExplanation = false
 
     var body: some View {
         VStack(alignment: .leading, spacing: 4) {
@@ -25,7 +27,8 @@ struct MetricCardView: View {
                     for: series.currentValue,
                     metric: series.metric,
                     baseline: series.baselineValue,
-                    category: series.categoryValue)))
+                    category: series.categoryValue,
+                    thresholdOverrides: thresholdOverrides)))
                 .lineLimit(1)
                 .minimumScaleFactor(0.82)
             if let availabilityMessage = series.availabilityMessage {
@@ -66,6 +69,18 @@ struct MetricCardView: View {
             Text(metricTitle)
                 .foregroundStyle(.secondary)
                 .lineLimit(1)
+            Button {
+                showingExplanation = true
+            } label: {
+                Image(systemName: "info.circle")
+                    .font(.caption2)
+            }
+            .buttonStyle(.plain)
+            .foregroundStyle(.secondary)
+            .help("Metric details")
+            .popover(isPresented: $showingExplanation, arrowEdge: .bottom) {
+                MetricInfoPopoverView(metric: series.metric)
+            }
         }
         .font(.caption)
     }
@@ -81,13 +96,15 @@ struct MetricCardView: View {
             for: series.currentValue,
             metric: series.metric,
             baseline: series.baselineValue,
-            category: series.categoryValue))
+            category: series.categoryValue,
+            thresholdOverrides: thresholdOverrides))
     }
 }
 
 struct CategoricalMetricCardView: View {
     let series: MetricSeries
     let iconStyle: IconStyle
+    @State private var showingExplanation = false
 
     var body: some View {
         VStack(alignment: .leading, spacing: 8) {
@@ -122,6 +139,18 @@ struct CategoricalMetricCardView: View {
             Text(series.metric.label)
                 .foregroundStyle(.secondary)
                 .lineLimit(1)
+            Button {
+                showingExplanation = true
+            } label: {
+                Image(systemName: "info.circle")
+                    .font(.caption2)
+            }
+            .buttonStyle(.plain)
+            .foregroundStyle(.secondary)
+            .help("Metric details")
+            .popover(isPresented: $showingExplanation, arrowEdge: .bottom) {
+                MetricInfoPopoverView(metric: series.metric)
+            }
         }
         .font(.caption)
     }
@@ -132,5 +161,35 @@ struct CategoricalMetricCardView: View {
             for: series.currentValue,
             metric: series.metric,
             category: series.categoryValue))
+    }
+}
+
+struct MetricInfoPopoverView: View {
+    let metric: BarMetric
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: 10) {
+            Label(metric.label, systemImage: metric.symbolName)
+                .font(.headline)
+
+            VStack(alignment: .leading, spacing: 8) {
+                labeledText("What it is", metric.explanation.summary)
+                labeledText("Oura source", metric.explanation.source)
+                labeledText("How to read it", metric.explanation.interpretation)
+            }
+        }
+        .padding(14)
+        .frame(width: 340, alignment: .leading)
+    }
+
+    private func labeledText(_ label: String, _ text: String) -> some View {
+        VStack(alignment: .leading, spacing: 2) {
+            Text(label)
+                .font(.caption.weight(.semibold))
+            Text(text)
+                .font(.caption)
+                .foregroundStyle(.secondary)
+                .fixedSize(horizontal: false, vertical: true)
+        }
     }
 }
