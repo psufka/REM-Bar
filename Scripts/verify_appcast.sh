@@ -49,10 +49,9 @@ else:
     raise SystemExit(f"No appcast entry found for version {version}")
 PY
 
-readarray -t META <"$TMP_META"
-URL="${META[0]}"
-SIGNATURE="${META[1]}"
-EXPECTED_LENGTH="${META[2]}"
+URL=$(sed -n '1p' "$TMP_META")
+SIGNATURE=$(sed -n '2p' "$TMP_META")
+EXPECTED_LENGTH=$(sed -n '3p' "$TMP_META")
 
 curl -L -o "$TMP_ZIP" "$URL"
 ACTUAL_LENGTH=$(stat -f%z "$TMP_ZIP")

@@ -5,18 +5,18 @@
         <link>https://raw.githubusercontent.com/psufka/REM-Bar/main/appcast.xml</link>
         <description>REM-Bar app updates</description>
         <item>
-            <title>0.1.4</title>
-            <pubDate>Fri, 15 May 2026 14:11:35 -0500</pubDate>
+            <title>0.1.5</title>
+            <pubDate>Sat, 16 May 2026 19:16:42 -0500</pubDate>
             <link>https://raw.githubusercontent.com/psufka/REM-Bar/main/appcast.xml</link>
-            <sparkle:version>50</sparkle:version>
-            <sparkle:shortVersionString>0.1.4</sparkle:shortVersionString>
+            <sparkle:version>69</sparkle:version>
+            <sparkle:shortVersionString>0.1.5</sparkle:shortVersionString>
             <sparkle:minimumSystemVersion>14.0</sparkle:minimumSystemVersion>
             <sparkle:hardwareRequirements>arm64</sparkle:hardwareRequirements>
-            <description><![CDATA[<h2>REM-Bar 0.1.4</h2>
+            <description><![CDATA[<h2>REM-Bar 0.1.5</h2>
 <p>See the REM-Bar GitHub release notes for this version.</p>
-<p><a href="https://github.com/psufka/REM-Bar/releases/tag/v0.1.4">View release notes</a></p>
+<p><a href="https://github.com/psufka/REM-Bar/releases/tag/v0.1.5">View release notes</a></p>
 ]]></description>
-            <enclosure url="https://github.com/psufka/REM-Bar/releases/download/v0.1.4/REM-Bar-v0.1.4.zip" length="2712076" type="application/octet-stream" sparkle:edSignature="Xyba5LzVfC2MJbOoq2gKaGtt/G94NcSdfFxEikjTnnhfUA6vrJcl0LNiyegbHyzyI/dVDQLq6oxte52YMAsVCw=="/>
+            <enclosure url="https://github.com/psufka/REM-Bar/releases/download/v0.1.5/REM-Bar-v0.1.5.zip" length="2941318" type="application/octet-stream" sparkle:edSignature="YvP9DgIfkkfnn+BlfpF9pT0d1hM/lBI81uYwCBWF8NvvbfLmD2uilW5Ue5z+4n5N8KVVDaMpD1Ps5+bFruRwAg=="/>
         </item>
     </channel>
 </rss>
