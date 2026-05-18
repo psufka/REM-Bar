@@ -1,5 +1,12 @@
 # Changelog
 
+## Unreleased
+
+### Changed
+
+- Clarified the popover footer sleep-sync label so it shows the wake-date sleep before the bedtime range.
+- Expanded metric info popovers with Oura-aligned explanations and Oura Help links.
+
 ## 0.1.5 - 2026-05-16
 
 ### Added

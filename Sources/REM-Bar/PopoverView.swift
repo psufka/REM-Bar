@@ -98,7 +98,7 @@ struct PopoverView: View {
                     Text(syncStatusText)
                         .font(.caption2)
                         .foregroundStyle(.secondary)
-                        .lineLimit(1)
+                        .lineLimit(2)
                         .minimumScaleFactor(0.8)
                     HStack(alignment: .firstTextBaseline, spacing: 4) {
                         Text("Data can take a couple hours to sync to Oura Cloud/API.")
@@ -161,7 +161,7 @@ struct PopoverView: View {
         guard let bedtimeRange = formattedBedtimeRange(latestSleep) else {
             return "Latest sleep synced: \(formattedSleepDay(latestSleep.day))"
         }
-        return "Latest sleep synced: \(bedtimeRange)"
+        return "Latest sleep synced: \(formattedSleepLabel(latestSleep)) - \(bedtimeRange)"
     }
 
     private func formattedSleepDay(_ day: String) -> String {
@@ -171,6 +171,18 @@ struct PopoverView: View {
         parser.dateFormat = "yyyy-MM-dd"
         guard let date = parser.date(from: day) else { return day }
 
+        let formatter = DateFormatter()
+        formatter.locale = .current
+        formatter.setLocalizedDateFormatFromTemplate("MMM d")
+        return formatter.string(from: date)
+    }
+
+    private func formattedSleepLabel(_ latestSleep: LatestSleepSummary) -> String {
+        let sleepDay = latestSleep.bedtimeEnd.map(formattedSleepDay) ?? formattedSleepDay(latestSleep.day)
+        return "\(sleepDay) sleep"
+    }
+
+    private func formattedSleepDay(_ date: Date) -> String {
         let formatter = DateFormatter()
         formatter.locale = .current
         formatter.setLocalizedDateFormatFromTemplate("MMM d")

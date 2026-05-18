@@ -323,18 +323,45 @@ enum DashboardSnapshotBuilder {
     }
 
     private static func latestSleepSummary(from sleep: [Sleep]) -> LatestSleepSummary? {
-        let sleepByDay = Dictionary(grouping: sleep, by: \.day)
-        guard let day = sleepByDay.keys.sorted().last,
-              let detail = preferredSleepDetail(from: sleepByDay[day] ?? [])
-        else {
+        let mainSleep = sleep.filter { $0.type?.lowercased() == "long_sleep" }
+        let nonRestSleep = sleep.filter { $0.type?.lowercased() != "rest" }
+        let candidates = !mainSleep.isEmpty ? mainSleep : (!nonRestSleep.isEmpty ? nonRestSleep : sleep)
+        guard let detail = candidates.max(by: isEarlierSleepDetail) else {
             return nil
         }
         return LatestSleepSummary(
-            day: day,
+            day: detail.day,
             bedtimeStartRaw: detail.bedtimeStart,
             bedtimeEndRaw: detail.bedtimeEnd,
             bedtimeStart: isoDate(from: detail.bedtimeStart),
             bedtimeEnd: isoDate(from: detail.bedtimeEnd))
+    }
+
+    private static func isEarlierSleepDetail(_ lhs: Sleep, than rhs: Sleep) -> Bool {
+        if let lhsEnd = sleepSortDate(for: lhs),
+           let rhsEnd = sleepSortDate(for: rhs),
+           lhsEnd != rhsEnd
+        {
+            return lhsEnd < rhsEnd
+        }
+        if lhs.day != rhs.day {
+            return lhs.day < rhs.day
+        }
+        return (lhs.totalSleepDuration ?? 0) < (rhs.totalSleepDuration ?? 0)
+    }
+
+    private static func sleepSortDate(for detail: Sleep) -> Date? {
+        isoDate(from: detail.bedtimeEnd)
+            ?? isoDate(from: detail.bedtimeStart)
+            ?? dayDate(from: detail.day)
+    }
+
+    private static func dayDate(from day: String) -> Date? {
+        let dateFormatter = DateFormatter()
+        dateFormatter.calendar = Calendar(identifier: .gregorian)
+        dateFormatter.locale = Locale(identifier: "en_US_POSIX")
+        dateFormatter.dateFormat = "yyyy-MM-dd"
+        return dateFormatter.date(from: day)
     }
 
     private static func isoDate(from string: String?) -> Date? {

@@ -121,6 +121,32 @@ struct MetricExplanation: Equatable {
     let summary: String
     let source: String
     let interpretation: String
+    let learnMoreURL: URL?
+
+    init(summary: String, source: String, interpretation: String, learnMoreURL: URL? = nil) {
+        self.summary = summary
+        self.source = source
+        self.interpretation = interpretation
+        self.learnMoreURL = learnMoreURL
+    }
+}
+
+private enum OuraHelpLink {
+    static let sleepScore = URL(string: "https://support.ouraring.com/hc/en-us/articles/360025445574-Sleep-Score")!
+    static let sleepContributors = URL(string: "https://support.ouraring.com/hc/en-us/articles/360057792293-Sleep-Contributors")!
+    static let bedtimeGuidance = URL(string: "https://support.ouraring.com/hc/en-us/articles/360025445154-Bedtime-Guidance")!
+    static let readinessScore = URL(string: "https://support.ouraring.com/hc/en-us/articles/360025589793-Readiness-Score")!
+    static let readinessContributors = URL(string: "https://support.ouraring.com/hc/en-us/articles/360057791533-Readiness-Contributors")!
+    static let restingHeartRate = URL(string: "https://support.ouraring.com/hc/en-us/articles/360025588793-Resting-Heart-Rate")!
+    static let hrv = URL(string: "https://support.ouraring.com/hc/en-us/articles/360025441974-Heart-Rate-Variability")!
+    static let respiratoryRate = URL(string: "https://support.ouraring.com/hc/en-us/articles/360025443174-Respiratory-Rate")!
+    static let bodyTemperature = URL(string: "https://support.ouraring.com/hc/en-us/articles/360025587493-Body-Temperature")!
+    static let activityContributors = URL(string: "https://support.ouraring.com/hc/en-us/articles/360055901214-Activity-Contributors")!
+    static let daytimeStress = URL(string: "https://support.ouraring.com/hc/en-us/articles/21205822135315-Daytime-Stress")!
+    static let resilience = URL(string: "https://support.ouraring.com/hc/en-us/articles/25358829055251-Resilience")!
+    static let cardiovascularAge = URL(string: "https://support.ouraring.com/hc/en-us/articles/28451491040019-Cardiovascular-Age")!
+    static let cardioCapacity = URL(string: "https://support.ouraring.com/hc/en-us/articles/28336620578835-Cardio-Capacity-VO2-Max")!
+    static let spo2 = URL(string: "https://support.ouraring.com/hc/en-us/articles/7328398760851-Blood-Oxygen-Sensing-SpO2")!
 }
 
 extension BarMetric {
@@ -142,59 +168,59 @@ extension BarMetric {
     var explanation: MetricExplanation {
         switch self {
         case .sleepScore:
-            return MetricExplanation(summary: "Oura's overall daily sleep score.", source: "Daily Sleep score", interpretation: "Higher is better; 85+ is typically strong, while lower values suggest sleep quantity or quality was limited.")
+            return MetricExplanation(summary: "Oura's 0-100 score for overall sleep quality and quantity, based on contributors such as total sleep, efficiency, restfulness, REM, deep sleep, latency, and timing.", source: "Oura Daily Sleep score", interpretation: "Higher is better. Oura rates 85-100 as Optimal, 70-84 as Good, 60-69 as Fair, and 0-59 as Pay Attention.", learnMoreURL: OuraHelpLink.sleepScore)
         case .rem:
-            return MetricExplanation(summary: "Minutes spent in REM sleep.", source: "Sleep detail rem_sleep_duration", interpretation: "More REM generally supports cognitive recovery; use your own baseline more than a single-night target.")
+            return MetricExplanation(summary: "Time spent in REM sleep. Oura describes REM as associated with dreaming, memory consolidation, creativity, and mental recovery.", source: "Oura Sleep detail rem_sleep_duration", interpretation: "Most healthy adults average around 1.5 hours, but personal baseline matters more than a single night.", learnMoreURL: OuraHelpLink.sleepContributors)
         case .deepSleep:
-            return MetricExplanation(summary: "Minutes spent in deep sleep.", source: "Sleep detail deep_sleep_duration", interpretation: "Deep sleep supports physical recovery; low values are often useful to compare against recent trends.")
+            return MetricExplanation(summary: "Time spent in deep sleep, the most physically restorative sleep stage.", source: "Oura Sleep detail deep_sleep_duration", interpretation: "Oura notes adults often spend about 15-20% of total sleep, roughly 1-1.5 hours, in deep sleep. Compare against your trend.", learnMoreURL: OuraHelpLink.sleepContributors)
         case .totalSleep:
-            return MetricExplanation(summary: "Total asleep time from the latest sleep period.", source: "Sleep detail total_sleep_duration", interpretation: "Longer is generally better until it reaches your personal goal; REM-Bar colors this against broad adult sleep ranges.")
+            return MetricExplanation(summary: "Total time asleep, including light, REM, and deep sleep. Awake time is not included.", source: "Oura Sleep detail total_sleep_duration", interpretation: "Oura includes all sleep, including naps. Most adults need 7-9 hours, but your personal target may differ.", learnMoreURL: OuraHelpLink.sleepContributors)
         case .sleepDebt:
-            return MetricExplanation(summary: "A weighted 14-day estimate of sleep missed versus your selected sleep target.", source: "REM-Bar calculation from Oura sleep detail and Sleep target", interpretation: "Lower is better. Recent nights count more heavily, and over-goal sleep can reduce prior debt.")
+            return MetricExplanation(summary: "REM-Bar's running estimate of sleep missed versus your selected sleep target.", source: "REM-Bar calculation from Oura Sleep detail total_sleep_duration", interpretation: "Lower is better. It uses a decaying 14-day balance so recent nights count most, and over-goal sleep can reduce prior debt.", learnMoreURL: OuraHelpLink.sleepContributors)
         case .lightSleep:
-            return MetricExplanation(summary: "Minutes spent in light sleep.", source: "Sleep detail light_sleep_duration", interpretation: "Light sleep usually makes up much of total sleep; interpret it alongside total, REM, and deep sleep.")
+            return MetricExplanation(summary: "Time spent in light sleep, one of the sleep stages that contributes to total sleep.", source: "Oura Sleep detail light_sleep_duration", interpretation: "Light sleep often makes up much of the night. Interpret it with total sleep, REM, deep sleep, and how you feel.", learnMoreURL: OuraHelpLink.sleepContributors)
         case .awakeTime:
-            return MetricExplanation(summary: "Time awake during the sleep period.", source: "Sleep detail awake_time", interpretation: "Lower is generally better. Higher awake time can explain lower sleep efficiency.")
+            return MetricExplanation(summary: "Time awake during the detected sleep period.", source: "Oura Sleep detail awake_time", interpretation: "Lower is generally better. More wake time can reduce Sleep Score through efficiency and restfulness.", learnMoreURL: OuraHelpLink.sleepContributors)
         case .timeInBed:
-            return MetricExplanation(summary: "Elapsed time between bedtime start and end.", source: "Sleep detail time_in_bed", interpretation: "Useful for distinguishing time in bed from actual asleep time.")
+            return MetricExplanation(summary: "Elapsed time between bedtime start and bedtime end.", source: "Oura Sleep detail time_in_bed", interpretation: "Use this to separate opportunity to sleep from actual total sleep. A large gap can point to latency or awake time.", learnMoreURL: OuraHelpLink.sleepContributors)
         case .sleepLatency:
-            return MetricExplanation(summary: "How long it took to fall asleep.", source: "Sleep detail latency", interpretation: "Lower is generally better, though very short latency can also reflect sleep pressure.")
+            return MetricExplanation(summary: "How long it took to fall asleep in the main sleep period.", source: "Oura Sleep detail latency", interpretation: "Oura describes 15-20 minutes as ideal. Less than five minutes can reflect overtiredness; longer latency can lower Sleep Score.", learnMoreURL: OuraHelpLink.sleepContributors)
         case .averageBreath:
-            return MetricExplanation(summary: "Average respiratory rate during sleep.", source: "Sleep detail average_breath", interpretation: "Stable personal patterns matter most; large deviations can be worth reviewing with other recovery signals.")
+            return MetricExplanation(summary: "Average breaths per minute during the previous night's sleep.", source: "Oura Sleep detail average_breath", interpretation: "Healthy adults are often around 12-20 breaths/min. Oura emphasizes comparing changes to your own baseline.", learnMoreURL: OuraHelpLink.respiratoryRate)
         case .hrv:
-            return MetricExplanation(summary: "Average heart-rate variability during sleep.", source: "Sleep detail average_hrv", interpretation: "Higher than your baseline often reflects better recovery; low values can follow stress, alcohol, illness, or hard training.")
+            return MetricExplanation(summary: "Average heart-rate variability during sleep, measured as millisecond-level variation between heartbeats.", source: "Oura Sleep detail average_hrv", interpretation: "Higher than your baseline often reflects stronger parasympathetic recovery. Lower values can follow stress, illness, alcohol, or hard training.", learnMoreURL: OuraHelpLink.hrv)
         case .rhr:
-            return MetricExplanation(summary: "Lowest overnight heart rate when available, otherwise average heart rate.", source: "Sleep detail lowest_heart_rate / average_heart_rate", interpretation: "Lower than your baseline can reflect recovery; higher values can signal stress, illness, or load.")
+            return MetricExplanation(summary: "Lowest overnight resting heart rate when available; otherwise average overnight heart rate.", source: "Oura Sleep detail lowest_heart_rate / average_heart_rate", interpretation: "Oura builds an individual RHR baseline. Higher-than-usual RHR can reflect strain, illness, late meals, alcohol, or hard exercise.", learnMoreURL: OuraHelpLink.restingHeartRate)
         case .readiness:
-            return MetricExplanation(summary: "Oura's overall recovery/readiness score.", source: "Daily Readiness score", interpretation: "Higher is better. Use it to decide whether to push, maintain, or recover.")
+            return MetricExplanation(summary: "Oura's 0-100 score for how balanced your recovery and activity are.", source: "Oura Daily Readiness score", interpretation: "Higher is better. Oura rates 85-100 as Optimal and below 70 as a sign to prioritize rest and recovery.", learnMoreURL: OuraHelpLink.readinessScore)
         case .activity:
-            return MetricExplanation(summary: "Oura's daily activity score.", source: "Daily Activity score", interpretation: "Higher usually reflects stronger movement/activity goal progress.")
+            return MetricExplanation(summary: "Oura's 0-100 score for daily movement, inactivity, and training load relative to your goal and baseline.", source: "Oura Daily Activity score", interpretation: "Higher usually reflects stronger activity-goal progress without excessive inactivity or overreaching.", learnMoreURL: OuraHelpLink.activityContributors)
         case .hrvBalance:
-            return MetricExplanation(summary: "Readiness contributor for recent HRV balance.", source: "Daily Readiness contributors.hrv_balance", interpretation: "Higher means HRV is more favorable relative to your recent baseline.")
+            return MetricExplanation(summary: "Readiness contributor comparing recent HRV patterns with your longer-term baseline.", source: "Oura Daily Readiness contributors.hrv_balance", interpretation: "Higher means recent HRV is supporting recovery. Oura's balance contributors use weighted recent averages.", learnMoreURL: OuraHelpLink.readinessScore)
         case .sleepBalance:
-            return MetricExplanation(summary: "Readiness contributor for recent sleep balance.", source: "Daily Readiness contributors.sleep_balance", interpretation: "Higher means recent sleep quantity is supporting recovery.")
+            return MetricExplanation(summary: "Readiness contributor for recent sleep amount and sleep debt over roughly the last two weeks.", source: "Oura Daily Readiness contributors.sleep_balance", interpretation: "Higher means recent sleep quantity is supporting recovery relative to your baseline and general age-based guidance.", learnMoreURL: OuraHelpLink.readinessContributors)
         case .sleepRegularity:
-            return MetricExplanation(summary: "Readiness contributor for sleep timing consistency.", source: "Daily Readiness contributors.sleep_regularity", interpretation: "Higher means your sleep schedule has been more regular.")
+            return MetricExplanation(summary: "Readiness contributor for bedtime and wake-time consistency over the previous two weeks.", source: "Oura Daily Readiness contributors.sleep_regularity", interpretation: "Higher means your schedule has been more regular. Oura says naps do not affect Sleep Regularity.", learnMoreURL: OuraHelpLink.readinessContributors)
         case .bodyTemperatureDeviation:
-            return MetricExplanation(summary: "Overnight body temperature deviation from your baseline.", source: "Daily Readiness temperature_deviation", interpretation: "Closer to zero is usually better. Larger deviations can occur with illness, cycle changes, or environmental factors.")
+            return MetricExplanation(summary: "Overnight skin temperature deviation from your personal baseline.", source: "Oura Daily Readiness temperature_deviation", interpretation: "Closer to zero is usually better. Oura measures during sleep to reduce daytime noise; larger deviations can occur with illness or cycle changes.", learnMoreURL: OuraHelpLink.bodyTemperature)
         case .sleepEfficiency:
-            return MetricExplanation(summary: "Percentage of time in bed spent asleep.", source: "Sleep detail efficiency", interpretation: "Higher is better; low efficiency often means more awake time or fragmented sleep.")
+            return MetricExplanation(summary: "Percentage of time in bed that was spent asleep.", source: "Oura Sleep detail efficiency", interpretation: "Higher is better. Oura notes 85% is a common sign of peaceful, uninterrupted sleep for most adults.", learnMoreURL: OuraHelpLink.sleepContributors)
         case .dailyStress:
-            return MetricExplanation(summary: "Oura's daily stress summary category.", source: "Daily Stress day_summary", interpretation: "Categorical signal summarizing stress/restoration across the day.")
+            return MetricExplanation(summary: "Oura's daily physiological stress summary, based on daytime stress zones such as Stressed, Engaged, Relaxed, and Restored.", source: "Oura Daily Stress day_summary", interpretation: "This reflects biometrics, not emotions. Oura calculates stress from heart rate, HRV, motion, and average body temperature.", learnMoreURL: OuraHelpLink.daytimeStress)
         case .resilience:
-            return MetricExplanation(summary: "Oura's longer-term resilience category.", source: "Daily Resilience level", interpretation: "Higher categories suggest stronger recent capacity to handle stress and recover.")
+            return MetricExplanation(summary: "Oura's medium-term estimate of your ability to withstand physiological stress and recover from it.", source: "Oura Daily Resilience level", interpretation: "It reflects a 14-day balance of daytime stress load, restorative time, and nighttime recovery, so it changes gradually.", learnMoreURL: OuraHelpLink.resilience)
         case .cardiovascularAge:
-            return MetricExplanation(summary: "Oura's estimated cardiovascular age.", source: "Daily Cardiovascular Age vascular_age", interpretation: "REM-Bar compares this with Personal Info age when available; lower or equal is better.")
+            return MetricExplanation(summary: "Oura's estimate of cardiovascular system health relative to your actual age.", source: "Oura Daily Cardiovascular Age vascular_age", interpretation: "Oura estimates this from pulse-wave-related signals in the PPG waveform. REM-Bar compares it with Personal Info age when available.", learnMoreURL: OuraHelpLink.cardiovascularAge)
         case .averageSpO2:
-            return MetricExplanation(summary: "Average blood oxygen saturation during sleep.", source: "Daily SpO2 spo2_percentage.average", interpretation: "Higher is generally better; persistent low values should be interpreted carefully and medically if relevant.")
+            return MetricExplanation(summary: "Average blood oxygen saturation during the longest sleep period of the day.", source: "Oura Daily SpO2 spo2_percentage.average", interpretation: "Higher is generally better. Oura measures this during sleep periods longer than three hours; persistent low values deserve careful interpretation.", learnMoreURL: OuraHelpLink.spo2)
         case .breathingDisturbance:
-            return MetricExplanation(summary: "Oura's breathing disturbance index.", source: "Daily SpO2 breathing_disturbance_index", interpretation: "Lower is generally better; unavailable on some rings or memberships.")
+            return MetricExplanation(summary: "Oura's index of suspected overnight variation in blood oxygen levels.", source: "Oura Daily SpO2 breathing_disturbance_index", interpretation: "Lower is generally better. Oura's breathing-regularity signal is different from respiratory rate and may be unavailable on some rings.", learnMoreURL: OuraHelpLink.spo2)
         case .vo2Max:
-            return MetricExplanation(summary: "Oura's estimated cardiorespiratory fitness.", source: "VO2 Max vo2_max", interpretation: "Higher is better; availability depends on supported ring/app data.")
+            return MetricExplanation(summary: "Oura's estimated VO2 max, an age-adjusted cardiorespiratory fitness measure.", source: "Oura VO2 Max vo2_max", interpretation: "Higher is better. Oura says VO2 max reflects how well your heart, blood vessels, and muscles deliver oxygen during activity.", learnMoreURL: OuraHelpLink.cardioCapacity)
         case .optimalBedtime:
-            return MetricExplanation(summary: "Oura's recommended bedtime window.", source: "Sleep Time optimal_bedtime", interpretation: "Use this as a guidance window rather than a strict rule.")
+            return MetricExplanation(summary: "Oura's recommended bedtime window based on sleep patterns that have worked well for you.", source: "Oura Sleep Time optimal_bedtime", interpretation: "Use it as guidance, not a strict rule. Oura says missing the window does not directly affect Sleep or Readiness Scores.", learnMoreURL: OuraHelpLink.bedtimeGuidance)
         case .sleepTimeRecommendation:
-            return MetricExplanation(summary: "Oura's sleep-time recommendation category.", source: "Sleep Time recommendation", interpretation: "Summarizes whether Oura suggests following, moving earlier, or moving later than the current bedtime pattern.")
+            return MetricExplanation(summary: "Oura's sleep-time recommendation category for whether to follow, move earlier, or move later than your current pattern.", source: "Oura Sleep Time recommendation", interpretation: "Oura's Bedtime Guidance is dynamic and uses recent sleep patterns and body signals rather than a manually edited target.", learnMoreURL: OuraHelpLink.bedtimeGuidance)
         }
     }
 

@@ -236,18 +236,25 @@ struct MetricInfoPopoverView: View {
     let metric: BarMetric
 
     var body: some View {
+        let explanation = metric.explanation
         VStack(alignment: .leading, spacing: 10) {
             Label(metric.label, systemImage: metric.symbolName)
                 .font(.headline)
 
             VStack(alignment: .leading, spacing: 8) {
-                labeledText("What it is", metric.explanation.summary)
-                labeledText("Oura source", metric.explanation.source)
-                labeledText("How to read it", metric.explanation.interpretation)
+                labeledText("What it is", explanation.summary)
+                labeledText("Source", explanation.source)
+                labeledText("How to read it", explanation.interpretation)
+                if let url = explanation.learnMoreURL {
+                    Link(destination: url) {
+                        Label("Oura Help", systemImage: "safari")
+                    }
+                    .font(.caption)
+                }
             }
         }
         .padding(14)
-        .frame(width: 340, alignment: .leading)
+        .frame(width: 390, alignment: .leading)
     }
 
     private func labeledText(_ label: String, _ text: String) -> some View {
