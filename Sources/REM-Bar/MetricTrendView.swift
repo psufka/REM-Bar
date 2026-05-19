@@ -232,58 +232,64 @@ struct MetricTrendView: View {
     }
 
     private var bestSleepWindowChart: some View {
-        Chart {
-            ForEach(displayedBestSleepBuckets) { bucket in
-                BarMark(
-                    x: .value("Window", bucket.label),
-                    y: .value("Avg Sleep Score", bucket.averageScore))
-                    .foregroundStyle(Color(nsColor: ColorThresholds.color(for: bucket.averageScore, metric: .sleepScore)))
+        VStack(alignment: .leading, spacing: 8) {
+            Text(bestSleepHoverText)
+                .font(.caption.weight(.semibold))
+                .foregroundStyle(hoveredBestSleepBucket == nil ? .secondary : .primary)
+                .monospacedDigit()
+                .frame(height: 18, alignment: .leading)
 
-                if let hoveredBestSleepBucket {
-                    RuleMark(x: .value("Selected Window", hoveredBestSleepBucket.label))
-                        .foregroundStyle(.secondary.opacity(0.35))
-                        .lineStyle(StrokeStyle(lineWidth: 1, dash: [4, 4]))
-                        .annotation(position: .top, alignment: .center, spacing: 6) {
-                            bestSleepHoverAnnotation(for: hoveredBestSleepBucket)
+            ScrollView(.horizontal) {
+                Chart {
+                    ForEach(displayedBestSleepBuckets) { bucket in
+                        BarMark(
+                            x: .value("Window", bucket.displayOrder),
+                            y: .value("Avg Sleep Score", bucket.averageScore),
+                            width: .fixed(30))
+                            .foregroundStyle(bestSleepBarColor(for: bucket))
+                    }
+                }
+                .chartYAxis {
+                    AxisMarks(position: .leading) { value in
+                        AxisGridLine()
+                        AxisTick()
+                        AxisValueLabel {
+                            if let score = value.as(Double.self) {
+                                Text("\(Int(score.rounded()))")
+                            }
                         }
-                }
-            }
-        }
-        .chartYAxis {
-            AxisMarks(position: .leading) { value in
-                AxisGridLine()
-                AxisTick()
-                AxisValueLabel {
-                    if let score = value.as(Double.self) {
-                        Text("\(Int(score.rounded()))")
                     }
                 }
-            }
-        }
-        .chartXAxis {
-            AxisMarks { value in
-                AxisGridLine()
-                AxisTick()
-                AxisValueLabel {
-                    if let label = value.as(String.self) {
-                        Text(label)
-                            .font(.caption2)
+                .chartXAxis {
+                    AxisMarks(values: displayedBestSleepBuckets.map { Double($0.displayOrder) }) { value in
+                        AxisGridLine()
+                        AxisTick()
+                        AxisValueLabel(anchor: .top) {
+                            if let order = value.as(Double.self),
+                               let bucket = bestSleepBucket(displayOrder: order)
+                            {
+                                Text(compactWindowLabel(for: bucket))
+                                    .font(.caption2)
+                                    .monospacedDigit()
+                            }
+                        }
                     }
                 }
-            }
-        }
-        .chartYScale(domain: bestSleepYDomain)
-        .chartOverlay { proxy in
-            GeometryReader { geometry in
-                Rectangle()
-                    .fill(.clear)
-                    .contentShape(Rectangle())
-                    .onContinuousHover { phase in
-                        updateHoveredBestSleepBucket(phase: phase, proxy: proxy, geometry: geometry)
+                .chartYScale(domain: bestSleepYDomain)
+                .chartXScale(domain: bestSleepXDomain)
+                .chartOverlay { proxy in
+                    GeometryReader { geometry in
+                        Rectangle()
+                            .fill(.clear)
+                            .contentShape(Rectangle())
+                            .onContinuousHover { phase in
+                                updateHoveredBestSleepBucket(phase: phase, proxy: proxy, geometry: geometry)
+                            }
                     }
+                }
+                .frame(width: bestSleepChartWidth, height: 300)
             }
         }
-        .frame(minHeight: 280)
     }
 
     private var displayedPoints: [MetricPoint] {
@@ -352,23 +358,30 @@ struct MetricTrendView: View {
         return max(0, low - 5)...min(100, high + 5)
     }
 
+    private var bestSleepXDomain: ClosedRange<Double> {
+        guard let first = displayedBestSleepBuckets.first?.displayOrder,
+              let last = displayedBestSleepBuckets.last?.displayOrder
+        else {
+            return 0...1
+        }
+        return Double(first - 30)...Double(last + 30)
+    }
+
+    private var bestSleepChartWidth: CGFloat {
+        max(640, CGFloat(displayedBestSleepBuckets.count) * 62)
+    }
+
+    private var bestSleepHoverText: String {
+        guard let bucket = hoveredBestSleepBucket else {
+            return "Hover over a bedtime window for its average Sleep Score."
+        }
+        return "\(bucket.label): avg Sleep Score \(Int(bucket.averageScore.rounded())) from \(bucket.nights) night\(bucket.nights == 1 ? "" : "s")"
+    }
+
     private func hoverAnnotation(for point: MetricPoint) -> some View {
         VStack(spacing: 1) {
             Text(shortDateString(point.date))
             Text(format(point.value))
-                .monospacedDigit()
-        }
-        .font(.caption.weight(.semibold))
-        .multilineTextAlignment(.center)
-        .padding(.horizontal, 8)
-        .padding(.vertical, 5)
-        .background(.regularMaterial, in: RoundedRectangle(cornerRadius: 10))
-    }
-
-    private func bestSleepHoverAnnotation(for bucket: BestSleepWindowBucket) -> some View {
-        VStack(spacing: 1) {
-            Text(bucket.label)
-            Text("Score \(Int(bucket.averageScore.rounded())) · \(bucket.nights) nights")
                 .monospacedDigit()
         }
         .font(.caption.weight(.semibold))
@@ -416,11 +429,43 @@ struct MetricTrendView: View {
         }
 
         let x = location.x - frame.origin.x
-        guard let label: String = proxy.value(atX: x) else {
+        guard let order: Double = proxy.value(atX: x) else {
             hoveredBestSleepBucket = nil
             return
         }
-        hoveredBestSleepBucket = displayedBestSleepBuckets.first { $0.label == label }
+        hoveredBestSleepBucket = nearestBestSleepBucket(displayOrder: order)
+    }
+
+    private func bestSleepBarColor(for bucket: BestSleepWindowBucket) -> Color {
+        let baseColor = Color(nsColor: ColorThresholds.color(for: bucket.averageScore, metric: .sleepScore))
+        guard let hoveredBestSleepBucket else { return baseColor }
+        return hoveredBestSleepBucket.id == bucket.id ? baseColor : baseColor.opacity(0.38)
+    }
+
+    private func bestSleepBucket(displayOrder: Double) -> BestSleepWindowBucket? {
+        let roundedOrder = Int(displayOrder.rounded())
+        return displayedBestSleepBuckets.first { $0.displayOrder == roundedOrder }
+    }
+
+    private func nearestBestSleepBucket(displayOrder: Double) -> BestSleepWindowBucket? {
+        displayedBestSleepBuckets.min {
+            abs(Double($0.displayOrder) - displayOrder) < abs(Double($1.displayOrder) - displayOrder)
+        }
+    }
+
+    private func compactWindowLabel(for bucket: BestSleepWindowBucket) -> String {
+        "\(compactClockMinute(bucket.startMinute))-\(compactClockMinute((bucket.startMinute + 30) % (24 * 60)))"
+    }
+
+    private func compactClockMinute(_ minuteOfDay: Int) -> String {
+        let hour24 = minuteOfDay / 60
+        let minute = minuteOfDay % 60
+        let hour12 = hour24 % 12 == 0 ? 12 : hour24 % 12
+        let suffix = hour24 < 12 ? "a" : "p"
+        if minute == 0 {
+            return "\(hour12)\(suffix)"
+        }
+        return "\(hour12):\(String(format: "%02d", minute))\(suffix)"
     }
 
     private func nearestPoint(to date: Date) -> MetricPoint? {
