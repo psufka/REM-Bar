@@ -28,9 +28,11 @@ final class MetricTrendWindowController {
     private var window: NSWindow?
 
     func show(metric: BarMetric) {
-        let content = MetricTrendView(metric: metric)
-
         if let window {
+            let content = MetricTrendView(metric: metric) { [weak window] contentSize in
+                guard let window else { return }
+                TrendWindowPlacement.resize(window, contentSize: contentSize)
+            }
             window.title = "\(metric.label) Trend"
             window.contentViewController = NSHostingController(rootView: content)
             TrendWindowPlacement.bringToFront(window)
@@ -43,6 +45,10 @@ final class MetricTrendWindowController {
             backing: .buffered,
             defer: false)
         window.title = "\(metric.label) Trend"
+        let content = MetricTrendView(metric: metric) { [weak window] contentSize in
+            guard let window else { return }
+            TrendWindowPlacement.resize(window, contentSize: contentSize)
+        }
         window.contentViewController = NSHostingController(rootView: content)
         window.isReleasedWhenClosed = false
         TrendWindowPlacement.configure(window, autosaveName: autosaveName)
@@ -54,6 +60,7 @@ final class MetricTrendWindowController {
 struct MetricTrendView: View {
     let metric: BarMetric
     let client: OuraClient
+    let resizeWindow: ((NSSize) -> Void)?
 
     @ObservedObject private var settings: SettingsStore
     @State private var selectedRange: SleepDebtTrendRange = .fourteen
@@ -65,13 +72,14 @@ struct MetricTrendView: View {
     @State private var errorMessage: String?
 
     @MainActor
-    init(metric: BarMetric, client: OuraClient = .live()) {
-        self.init(metric: metric, client: client, settings: SettingsStore.shared)
+    init(metric: BarMetric, client: OuraClient = .live(), resizeWindow: ((NSSize) -> Void)? = nil) {
+        self.init(metric: metric, client: client, settings: SettingsStore.shared, resizeWindow: resizeWindow)
     }
 
-    init(metric: BarMetric, client: OuraClient, settings: SettingsStore) {
+    init(metric: BarMetric, client: OuraClient, settings: SettingsStore, resizeWindow: ((NSSize) -> Void)? = nil) {
         self.metric = metric
         self.client = client
+        self.resizeWindow = resizeWindow
         _settings = ObservedObject(wrappedValue: settings)
     }
 
@@ -120,6 +128,12 @@ struct MetricTrendView: View {
         .frame(minWidth: 680, minHeight: 460)
         .task {
             await loadTrend()
+        }
+        .onChange(of: selectedRange) { _, _ in
+            requestBestSleepWindowResize()
+        }
+        .onChange(of: bestSleepChartBuckets.count) { _, _ in
+            requestBestSleepWindowResize()
         }
     }
 
@@ -280,7 +294,6 @@ struct MetricTrendView: View {
                 }
                 .chartXAxis {
                     AxisMarks(values: bestSleepChartBuckets.map { Double($0.displayOrder) }) { value in
-                        AxisTick()
                         AxisValueLabel(anchor: .top) {
                             if let order = value.as(Double.self),
                                let bucket = bestSleepChartBucket(displayOrder: order)
@@ -424,6 +437,15 @@ struct MetricTrendView: View {
 
     private var bestSleepChartWidth: CGFloat {
         max(820, CGFloat(bestSleepChartBuckets.count) * 118)
+    }
+
+    private var preferredBestSleepWindowSize: NSSize {
+        NSSize(width: bestSleepChartWidth + 96, height: 520)
+    }
+
+    private func requestBestSleepWindowResize() {
+        guard metric == .bestSleepWindow, !bestSleepChartBuckets.isEmpty else { return }
+        resizeWindow?(preferredBestSleepWindowSize)
     }
 
     private func hoverAnnotation(for point: MetricPoint) -> some View {

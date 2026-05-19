@@ -348,7 +348,13 @@ struct SettingsView: View {
                 settingsSection("Active cards") {
                     LazyVGrid(columns: metricCardColumns, alignment: .leading, spacing: 8) {
                         ForEach(filteredMetrics(settings.orderedAvailableEnabledMetrics)) { metric in
-                            MetricOrderRow(metric: metric, isActive: true)
+                            MetricOrderRow(
+                                metric: metric,
+                                isActive: true,
+                                action: {
+                                    settings.moveMetric(metric, before: nil, enabled: false)
+                                },
+                                actionDisabled: settings.enabledMetrics.count <= 1)
                                 .onDrag {
                                     draggedMetric = metric
                                     return NSItemProvider(object: metric.rawValue as NSString)
@@ -377,7 +383,12 @@ struct SettingsView: View {
                 settingsSection("Inactive cards") {
                     LazyVGrid(columns: metricCardColumns, alignment: .leading, spacing: 8) {
                         ForEach(filteredMetrics(settings.orderedAvailableInactiveMetrics)) { metric in
-                            MetricOrderRow(metric: metric, isActive: false)
+                            MetricOrderRow(
+                                metric: metric,
+                                isActive: false,
+                                action: {
+                                    settings.moveMetric(metric, before: nil, enabled: true)
+                                })
                                 .onDrag {
                                     draggedMetric = metric
                                     return NSItemProvider(object: metric.rawValue as NSString)
@@ -1066,6 +1077,8 @@ private struct MetricOrderRow: View {
     let metric: BarMetric
     let isActive: Bool
     var isUnavailable = false
+    var action: (() -> Void)?
+    var actionDisabled = false
     @State private var showingExplanation = false
 
     var body: some View {
@@ -1081,6 +1094,18 @@ private struct MetricOrderRow: View {
                     .foregroundStyle(.secondary)
                     .frame(width: 18)
                     .help("Drag to reorder")
+            }
+
+            if let action {
+                Button(action: action) {
+                    Image(systemName: actionSymbolName)
+                        .font(.caption.weight(.semibold))
+                        .frame(width: 18)
+                }
+                .buttonStyle(.plain)
+                .foregroundStyle(actionColor)
+                .disabled(actionDisabled)
+                .help(actionHelpText)
             }
 
             Label(metric.label, systemImage: metric.symbolName)
@@ -1125,6 +1150,19 @@ private struct MetricOrderRow: View {
 
     private var rowForeground: Color {
         isActive && !isUnavailable ? .primary : .secondary
+    }
+
+    private var actionSymbolName: String {
+        isActive ? "minus.circle.fill" : "plus.circle.fill"
+    }
+
+    private var actionColor: Color {
+        if actionDisabled { return .secondary.opacity(0.5) }
+        return isActive ? .red : .accentColor
+    }
+
+    private var actionHelpText: String {
+        isActive ? "Move to inactive cards" : "Add to active cards"
     }
 }
 

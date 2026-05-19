@@ -3,7 +3,7 @@ import AppKit
 enum TrendWindowPlacement {
     @MainActor
     static func configure(_ window: NSWindow, autosaveName: String) {
-        window.level = .modalPanel
+        window.level = .popUpMenu
         window.collectionBehavior.insert(.moveToActiveSpace)
 
         if let savedFrame = savedFrame(for: autosaveName), isFrameUsable(savedFrame) {
@@ -27,6 +27,32 @@ enum TrendWindowPlacement {
             window.makeKeyAndOrderFront(nil)
             window.orderFrontRegardless()
         }
+    }
+
+    @MainActor
+    static func resize(_ window: NSWindow, contentSize: NSSize) {
+        guard let screen = window.screen ?? NSScreen.main else {
+            window.setContentSize(contentSize)
+            bringToFront(window)
+            return
+        }
+
+        let screenVisibleFrame = screen.visibleFrame
+        let maxContentWidth = max(680, screenVisibleFrame.width - 48)
+        let maxContentHeight = max(460, screenVisibleFrame.height - 48)
+        let clampedContentSize = NSSize(
+            width: min(contentSize.width, maxContentWidth),
+            height: min(contentSize.height, maxContentHeight))
+        let targetFrameSize = window.frameRect(forContentRect: NSRect(origin: .zero, size: clampedContentSize)).size
+        let currentFrame = window.frame
+        let centeredFrame = NSRect(
+            x: currentFrame.midX - targetFrameSize.width / 2,
+            y: currentFrame.midY - targetFrameSize.height / 2,
+            width: targetFrameSize.width,
+            height: targetFrameSize.height)
+
+        window.setFrame(visibleFrame(for: centeredFrame), display: true, animate: true)
+        bringToFront(window)
     }
 
     private static func center(_ window: NSWindow) {
