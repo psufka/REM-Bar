@@ -9,7 +9,9 @@
 - Added a Naps display setting, defaulting to Oura-like nap inclusion for sleep totals, stages, efficiency, and sleep debt.
 - Bumped the local development version to 0.1.6.
 - Added REM %, Deep %, and Light % cards derived from Oura sleep-stage durations.
-- Added Recovery Cost and Best Sleep Window derived cards.
+- Added a Best Sleep Window derived card with its average Sleep Score and a bucketed trend window.
+- Added a local Oura response cache so repeated refreshes reuse cached history and cached cards can render offline.
+- Added 180-day and 365-day trend lookback ranges.
 
 ## 0.1.5 - 2026-05-16
 

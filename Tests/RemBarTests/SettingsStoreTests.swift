@@ -112,7 +112,6 @@ final class SettingsStoreTests: XCTestCase {
         XCTAssertEqual(BarMetric.sleepDebt.formattedValue(73), "1:13")
         XCTAssertEqual(BarMetric.sleepLatency.formattedValue(9), "0:09")
         XCTAssertEqual(BarMetric.remPercentage.formattedValue(23), "23%")
-        XCTAssertEqual(BarMetric.recoveryCost.formattedValue(7), "7pts")
         XCTAssertEqual(BarMetric.totalSleep.formattedDelta(-32), "-0:32")
     }
 
@@ -238,54 +237,6 @@ final class SettingsStoreTests: XCTestCase {
         XCTAssertEqual(mainSleepOnly.series(for: .lightSleepPercentage).currentValue ?? 0, 65, accuracy: 0.1)
     }
 
-    func testRecoveryCostUsesReadinessDeficitAfterShortSleep() throws {
-        let sleep = try JSONDecoder().decode(OuraCollection<Sleep>.self, from: Data("""
-        {
-          "data": [
-            {
-              "id": "sleep-detail-2026-05-10",
-              "day": "2026-05-10",
-              "type": "long_sleep",
-              "total_sleep_duration": 28800
-            },
-            {
-              "id": "sleep-detail-2026-05-11",
-              "day": "2026-05-11",
-              "type": "long_sleep",
-              "total_sleep_duration": 27300
-            },
-            {
-              "id": "sleep-detail-2026-05-12",
-              "day": "2026-05-12",
-              "type": "long_sleep",
-              "total_sleep_duration": 23400
-            }
-          ]
-        }
-        """.utf8)).data
-        let readiness = try JSONDecoder().decode(OuraCollection<DailyReadiness>.self, from: Data("""
-        {
-          "data": [
-            { "id": "readiness-2026-05-10", "day": "2026-05-10", "score": 86 },
-            { "id": "readiness-2026-05-11", "day": "2026-05-11", "score": 84 },
-            { "id": "readiness-2026-05-12", "day": "2026-05-12", "score": 74 }
-          ]
-        }
-        """.utf8)).data
-
-        let snapshot = DashboardSnapshotBuilder.make(
-            dailySleep: [],
-            sleep: sleep,
-            readiness: readiness,
-            activity: [],
-            sleepTargetMinutes: 480,
-            enabledMetrics: [.recoveryCost])
-
-        let series = snapshot.series(for: .recoveryCost)
-        XCTAssertEqual(series.points.map(\.id), ["2026-05-12"])
-        XCTAssertEqual(series.currentValue ?? 0, 11, accuracy: 0.1)
-    }
-
     func testBestSleepWindowUsesBestRecentBedtimeBucket() throws {
         let sleep = try JSONDecoder().decode(OuraCollection<Sleep>.self, from: Data("""
         {
@@ -311,29 +262,18 @@ final class SettingsStoreTests: XCTestCase {
           ]
         }
         """.utf8)).data
-        let readiness = try JSONDecoder().decode(OuraCollection<DailyReadiness>.self, from: Data("""
-        {
-          "data": [
-            { "id": "readiness-1", "day": "2026-05-10", "score": 88 },
-            { "id": "readiness-2", "day": "2026-05-11", "score": 87 },
-            { "id": "readiness-3", "day": "2026-05-12", "score": 89 },
-            { "id": "readiness-4", "day": "2026-05-13", "score": 74 },
-            { "id": "readiness-5", "day": "2026-05-14", "score": 76 },
-            { "id": "readiness-6", "day": "2026-05-15", "score": 75 }
-          ]
-        }
-        """.utf8)).data
-
         let snapshot = DashboardSnapshotBuilder.make(
             dailySleep: dailySleep,
             sleep: sleep,
-            readiness: readiness,
+            readiness: [],
             activity: [],
             enabledMetrics: [.bestSleepWindow])
 
-        let window = try XCTUnwrap(snapshot.series(for: .bestSleepWindow).categoryValue)
+        let series = snapshot.series(for: .bestSleepWindow)
+        let window = try XCTUnwrap(series.categoryValue)
         XCTAssertTrue(window.contains("10:00"))
         XCTAssertTrue(window.contains("10:30"))
+        XCTAssertEqual(series.baselineValue ?? 0, 90, accuracy: 0.1)
     }
 
     func testSnapshotCarriesLatestSleepSyncedSummary() throws {

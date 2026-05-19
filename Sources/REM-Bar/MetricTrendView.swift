@@ -52,6 +52,9 @@ struct MetricTrendView: View {
     @State private var selectedRange: SleepDebtTrendRange = .fourteen
     @State private var series: MetricSeries?
     @State private var hoveredPoint: MetricPoint?
+    @State private var bestSleepRecords: [Sleep] = []
+    @State private var bestSleepDailyScores: [DailySleep] = []
+    @State private var hoveredBestSleepBucket: BestSleepWindowBucket?
     @State private var isLoading = false
     @State private var errorMessage: String?
 
@@ -85,6 +88,17 @@ struct MetricTrendView: View {
                     systemImage: metric.symbolName,
                     description: Text(availabilityMessage))
                     .frame(maxWidth: .infinity, maxHeight: .infinity)
+            } else if metric == .bestSleepWindow {
+                if displayedBestSleepBuckets.isEmpty {
+                    ContentUnavailableView(
+                        "No sleep window data",
+                        systemImage: metric.symbolName,
+                        description: Text("Oura has not returned enough sleep scores and bedtime starts for this range."))
+                        .frame(maxWidth: .infinity, maxHeight: .infinity)
+                } else {
+                    bestSleepStatsGrid
+                    bestSleepWindowChart
+                }
             } else if displayedPoints.isEmpty {
                 ContentUnavailableView(
                     "No trend data",
@@ -123,7 +137,7 @@ struct MetricTrendView: View {
                     }
                 }
                 .pickerStyle(.segmented)
-                .frame(width: 260)
+                .frame(width: 360)
             }
         }
     }
@@ -150,6 +164,14 @@ struct MetricTrendView: View {
         .padding(12)
         .frame(maxWidth: .infinity, alignment: .leading)
         .background(Color(nsColor: .controlBackgroundColor), in: RoundedRectangle(cornerRadius: 8))
+    }
+
+    private var bestSleepStatsGrid: some View {
+        HStack(spacing: 10) {
+            trendStat("Best window", bestSleepBestBucket?.label ?? "?")
+            trendStat("Avg Sleep Score", bestSleepBestBucket.map { "\(Int($0.averageScore.rounded()))" } ?? "?")
+            trendStat("Nights", bestSleepBestBucket.map { "\($0.nights)" } ?? "0")
+        }
     }
 
     private var chart: some View {
@@ -188,7 +210,7 @@ struct MetricTrendView: View {
             }
         }
         .chartXAxis {
-            AxisMarks(values: .automatic(desiredCount: selectedRange == .ninety ? 6 : 5)) { value in
+            AxisMarks(values: .automatic(desiredCount: selectedRange.rawValue >= 90 ? 6 : 5)) { value in
                 AxisGridLine()
                 AxisTick()
                 AxisValueLabel(format: .dateTime.month(.abbreviated).day())
@@ -209,6 +231,61 @@ struct MetricTrendView: View {
         .frame(minHeight: 280)
     }
 
+    private var bestSleepWindowChart: some View {
+        Chart {
+            ForEach(displayedBestSleepBuckets) { bucket in
+                BarMark(
+                    x: .value("Window", bucket.label),
+                    y: .value("Avg Sleep Score", bucket.averageScore))
+                    .foregroundStyle(Color(nsColor: ColorThresholds.color(for: bucket.averageScore, metric: .sleepScore)))
+
+                if let hoveredBestSleepBucket {
+                    RuleMark(x: .value("Selected Window", hoveredBestSleepBucket.label))
+                        .foregroundStyle(.secondary.opacity(0.35))
+                        .lineStyle(StrokeStyle(lineWidth: 1, dash: [4, 4]))
+                        .annotation(position: .top, alignment: .center, spacing: 6) {
+                            bestSleepHoverAnnotation(for: hoveredBestSleepBucket)
+                        }
+                }
+            }
+        }
+        .chartYAxis {
+            AxisMarks(position: .leading) { value in
+                AxisGridLine()
+                AxisTick()
+                AxisValueLabel {
+                    if let score = value.as(Double.self) {
+                        Text("\(Int(score.rounded()))")
+                    }
+                }
+            }
+        }
+        .chartXAxis {
+            AxisMarks { value in
+                AxisGridLine()
+                AxisTick()
+                AxisValueLabel {
+                    if let label = value.as(String.self) {
+                        Text(label)
+                            .font(.caption2)
+                    }
+                }
+            }
+        }
+        .chartYScale(domain: bestSleepYDomain)
+        .chartOverlay { proxy in
+            GeometryReader { geometry in
+                Rectangle()
+                    .fill(.clear)
+                    .contentShape(Rectangle())
+                    .onContinuousHover { phase in
+                        updateHoveredBestSleepBucket(phase: phase, proxy: proxy, geometry: geometry)
+                    }
+            }
+        }
+        .frame(minHeight: 280)
+    }
+
     private var displayedPoints: [MetricPoint] {
         guard let series else { return [] }
         let sleepDebtPoints = series.points.map {
@@ -216,6 +293,22 @@ struct MetricTrendView: View {
         }
         let dates = Set(SleepDebtTrendCalculator.points(sleepDebtPoints, in: selectedRange).map(\.id))
         return series.points.filter { dates.contains($0.id) }.sorted { $0.date < $1.date }
+    }
+
+    private var displayedBestSleepBuckets: [BestSleepWindowBucket] {
+        BestSleepWindowCalculator.buckets(
+            sleep: bestSleepRecords,
+            dailySleep: bestSleepDailyScores,
+            range: selectedRange)
+    }
+
+    private var bestSleepBestBucket: BestSleepWindowBucket? {
+        displayedBestSleepBuckets.max {
+            if $0.averageScore == $1.averageScore {
+                return $0.nights < $1.nights
+            }
+            return $0.averageScore < $1.averageScore
+        }
     }
 
     private var stats: MetricTrendStats {
@@ -251,10 +344,31 @@ struct MetricTrendView: View {
         return first...rightEdge
     }
 
+    private var bestSleepYDomain: ClosedRange<Double> {
+        let values = displayedBestSleepBuckets.map(\.averageScore)
+        guard let low = values.min(), let high = values.max() else {
+            return 0...100
+        }
+        return max(0, low - 5)...min(100, high + 5)
+    }
+
     private func hoverAnnotation(for point: MetricPoint) -> some View {
         VStack(spacing: 1) {
             Text(shortDateString(point.date))
             Text(format(point.value))
+                .monospacedDigit()
+        }
+        .font(.caption.weight(.semibold))
+        .multilineTextAlignment(.center)
+        .padding(.horizontal, 8)
+        .padding(.vertical, 5)
+        .background(.regularMaterial, in: RoundedRectangle(cornerRadius: 10))
+    }
+
+    private func bestSleepHoverAnnotation(for bucket: BestSleepWindowBucket) -> some View {
+        VStack(spacing: 1) {
+            Text(bucket.label)
+            Text("Score \(Int(bucket.averageScore.rounded())) · \(bucket.nights) nights")
                 .monospacedDigit()
         }
         .font(.caption.weight(.semibold))
@@ -287,6 +401,28 @@ struct MetricTrendView: View {
         hoveredPoint = nearestPoint(to: date)
     }
 
+    private func updateHoveredBestSleepBucket(phase: HoverPhase, proxy: ChartProxy, geometry: GeometryProxy) {
+        guard case let .active(location) = phase,
+              let plotFrame = proxy.plotFrame
+        else {
+            hoveredBestSleepBucket = nil
+            return
+        }
+
+        let frame = geometry[plotFrame]
+        guard frame.contains(location) else {
+            hoveredBestSleepBucket = nil
+            return
+        }
+
+        let x = location.x - frame.origin.x
+        guard let label: String = proxy.value(atX: x) else {
+            hoveredBestSleepBucket = nil
+            return
+        }
+        hoveredBestSleepBucket = displayedBestSleepBuckets.first { $0.label == label }
+    }
+
     private func nearestPoint(to date: Date) -> MetricPoint? {
         displayedPoints.min { first, second in
             abs(first.date.timeIntervalSince(date)) < abs(second.date.timeIntervalSince(date))
@@ -301,11 +437,15 @@ struct MetricTrendView: View {
         let endDate = localDateString(Date())
         let startDate = localDateString(Calendar.current.date(
             byAdding: .day,
-            value: -(SleepDebtTrendRange.ninety.rawValue - 1),
+            value: -(SleepDebtTrendRange.maximumDayCount - 1),
             to: Date()) ?? Date())
 
         do {
-            series = try await fetchSeries(startDate: startDate, endDate: endDate)
+            if metric == .bestSleepWindow {
+                try await loadBestSleepWindowTrend(startDate: startDate, endDate: endDate)
+            } else {
+                series = try await fetchSeries(startDate: startDate, endDate: endDate)
+            }
             selectedRange = .fourteen
         } catch OuraError.badStatus(403, _), OuraError.badStatus(404, _) {
             series = MetricSeries(metric: metric, points: [], availabilityMessage: "Not available on your ring")
@@ -314,12 +454,26 @@ struct MetricTrendView: View {
         }
     }
 
+    private func loadBestSleepWindowTrend(startDate: String, endDate: String) async throws {
+        async let sleep = OuraDataCache.shared.values(endpoint: "sleep", startDate: startDate, endDate: endDate) { startDate, endDate in
+            try await client.sleep(startDate: startDate, endDate: endDate).data
+        }
+        async let dailySleep = OuraDataCache.shared.values(endpoint: "daily_sleep", startDate: startDate, endDate: endDate) { startDate, endDate in
+            try await client.dailySleep(startDate: startDate, endDate: endDate).data
+        }
+        bestSleepRecords = try await sleep
+        bestSleepDailyScores = try await dailySleep
+        series = MetricSeries(metric: metric, points: [])
+    }
+
     private func fetchSeries(startDate: String, endDate: String) async throws -> MetricSeries {
         let enabledMetrics: Set<BarMetric> = [metric]
         let snapshot: DashboardSnapshot
         switch metric {
         case .sleepScore:
-            let dailySleep = try await client.dailySleep(startDate: startDate, endDate: endDate).data
+            let dailySleep = try await OuraDataCache.shared.values(endpoint: "daily_sleep", startDate: startDate, endDate: endDate) { startDate, endDate in
+                try await client.dailySleep(startDate: startDate, endDate: endDate).data
+            }
             snapshot = DashboardSnapshotBuilder.make(
                 dailySleep: dailySleep,
                 sleep: [],
@@ -327,7 +481,9 @@ struct MetricTrendView: View {
                 activity: [],
                 enabledMetrics: enabledMetrics)
         case .rem, .remPercentage, .deepSleep, .deepSleepPercentage, .totalSleep, .lightSleep, .lightSleepPercentage, .awakeTime, .timeInBed, .sleepLatency, .averageBreath, .hrv, .rhr, .sleepEfficiency:
-            let sleep = try await client.sleep(startDate: startDate, endDate: endDate).data
+            let sleep = try await OuraDataCache.shared.values(endpoint: "sleep", startDate: startDate, endDate: endDate) { startDate, endDate in
+                try await client.sleep(startDate: startDate, endDate: endDate).data
+            }
             snapshot = DashboardSnapshotBuilder.make(
                 dailySleep: [],
                 sleep: sleep,
@@ -335,19 +491,10 @@ struct MetricTrendView: View {
                 activity: [],
                 sleepAggregationMode: settings.sleepAggregationMode,
                 enabledMetrics: enabledMetrics)
-        case .recoveryCost:
-            async let sleep = client.sleep(startDate: startDate, endDate: endDate).data
-            async let readiness = client.dailyReadiness(startDate: startDate, endDate: endDate).data
-            snapshot = DashboardSnapshotBuilder.make(
-                dailySleep: [],
-                sleep: try await sleep,
-                readiness: try await readiness,
-                activity: [],
-                sleepTargetMinutes: settings.sleepTarget.minutes,
-                sleepAggregationMode: settings.sleepAggregationMode,
-                enabledMetrics: enabledMetrics)
         case .readiness, .hrvBalance, .sleepBalance, .sleepRegularity, .bodyTemperatureDeviation:
-            let readiness = try await client.dailyReadiness(startDate: startDate, endDate: endDate).data
+            let readiness = try await OuraDataCache.shared.values(endpoint: "daily_readiness", startDate: startDate, endDate: endDate) { startDate, endDate in
+                try await client.dailyReadiness(startDate: startDate, endDate: endDate).data
+            }
             snapshot = DashboardSnapshotBuilder.make(
                 dailySleep: [],
                 sleep: [],
@@ -355,7 +502,9 @@ struct MetricTrendView: View {
                 activity: [],
                 enabledMetrics: enabledMetrics)
         case .activity:
-            let activity = try await client.dailyActivity(startDate: startDate, endDate: endDate).data
+            let activity = try await OuraDataCache.shared.values(endpoint: "daily_activity", startDate: startDate, endDate: endDate) { startDate, endDate in
+                try await client.dailyActivity(startDate: startDate, endDate: endDate).data
+            }
             snapshot = DashboardSnapshotBuilder.make(
                 dailySleep: [],
                 sleep: [],
@@ -363,7 +512,9 @@ struct MetricTrendView: View {
                 activity: activity,
                 enabledMetrics: enabledMetrics)
         case .cardiovascularAge:
-            async let cardiovascularAge = client.dailyCardiovascularAge(startDate: startDate, endDate: endDate).data
+            async let cardiovascularAge = OuraDataCache.shared.values(endpoint: "daily_cardiovascular_age", startDate: startDate, endDate: endDate) { startDate, endDate in
+                try await client.dailyCardiovascularAge(startDate: startDate, endDate: endDate).data
+            }
             async let personalInfo = try? client.personalInfo()
             snapshot = DashboardSnapshotBuilder.make(
                 dailySleep: [],
@@ -374,7 +525,9 @@ struct MetricTrendView: View {
                 personalInfo: await personalInfo,
                 enabledMetrics: enabledMetrics)
         case .averageSpO2, .breathingDisturbance:
-            let dailySpO2 = try await client.dailySpO2(startDate: startDate, endDate: endDate).data
+            let dailySpO2 = try await OuraDataCache.shared.values(endpoint: "daily_spo2", startDate: startDate, endDate: endDate) { startDate, endDate in
+                try await client.dailySpO2(startDate: startDate, endDate: endDate).data
+            }
             snapshot = DashboardSnapshotBuilder.make(
                 dailySleep: [],
                 sleep: [],
@@ -383,7 +536,9 @@ struct MetricTrendView: View {
                 dailySpO2: dailySpO2,
                 enabledMetrics: enabledMetrics)
         case .vo2Max:
-            let vo2Max = try await client.vo2Max(startDate: startDate, endDate: endDate).data
+            let vo2Max = try await OuraDataCache.shared.values(endpoint: "vO2_max", startDate: startDate, endDate: endDate) { startDate, endDate in
+                try await client.vo2Max(startDate: startDate, endDate: endDate).data
+            }
             snapshot = DashboardSnapshotBuilder.make(
                 dailySleep: [],
                 sleep: [],

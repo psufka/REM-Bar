@@ -49,7 +49,7 @@ struct MetricCardView: View {
     private var deltaColor: Color {
         guard let delta = series.delta else { return .secondary }
         if delta == 0 { return .secondary }
-        if series.metric == .rhr || series.metric == .sleepDebt || series.metric == .recoveryCost {
+        if series.metric == .rhr || series.metric == .sleepDebt {
             return delta < 0 ? .green : .red
         }
         return delta > 0 ? .green : .red
@@ -178,7 +178,7 @@ struct CategoricalMetricCardView: View {
                 .lineLimit(1)
                 .minimumScaleFactor(0.75)
 
-            Text(series.availabilityMessage ?? series.metric.categoricalDescription)
+            Text(detailText)
                 .font(.caption2)
                 .foregroundStyle(.secondary)
                 .lineLimit(2)
@@ -191,7 +191,7 @@ struct CategoricalMetricCardView: View {
         .frame(height: PopoverLayoutMetrics.cardHeight)
         .background(Color(nsColor: .controlBackgroundColor), in: RoundedRectangle(cornerRadius: 8))
         .overlay(alignment: .bottomTrailing) {
-            infoButton
+            bottomControls
                 .padding(8)
         }
     }
@@ -221,6 +221,34 @@ struct CategoricalMetricCardView: View {
         .popover(isPresented: $showingExplanation, arrowEdge: .bottom) {
             MetricInfoPopoverView(metric: series.metric)
         }
+    }
+
+    private var bottomControls: some View {
+        HStack(spacing: 8) {
+            trendButton
+            infoButton
+        }
+    }
+
+    @ViewBuilder
+    private var trendButton: some View {
+        if series.metric.supportsTrendWindow, series.availabilityMessage == nil {
+            Button {
+                MetricTrendWindowController.shared.show(metric: series.metric)
+            } label: {
+                Text("📊")
+                    .font(.callout)
+            }
+            .buttonStyle(.plain)
+            .help("Open trend")
+        }
+    }
+
+    private var detailText: String {
+        if series.metric == .bestSleepWindow, let score = series.baselineValue {
+            return "Avg Sleep Score \(Int(score.rounded()))"
+        }
+        return series.availabilityMessage ?? series.metric.categoricalDescription
     }
 
     private var iconColor: Color {

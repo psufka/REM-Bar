@@ -605,8 +605,6 @@ struct SettingsView: View {
             return 70...100
         case .remPercentage, .deepSleepPercentage:
             return 0...60
-        case .recoveryCost:
-            return 0...30
         case .vo2Max:
             return 10...80
         case .rem, .deepSleep, .totalSleep, .sleepDebt, .lightSleep, .awakeTime, .sleepLatency:
@@ -637,7 +635,7 @@ struct SettingsView: View {
         switch metric {
         case .bodyTemperatureDeviation, .averageSpO2:
             return String(format: "%.1f", value)
-        case .remPercentage, .deepSleepPercentage, .recoveryCost:
+        case .remPercentage, .deepSleepPercentage:
             return "\(Int(value.rounded()))"
         case .rem, .deepSleep, .totalSleep, .sleepDebt, .lightSleep, .awakeTime, .sleepLatency:
             return BarMetric.totalSleep.formattedValue(value)

@@ -106,7 +106,7 @@ enum MetricPreset: String, CaseIterable, Identifiable {
         case .sleepFocus:
             return [.sleepScore, .totalSleep, .sleepDebt, .deepSleep, .deepSleepPercentage, .rem, .remPercentage, .lightSleepPercentage, .sleepEfficiency, .sleepLatency, .averageBreath, .bestSleepWindow]
         case .recovery:
-            return [.readiness, .hrv, .rhr, .hrvBalance, .sleepBalance, .bodyTemperatureDeviation, .recoveryCost, .resilience, .dailyStress]
+            return [.readiness, .hrv, .rhr, .hrvBalance, .sleepBalance, .bodyTemperatureDeviation, .resilience, .dailyStress]
         case .cardio:
             return [.cardiovascularAge, .vo2Max, .rhr, .hrv, .averageSpO2, .breathingDisturbance, .activity]
         case .minimal:
@@ -154,7 +154,7 @@ extension BarMetric {
         switch self {
         case .sleepScore, .rem, .remPercentage, .deepSleep, .deepSleepPercentage, .totalSleep, .sleepDebt, .lightSleep, .lightSleepPercentage, .awakeTime, .timeInBed, .sleepLatency, .averageBreath, .sleepEfficiency:
             return .sleep
-        case .readiness, .hrv, .rhr, .hrvBalance, .sleepBalance, .sleepRegularity, .bodyTemperatureDeviation, .recoveryCost, .dailyStress, .resilience:
+        case .readiness, .hrv, .rhr, .hrvBalance, .sleepBalance, .sleepRegularity, .bodyTemperatureDeviation, .dailyStress, .resilience:
             return .recovery
         case .activity:
             return .activity
@@ -211,8 +211,6 @@ extension BarMetric {
             return MetricExplanation(summary: "Overnight skin temperature deviation from your personal baseline.", source: "Oura Daily Readiness temperature_deviation", interpretation: "Closer to zero is usually better. Oura measures during sleep to reduce daytime noise; larger deviations can occur with illness or cycle changes.", learnMoreURL: OuraHelpLink.bodyTemperature)
         case .sleepEfficiency:
             return MetricExplanation(summary: "Percentage of time in bed that was spent asleep.", source: "Oura Sleep detail efficiency", interpretation: "Higher is better. Oura includes naps for efficiency; REM-Bar mirrors that when naps are enabled.", learnMoreURL: OuraHelpLink.sleepContributors)
-        case .recoveryCost:
-            return MetricExplanation(summary: "Estimated readiness-point deficit after nights that were at least 45 minutes short of your selected sleep target.", source: "REM-Bar calculation from Oura Sleep detail and Daily Readiness", interpretation: "Lower is better. It compares short-sleep days with your recent non-short-sleep readiness baseline; this is an association, not causation.", learnMoreURL: OuraHelpLink.readinessScore)
         case .dailyStress:
             return MetricExplanation(summary: "Oura's daily physiological stress summary, based on daytime stress zones such as Stressed, Engaged, Relaxed, and Restored.", source: "Oura Daily Stress day_summary", interpretation: "This reflects biometrics, not emotions. Oura calculates stress from heart rate, HRV, motion, and average body temperature.", learnMoreURL: OuraHelpLink.daytimeStress)
         case .resilience:
@@ -230,7 +228,7 @@ extension BarMetric {
         case .sleepTimeRecommendation:
             return MetricExplanation(summary: "Oura's sleep-time recommendation category for whether to follow, move earlier, or move later than your current pattern.", source: "Oura Sleep Time recommendation", interpretation: "Oura's Bedtime Guidance is dynamic and uses recent sleep patterns and body signals rather than a manually edited target.", learnMoreURL: OuraHelpLink.bedtimeGuidance)
         case .bestSleepWindow:
-            return MetricExplanation(summary: "The 30-minute bedtime bucket associated with your best recent combined Sleep Score and Readiness outcomes.", source: "REM-Bar calculation from Oura Sleep, Daily Sleep, and Daily Readiness", interpretation: "Use it as a transparent retrospective pattern. It requires at least three main sleeps in a bucket and does not include naps.", learnMoreURL: OuraHelpLink.bedtimeGuidance)
+            return MetricExplanation(summary: "The 30-minute bedtime bucket associated with your best recent average Oura Sleep Score.", source: "REM-Bar calculation from Oura Sleep bedtime_start and Daily Sleep score", interpretation: "Use it as a transparent retrospective pattern. It requires at least three main sleeps in a bucket and does not include naps.", learnMoreURL: OuraHelpLink.bedtimeGuidance)
         }
     }
 
@@ -262,8 +260,6 @@ extension BarMetric {
             return MetricThresholdOverride(direction: .closerToZeroIsBetter, green: 0.2, orange: 0.5)
         case .sleepEfficiency:
             return MetricThresholdOverride(direction: .higherIsBetter, green: 85, orange: 75)
-        case .recoveryCost:
-            return MetricThresholdOverride(direction: .lowerIsBetter, green: 3, orange: 8)
         case .averageSpO2:
             return MetricThresholdOverride(direction: .higherIsBetter, green: 95, orange: 90)
         case .breathingDisturbance:
@@ -281,9 +277,9 @@ extension BarMetric {
 
     var supportsTrendWindow: Bool {
         switch self {
-        case .dailyStress, .resilience, .optimalBedtime, .sleepTimeRecommendation, .bestSleepWindow:
+        case .dailyStress, .resilience, .optimalBedtime, .sleepTimeRecommendation:
             return false
-        case .sleepScore, .rem, .remPercentage, .deepSleep, .deepSleepPercentage, .totalSleep, .sleepDebt, .lightSleep, .lightSleepPercentage, .awakeTime, .timeInBed, .sleepLatency, .averageBreath, .hrv, .rhr, .readiness, .activity, .hrvBalance, .sleepBalance, .sleepRegularity, .bodyTemperatureDeviation, .sleepEfficiency, .recoveryCost, .cardiovascularAge, .averageSpO2, .breathingDisturbance, .vo2Max:
+        case .sleepScore, .rem, .remPercentage, .deepSleep, .deepSleepPercentage, .totalSleep, .sleepDebt, .lightSleep, .lightSleepPercentage, .awakeTime, .timeInBed, .sleepLatency, .averageBreath, .hrv, .rhr, .readiness, .activity, .hrvBalance, .sleepBalance, .sleepRegularity, .bodyTemperatureDeviation, .sleepEfficiency, .cardiovascularAge, .averageSpO2, .breathingDisturbance, .vo2Max, .bestSleepWindow:
             return true
         }
     }

@@ -20,11 +20,17 @@ enum SleepDebtTrendRange: Int, CaseIterable, Identifiable {
     case fourteen = 14
     case thirty = 30
     case ninety = 90
+    case oneEighty = 180
+    case year = 365
 
     var id: Int { rawValue }
 
     var label: String {
         "\(rawValue)d"
+    }
+
+    static var maximumDayCount: Int {
+        allCases.map(\.rawValue).max() ?? 90
     }
 }
 
@@ -214,7 +220,7 @@ struct SleepDebtTrendView: View {
                         }
                     }
                     .pickerStyle(.segmented)
-                    .frame(width: 260)
+                    .frame(width: 360)
                 }
 
                 HStack(spacing: 8) {
@@ -288,7 +294,7 @@ struct SleepDebtTrendView: View {
             }
         }
         .chartXAxis {
-            AxisMarks(values: .automatic(desiredCount: selectedRange == .ninety ? 6 : 5)) { value in
+            AxisMarks(values: .automatic(desiredCount: selectedRange.rawValue >= 90 ? 6 : 5)) { value in
                 AxisGridLine()
                 AxisTick()
                 AxisValueLabel(format: .dateTime.month(.abbreviated).day())
@@ -388,10 +394,12 @@ struct SleepDebtTrendView: View {
         defer { isLoading = false }
 
         let endDate = localDateString(Date())
-        let fetchDays = SleepDebtTrendRange.ninety.rawValue + SleepDebtTrendCalculator.lookbackDays - 1
+        let fetchDays = SleepDebtTrendRange.maximumDayCount + SleepDebtTrendCalculator.lookbackDays - 1
         let startDate = localDateString(Calendar.current.date(byAdding: .day, value: -(fetchDays - 1), to: Date()) ?? Date())
         do {
-            let sleep = try await client.sleep(startDate: startDate, endDate: endDate).data
+            let sleep = try await OuraDataCache.shared.values(endpoint: "sleep", startDate: startDate, endDate: endDate) { startDate, endDate in
+                try await client.sleep(startDate: startDate, endDate: endDate).data
+            }
             sleepRecords = sleep
             selectedRange = .fourteen
         } catch {

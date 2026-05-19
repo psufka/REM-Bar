@@ -11,6 +11,7 @@ final class RefreshCoordinator: ObservableObject {
 
     private let settings: SettingsStore
     private let client: OuraClient
+    private let cache: OuraDataCache
     private let logger = Logger(subsystem: "com.psufka.REM-Bar", category: "Refresh")
     private lazy var displayLinkDriver = DisplayLinkDriver { [weak self] in
         self?.handleDisplayTick()
@@ -19,9 +20,10 @@ final class RefreshCoordinator: ObservableObject {
     private var cachedPersonalInfo: PersonalInfo?
     private var nextRefreshAfter = Date.distantPast
 
-    init(settings: SettingsStore, client: OuraClient = .live()) {
+    init(settings: SettingsStore, client: OuraClient = .live(), cache: OuraDataCache = .shared) {
         self.settings = settings
         self.client = client
+        self.cache = cache
     }
 
     func start() {
@@ -70,34 +72,34 @@ final class RefreshCoordinator: ObservableObject {
                 to: Date()) ?? Date())
             let personalInfo = await self.personalInfoForRefresh()
             do {
-                async let dailySleep = fetchIfNeeded("daily_sleep", enabledMetrics: enabledMetrics, requiredMetrics: [.sleepScore, .bestSleepWindow]) {
+                async let dailySleep = fetchIfNeeded("daily_sleep", startDate: startDate, endDate: endDate, enabledMetrics: enabledMetrics, requiredMetrics: [.sleepScore, .bestSleepWindow]) { startDate, endDate in
                     (try await self.client.dailySleep(startDate: startDate, endDate: endDate)).data
                 }
-                async let sleep = fetchIfNeeded("sleep", enabledMetrics: enabledMetrics, requiredMetrics: [.rem, .remPercentage, .deepSleep, .deepSleepPercentage, .totalSleep, .sleepDebt, .lightSleep, .lightSleepPercentage, .awakeTime, .timeInBed, .sleepLatency, .averageBreath, .hrv, .rhr, .sleepEfficiency, .recoveryCost, .bestSleepWindow]) {
+                async let sleep = fetchIfNeeded("sleep", startDate: startDate, endDate: endDate, enabledMetrics: enabledMetrics, requiredMetrics: [.rem, .remPercentage, .deepSleep, .deepSleepPercentage, .totalSleep, .sleepDebt, .lightSleep, .lightSleepPercentage, .awakeTime, .timeInBed, .sleepLatency, .averageBreath, .hrv, .rhr, .sleepEfficiency, .bestSleepWindow]) { startDate, endDate in
                     (try await self.client.sleep(startDate: startDate, endDate: endDate)).data
                 }
-                async let readiness = fetchIfNeeded("daily_readiness", enabledMetrics: enabledMetrics, requiredMetrics: [.readiness, .hrvBalance, .sleepBalance, .sleepRegularity, .bodyTemperatureDeviation, .recoveryCost, .bestSleepWindow]) {
+                async let readiness = fetchIfNeeded("daily_readiness", startDate: startDate, endDate: endDate, enabledMetrics: enabledMetrics, requiredMetrics: [.readiness, .hrvBalance, .sleepBalance, .sleepRegularity, .bodyTemperatureDeviation]) { startDate, endDate in
                     (try await self.client.dailyReadiness(startDate: startDate, endDate: endDate)).data
                 }
-                async let activity = fetchIfNeeded("daily_activity", enabledMetrics: enabledMetrics, requiredMetrics: [.activity]) {
+                async let activity = fetchIfNeeded("daily_activity", startDate: startDate, endDate: endDate, enabledMetrics: enabledMetrics, requiredMetrics: [.activity]) { startDate, endDate in
                     (try await self.client.dailyActivity(startDate: startDate, endDate: endDate)).data
                 }
-                async let dailyStress = fetchIfNeeded("daily_stress", enabledMetrics: enabledMetrics, requiredMetrics: [.dailyStress]) {
+                async let dailyStress = fetchIfNeeded("daily_stress", startDate: startDate, endDate: endDate, enabledMetrics: enabledMetrics, requiredMetrics: [.dailyStress]) { startDate, endDate in
                     (try await self.client.dailyStress(startDate: startDate, endDate: endDate)).data
                 }
-                async let dailyResilience = fetchIfNeeded("daily_resilience", enabledMetrics: enabledMetrics, requiredMetrics: [.resilience]) {
+                async let dailyResilience = fetchIfNeeded("daily_resilience", startDate: startDate, endDate: endDate, enabledMetrics: enabledMetrics, requiredMetrics: [.resilience]) { startDate, endDate in
                     (try await self.client.dailyResilience(startDate: startDate, endDate: endDate)).data
                 }
-                async let dailyCardiovascularAge = fetchIfNeeded("daily_cardiovascular_age", enabledMetrics: enabledMetrics, requiredMetrics: [.cardiovascularAge]) {
+                async let dailyCardiovascularAge = fetchIfNeeded("daily_cardiovascular_age", startDate: startDate, endDate: endDate, enabledMetrics: enabledMetrics, requiredMetrics: [.cardiovascularAge]) { startDate, endDate in
                     (try await self.client.dailyCardiovascularAge(startDate: startDate, endDate: endDate)).data
                 }
-                async let dailySpO2 = fetchIfNeeded("daily_spo2", enabledMetrics: enabledMetrics, requiredMetrics: [.averageSpO2, .breathingDisturbance]) {
+                async let dailySpO2 = fetchIfNeeded("daily_spo2", startDate: startDate, endDate: endDate, enabledMetrics: enabledMetrics, requiredMetrics: [.averageSpO2, .breathingDisturbance]) { startDate, endDate in
                     (try await self.client.dailySpO2(startDate: startDate, endDate: endDate)).data
                 }
-                async let vo2Max = fetchIfNeeded("vO2_max", enabledMetrics: enabledMetrics, requiredMetrics: [.vo2Max]) {
+                async let vo2Max = fetchIfNeeded("vO2_max", startDate: startDate, endDate: endDate, enabledMetrics: enabledMetrics, requiredMetrics: [.vo2Max]) { startDate, endDate in
                     (try await self.client.vo2Max(startDate: startDate, endDate: endDate)).data
                 }
-                async let sleepTime = fetchIfNeeded("sleep_time", enabledMetrics: enabledMetrics, requiredMetrics: [.optimalBedtime, .sleepTimeRecommendation]) {
+                async let sleepTime = fetchIfNeeded("sleep_time", startDate: startDate, endDate: endDate, enabledMetrics: enabledMetrics, requiredMetrics: [.optimalBedtime, .sleepTimeRecommendation]) { startDate, endDate in
                     (try await self.client.sleepTime(startDate: startDate, endDate: endDate)).data
                 }
                 let dailySleepResult = try await dailySleep
@@ -173,9 +175,6 @@ final class RefreshCoordinator: ObservableObject {
         if enabledMetrics.contains(.sleepDebt) {
             dayCount = max(dayCount, SleepDebtTrendCalculator.lookbackDays)
         }
-        if enabledMetrics.contains(.recoveryCost) {
-            dayCount = max(dayCount, 30)
-        }
         if enabledMetrics.contains(.bestSleepWindow) {
             dayCount = max(dayCount, 90)
         }
@@ -184,18 +183,25 @@ final class RefreshCoordinator: ObservableObject {
 
     private func fetchIfNeeded<Element>(
         _ endpointName: String,
+        startDate: String,
+        endDate: String,
         enabledMetrics: Set<BarMetric>,
         requiredMetrics: Set<BarMetric>,
-        operation: () async throws -> [Element])
+        operation: (String, String) async throws -> [Element])
         async throws -> EndpointFetch<Element>
-        where Element: Codable & Equatable & Sendable
+        where Element: OuraCacheRecord
     {
         guard enabledMetrics.containsAny(requiredMetrics) else {
             logger.debug("Skipping \(endpointName, privacy: .public) fetch because dependent metrics are disabled.")
             return EndpointFetch(data: [])
         }
         do {
-            return EndpointFetch(data: try await operation())
+            let data = try await cache.values(
+                endpoint: endpointName,
+                startDate: startDate,
+                endDate: endDate,
+                fetch: operation)
+            return EndpointFetch(data: data)
         } catch OuraError.missingToken {
             throw OuraError.missingToken
         } catch OuraError.invalidToken {

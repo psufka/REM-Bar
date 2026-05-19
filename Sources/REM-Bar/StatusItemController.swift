@@ -168,7 +168,7 @@ final class StatusItemController: NSObject, NSWindowDelegate {
             return 0.05
         case .rem, .deepSleep, .totalSleep, .sleepDebt, .lightSleep, .awakeTime, .timeInBed, .sleepLatency:
             return 0.5
-        case .sleepScore, .remPercentage, .deepSleepPercentage, .lightSleepPercentage, .hrv, .rhr, .readiness, .activity, .hrvBalance, .sleepBalance, .sleepRegularity, .sleepEfficiency, .recoveryCost, .cardiovascularAge, .breathingDisturbance:
+        case .sleepScore, .remPercentage, .deepSleepPercentage, .lightSleepPercentage, .hrv, .rhr, .readiness, .activity, .hrvBalance, .sleepBalance, .sleepRegularity, .sleepEfficiency, .cardiovascularAge, .breathingDisturbance:
             return 0.5
         case .dailyStress, .resilience, .optimalBedtime, .sleepTimeRecommendation, .bestSleepWindow:
             return .infinity

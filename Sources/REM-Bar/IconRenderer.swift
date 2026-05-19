@@ -23,7 +23,6 @@ enum BarMetric: String, CaseIterable, Codable, Identifiable {
     case sleepRegularity
     case bodyTemperatureDeviation
     case sleepEfficiency
-    case recoveryCost
     case dailyStress
     case resilience
     case cardiovascularAge
@@ -82,8 +81,6 @@ enum BarMetric: String, CaseIterable, Codable, Identifiable {
             return "Body Temp"
         case .sleepEfficiency:
             return "Sleep Efficiency"
-        case .recoveryCost:
-            return "Recovery Cost"
         case .dailyStress:
             return "Daily Stress"
         case .resilience:
@@ -127,7 +124,7 @@ enum BarMetric: String, CaseIterable, Codable, Identifiable {
             return "timer"
         case .averageBreath:
             return "lungs"
-        case .hrv, .rhr, .readiness, .recoveryCost:
+        case .hrv, .rhr, .readiness:
             return "heart.text.square"
         case .hrvBalance:
             return "waveform.path.ecg"
@@ -186,8 +183,6 @@ enum BarMetric: String, CaseIterable, Codable, Identifiable {
             return "y"
         case .averageSpO2:
             return "%"
-        case .recoveryCost:
-            return "pts"
         case .vo2Max, .optimalBedtime, .sleepTimeRecommendation, .bestSleepWindow:
             return ""
         }
@@ -197,7 +192,7 @@ enum BarMetric: String, CaseIterable, Codable, Identifiable {
         switch self {
         case .dailyStress, .resilience, .optimalBedtime, .sleepTimeRecommendation, .bestSleepWindow:
             return true
-        case .sleepScore, .rem, .remPercentage, .hrv, .rhr, .readiness, .activity, .deepSleep, .deepSleepPercentage, .totalSleep, .sleepDebt, .lightSleep, .lightSleepPercentage, .awakeTime, .timeInBed, .sleepLatency, .averageBreath, .hrvBalance, .sleepBalance, .sleepRegularity, .bodyTemperatureDeviation, .sleepEfficiency, .recoveryCost, .cardiovascularAge, .averageSpO2, .breathingDisturbance, .vo2Max:
+        case .sleepScore, .rem, .remPercentage, .hrv, .rhr, .readiness, .activity, .deepSleep, .deepSleepPercentage, .totalSleep, .sleepDebt, .lightSleep, .lightSleepPercentage, .awakeTime, .timeInBed, .sleepLatency, .averageBreath, .hrvBalance, .sleepBalance, .sleepRegularity, .bodyTemperatureDeviation, .sleepEfficiency, .cardiovascularAge, .averageSpO2, .breathingDisturbance, .vo2Max:
             return false
         }
     }
@@ -214,7 +209,7 @@ enum BarMetric: String, CaseIterable, Codable, Identifiable {
             return "Oura sleep-time guidance"
         case .bestSleepWindow:
             return "Best historical bedtime window"
-        case .sleepScore, .rem, .remPercentage, .hrv, .rhr, .readiness, .activity, .deepSleep, .deepSleepPercentage, .totalSleep, .sleepDebt, .lightSleep, .lightSleepPercentage, .awakeTime, .timeInBed, .sleepLatency, .averageBreath, .hrvBalance, .sleepBalance, .sleepRegularity, .bodyTemperatureDeviation, .sleepEfficiency, .recoveryCost, .cardiovascularAge, .averageSpO2, .breathingDisturbance, .vo2Max:
+        case .sleepScore, .rem, .remPercentage, .hrv, .rhr, .readiness, .activity, .deepSleep, .deepSleepPercentage, .totalSleep, .sleepDebt, .lightSleep, .lightSleepPercentage, .awakeTime, .timeInBed, .sleepLatency, .averageBreath, .hrvBalance, .sleepBalance, .sleepRegularity, .bodyTemperatureDeviation, .sleepEfficiency, .cardiovascularAge, .averageSpO2, .breathingDisturbance, .vo2Max:
             return ""
         }
     }
@@ -223,7 +218,7 @@ enum BarMetric: String, CaseIterable, Codable, Identifiable {
         switch self {
         case .rem, .deepSleep, .totalSleep, .sleepDebt, .lightSleep, .awakeTime, .timeInBed, .sleepLatency:
             return formattedDuration(minutes: value)
-        case .sleepScore, .readiness, .activity, .hrv, .rhr, .sleepEfficiency, .hrvBalance, .sleepBalance, .sleepRegularity, .breathingDisturbance, .cardiovascularAge, .remPercentage, .deepSleepPercentage, .lightSleepPercentage, .recoveryCost:
+        case .sleepScore, .readiness, .activity, .hrv, .rhr, .sleepEfficiency, .hrvBalance, .sleepBalance, .sleepRegularity, .breathingDisturbance, .cardiovascularAge, .remPercentage, .deepSleepPercentage, .lightSleepPercentage:
             return "\(Int(value.rounded()))\(unit)"
         case .averageBreath, .averageSpO2, .vo2Max:
             return "\(String(format: "%.1f", value))\(unit)"
@@ -242,7 +237,7 @@ enum BarMetric: String, CaseIterable, Codable, Identifiable {
         switch self {
         case .rem, .deepSleep, .totalSleep, .sleepDebt, .lightSleep, .awakeTime, .timeInBed, .sleepLatency:
             return formattedDuration(minutes: value)
-        case .sleepScore, .readiness, .activity, .hrv, .rhr, .sleepEfficiency, .hrvBalance, .sleepBalance, .sleepRegularity, .breathingDisturbance, .cardiovascularAge, .remPercentage, .deepSleepPercentage, .lightSleepPercentage, .recoveryCost:
+        case .sleepScore, .readiness, .activity, .hrv, .rhr, .sleepEfficiency, .hrvBalance, .sleepBalance, .sleepRegularity, .breathingDisturbance, .cardiovascularAge, .remPercentage, .deepSleepPercentage, .lightSleepPercentage:
             return "\(Int(value.rounded()))\(unit)"
         case .averageBreath, .averageSpO2, .vo2Max:
             return "\(String(format: "%.1f", value))\(unit)"
@@ -268,7 +263,7 @@ enum BarMetric: String, CaseIterable, Codable, Identifiable {
                 .split { $0 == "_" || $0 == "-" }
                 .map { $0.capitalized }
                 .joined(separator: " ")
-        case .sleepScore, .rem, .remPercentage, .deepSleep, .deepSleepPercentage, .totalSleep, .sleepDebt, .lightSleep, .lightSleepPercentage, .awakeTime, .timeInBed, .sleepLatency, .averageBreath, .hrv, .rhr, .readiness, .activity, .hrvBalance, .sleepBalance, .sleepRegularity, .bodyTemperatureDeviation, .sleepEfficiency, .recoveryCost, .cardiovascularAge, .averageSpO2, .breathingDisturbance, .vo2Max, .optimalBedtime, .bestSleepWindow:
+        case .sleepScore, .rem, .remPercentage, .deepSleep, .deepSleepPercentage, .totalSleep, .sleepDebt, .lightSleep, .lightSleepPercentage, .awakeTime, .timeInBed, .sleepLatency, .averageBreath, .hrv, .rhr, .readiness, .activity, .hrvBalance, .sleepBalance, .sleepRegularity, .bodyTemperatureDeviation, .sleepEfficiency, .cardiovascularAge, .averageSpO2, .breathingDisturbance, .vo2Max, .optimalBedtime, .bestSleepWindow:
             return category
         }
     }
