@@ -224,6 +224,20 @@ struct SettingsView: View {
                         }
 
                         HStack {
+                            Text("Naps")
+                                .frame(width: 130, alignment: .leading)
+                            Picker("Naps", selection: $settings.sleepAggregationMode) {
+                                ForEach(SleepAggregationMode.allCases) { mode in
+                                    Text(mode.label).tag(mode)
+                                }
+                            }
+                            .labelsHidden()
+                            .pickerStyle(.segmented)
+                            .frame(width: 260)
+                            Spacer(minLength: 0)
+                        }
+
+                        HStack {
                             Text("Icon color")
                                 .frame(width: 130, alignment: .leading)
                             Toggle("Color icons", isOn: iconColorEnabled)

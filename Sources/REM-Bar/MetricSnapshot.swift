@@ -113,6 +113,7 @@ enum DashboardSnapshotBuilder {
         sleepTime: [SleepTime] = [],
         personalInfo: PersonalInfo? = nil,
         sleepTargetMinutes: Int = 480,
+        sleepAggregationMode: SleepAggregationMode = .includeNaps,
         enabledMetrics: Set<BarMetric> = Set(BarMetric.allCases),
         displayWindowDays: Int? = nil)
         -> DashboardSnapshot
@@ -141,7 +142,7 @@ enum DashboardSnapshotBuilder {
                 + sleepTime.map(\.day))
             .sorted()
         let sleepDebtByDay = Dictionary(uniqueKeysWithValues: SleepDebtTrendCalculator
-            .points(from: sleep, sleepTargetMinutes: sleepTargetMinutes)
+            .points(from: sleep, sleepTargetMinutes: sleepTargetMinutes, sleepAggregationMode: sleepAggregationMode)
             .map { ($0.id, $0.minutes) })
 
         func point(day: String, value: Double?) -> MetricPoint? {
@@ -153,24 +154,25 @@ enum DashboardSnapshotBuilder {
             .filter { enabledMetrics.contains($0) }
             .map { metric in
             let points = days.compactMap { day -> MetricPoint? in
-                let detail = preferredSleepDetail(from: sleepByDay[day] ?? [])
+                let details = sleepByDay[day] ?? []
+                let detail = preferredSleepDetail(from: details)
                 switch metric {
                 case .sleepScore:
                     return point(day: day, value: dailySleepByDay[day]?.score.map(Double.init))
                 case .rem:
-                    return point(day: day, value: detail?.remSleepDuration.map { Double($0) / 60.0 })
+                    return point(day: day, value: sleepDurationMinutes(from: details, aggregation: sleepAggregationMode, value: \.remSleepDuration))
                 case .deepSleep:
-                    return point(day: day, value: detail?.deepSleepDuration.map { Double($0) / 60.0 })
+                    return point(day: day, value: sleepDurationMinutes(from: details, aggregation: sleepAggregationMode, value: \.deepSleepDuration))
                 case .totalSleep:
-                    return point(day: day, value: detail?.totalSleepDuration.map { Double($0) / 60.0 })
+                    return point(day: day, value: totalSleepMinutes(from: details, aggregation: sleepAggregationMode))
                 case .sleepDebt:
                     return point(day: day, value: sleepDebtByDay[day])
                 case .lightSleep:
-                    return point(day: day, value: detail?.lightSleepDuration.map { Double($0) / 60.0 })
+                    return point(day: day, value: sleepDurationMinutes(from: details, aggregation: sleepAggregationMode, value: \.lightSleepDuration))
                 case .awakeTime:
-                    return point(day: day, value: detail?.awakeTime.map { Double($0) / 60.0 })
+                    return point(day: day, value: sleepDurationMinutes(from: details, aggregation: sleepAggregationMode, value: \.awakeTime))
                 case .timeInBed:
-                    return point(day: day, value: detail?.timeInBed.map { Double($0) / 60.0 })
+                    return point(day: day, value: sleepDurationMinutes(from: details, aggregation: sleepAggregationMode, value: \.timeInBed))
                 case .sleepLatency:
                     return point(day: day, value: detail?.latency.map { Double($0) / 60.0 })
                 case .averageBreath:
@@ -195,7 +197,7 @@ enum DashboardSnapshotBuilder {
                 case .bodyTemperatureDeviation:
                     return point(day: day, value: readinessByDay[day]?.temperatureDeviation)
                 case .sleepEfficiency:
-                    return point(day: day, value: detail?.efficiency.map(Double.init))
+                    return point(day: day, value: sleepEfficiency(from: details, aggregation: sleepAggregationMode))
                 case .dailyStress:
                     return nil
                 case .resilience:
@@ -279,16 +281,8 @@ enum DashboardSnapshotBuilder {
         Array(points.sorted { $0.date < $1.date }.suffix(dayCount))
     }
 
-    static func totalSleepMinutesForDebt(from details: [Sleep]) -> Double? {
-        let sleepSessions = details.filter { detail in
-            guard detail.totalSleepDuration != nil else { return false }
-            return detail.type?.lowercased() != "rest"
-        }
-        let sleepSessionSeconds = sleepSessions.map { $0.totalSleepDuration ?? 0 }.reduce(0, +)
-        if sleepSessionSeconds > 0 {
-            return Double(sleepSessionSeconds) / 60.0
-        }
-        return preferredSleepDetail(from: details)?.totalSleepDuration.map { Double($0) / 60.0 }
+    static func totalSleepMinutesForDebt(from details: [Sleep], aggregation: SleepAggregationMode = .includeNaps) -> Double? {
+        totalSleepMinutes(from: details, aggregation: aggregation)
     }
 
     private static func unavailableMessage(
@@ -319,6 +313,50 @@ enum DashboardSnapshotBuilder {
     private static func preferredSleepDetail(from details: [Sleep]) -> Sleep? {
         details.first { $0.type == "long_sleep" } ?? details.max {
             ($0.totalSleepDuration ?? 0) < ($1.totalSleepDuration ?? 0)
+        }
+    }
+
+    private static func sleepSessions(from details: [Sleep]) -> [Sleep] {
+        details.filter { detail in
+            guard detail.totalSleepDuration != nil else { return false }
+            return detail.type?.lowercased() != "rest"
+        }
+    }
+
+    private static func sleepDurationMinutes(
+        from details: [Sleep],
+        aggregation: SleepAggregationMode,
+        value keyPath: KeyPath<Sleep, Int?>)
+        -> Double?
+    {
+        switch aggregation {
+        case .includeNaps:
+            let seconds = sleepSessions(from: details).compactMap { $0[keyPath: keyPath] }.reduce(0, +)
+            guard seconds > 0 else {
+                return preferredSleepDetail(from: details)?[keyPath: keyPath].map { Double($0) / 60.0 }
+            }
+            return Double(seconds) / 60.0
+        case .mainSleepOnly:
+            return preferredSleepDetail(from: details)?[keyPath: keyPath].map { Double($0) / 60.0 }
+        }
+    }
+
+    private static func totalSleepMinutes(from details: [Sleep], aggregation: SleepAggregationMode) -> Double? {
+        sleepDurationMinutes(from: details, aggregation: aggregation, value: \.totalSleepDuration)
+    }
+
+    private static func sleepEfficiency(from details: [Sleep], aggregation: SleepAggregationMode) -> Double? {
+        switch aggregation {
+        case .includeNaps:
+            let sessions = sleepSessions(from: details)
+            let totalSleepSeconds = sessions.compactMap(\.totalSleepDuration).reduce(0, +)
+            let timeInBedSeconds = sessions.compactMap(\.timeInBed).reduce(0, +)
+            if totalSleepSeconds > 0, timeInBedSeconds > 0 {
+                return Double(totalSleepSeconds) / Double(timeInBedSeconds) * 100.0
+            }
+            return preferredSleepDetail(from: details)?.efficiency.map(Double.init)
+        case .mainSleepOnly:
+            return preferredSleepDetail(from: details)?.efficiency.map(Double.init)
         }
     }
 

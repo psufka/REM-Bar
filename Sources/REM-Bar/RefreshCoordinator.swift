@@ -55,6 +55,7 @@ final class RefreshCoordinator: ObservableObject {
         let enabledMetrics = settings.enabledMetrics
         let averageWindow = settings.averageWindow
         let sleepTarget = settings.sleepTarget
+        let sleepAggregationMode = settings.sleepAggregationMode
         nextRefreshAfter = Date().addingTimeInterval(TimeInterval(settings.refreshCadence.rawValue))
         refreshTask = Task { [weak self] in
             guard let self else { return }
@@ -136,6 +137,7 @@ final class RefreshCoordinator: ObservableObject {
                     sleepTime: sleepTimeResult.data,
                     personalInfo: personalInfo,
                     sleepTargetMinutes: sleepTarget.minutes,
+                    sleepAggregationMode: sleepAggregationMode,
                     enabledMetrics: enabledMetrics,
                     displayWindowDays: averageWindow.dayCount)
                 await MainActor.run {

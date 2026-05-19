@@ -46,6 +46,14 @@ final class SleepDebtTrendTests: XCTestCase {
         XCTAssertEqual(points.map(\.id), ["2026-05-01", "2026-05-02"])
         XCTAssertEqual(points[0].minutes, 30, accuracy: 0.1)
         XCTAssertEqual(points[1].minutes, 7.0, accuracy: 0.1)
+
+        let mainSleepOnlyPoints = SleepDebtTrendCalculator.points(
+            from: sleep,
+            sleepTargetMinutes: 480,
+            sleepAggregationMode: .mainSleepOnly)
+        XCTAssertEqual(mainSleepOnlyPoints.map(\.id), ["2026-05-01", "2026-05-02"])
+        XCTAssertEqual(mainSleepOnlyPoints[0].minutes, 60, accuracy: 0.1)
+        XCTAssertEqual(mainSleepOnlyPoints[1].minutes, 33.9, accuracy: 0.1)
     }
 
     func testSleepDebtTrendFiltersRangeAndStats() throws {

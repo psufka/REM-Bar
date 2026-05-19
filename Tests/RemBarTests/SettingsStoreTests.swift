@@ -16,6 +16,7 @@ final class SettingsStoreTests: XCTestCase {
         XCTAssertEqual(store.orderedEnabledMetrics, SettingsStore.defaultMetricOrder)
         XCTAssertEqual(store.selectedMetric, .sleepScore)
         XCTAssertEqual(store.averageWindow, .seven)
+        XCTAssertEqual(store.sleepAggregationMode, .includeNaps)
     }
 
     func testRoundTripsCadenceSelectedMetricAndEnabledMetrics() {
@@ -28,6 +29,7 @@ final class SettingsStoreTests: XCTestCase {
         store.temperatureUnit = .fahrenheit
         store.iconStyle = .monochrome
         store.sleepTarget = .eightThirty
+        store.sleepAggregationMode = .mainSleepOnly
         store.setMetric(.dailyStress, enabled: true)
         store.selectedMetric = .dailyStress
         store.setMetric(.activity, enabled: false)
@@ -39,6 +41,7 @@ final class SettingsStoreTests: XCTestCase {
         XCTAssertEqual(reloaded.temperatureUnit, .fahrenheit)
         XCTAssertEqual(reloaded.iconStyle, .monochrome)
         XCTAssertEqual(reloaded.sleepTarget, .eightThirty)
+        XCTAssertEqual(reloaded.sleepAggregationMode, .mainSleepOnly)
         XCTAssertEqual(reloaded.selectedMetric, .dailyStress)
         XCTAssertTrue(reloaded.enabledMetrics.contains(.dailyStress))
         XCTAssertFalse(reloaded.enabledMetrics.contains(.activity))
@@ -109,6 +112,79 @@ final class SettingsStoreTests: XCTestCase {
         XCTAssertEqual(BarMetric.sleepDebt.formattedValue(73), "1:13")
         XCTAssertEqual(BarMetric.sleepLatency.formattedValue(9), "0:09")
         XCTAssertEqual(BarMetric.totalSleep.formattedDelta(-32), "-0:32")
+    }
+
+    func testSleepAggregationIncludesNapsByDefaultAndCanUseMainSleepOnly() throws {
+        let sleep = try JSONDecoder().decode(OuraCollection<Sleep>.self, from: Data("""
+        {
+          "data": [
+            {
+              "id": "rest-2026-05-12",
+              "day": "2026-05-12",
+              "type": "rest",
+              "total_sleep_duration": 36000,
+              "rem_sleep_duration": 36000,
+              "deep_sleep_duration": 36000,
+              "light_sleep_duration": 36000,
+              "time_in_bed": 36000,
+              "efficiency": 100,
+              "latency": 0
+            },
+            {
+              "id": "sleep-detail-2026-05-12",
+              "day": "2026-05-12",
+              "type": "long_sleep",
+              "total_sleep_duration": 21600,
+              "rem_sleep_duration": 4200,
+              "deep_sleep_duration": 3600,
+              "light_sleep_duration": 13800,
+              "time_in_bed": 25200,
+              "efficiency": 86,
+              "latency": 600
+            },
+            {
+              "id": "nap-2026-05-12",
+              "day": "2026-05-12",
+              "type": "sleep",
+              "total_sleep_duration": 1800,
+              "rem_sleep_duration": 300,
+              "deep_sleep_duration": 120,
+              "light_sleep_duration": 1380,
+              "time_in_bed": 2400,
+              "efficiency": 75,
+              "latency": 120
+            }
+          ]
+        }
+        """.utf8)).data
+
+        let ouraLikeSnapshot = DashboardSnapshotBuilder.make(
+            dailySleep: [],
+            sleep: sleep,
+            readiness: [],
+            activity: [],
+            enabledMetrics: [.totalSleep, .rem, .deepSleep, .lightSleep, .sleepEfficiency, .sleepLatency])
+        let mainOnlySnapshot = DashboardSnapshotBuilder.make(
+            dailySleep: [],
+            sleep: sleep,
+            readiness: [],
+            activity: [],
+            sleepAggregationMode: .mainSleepOnly,
+            enabledMetrics: [.totalSleep, .rem, .deepSleep, .lightSleep, .sleepEfficiency, .sleepLatency])
+
+        XCTAssertEqual(ouraLikeSnapshot.series(for: .totalSleep).currentValue, 390)
+        XCTAssertEqual(ouraLikeSnapshot.series(for: .rem).currentValue, 75)
+        XCTAssertEqual(ouraLikeSnapshot.series(for: .deepSleep).currentValue, 62)
+        XCTAssertEqual(ouraLikeSnapshot.series(for: .lightSleep).currentValue, 253)
+        XCTAssertEqual(ouraLikeSnapshot.series(for: .sleepEfficiency).currentValue ?? 0, 84.8, accuracy: 0.1)
+        XCTAssertEqual(ouraLikeSnapshot.series(for: .sleepLatency).currentValue, 10)
+
+        XCTAssertEqual(mainOnlySnapshot.series(for: .totalSleep).currentValue, 360)
+        XCTAssertEqual(mainOnlySnapshot.series(for: .rem).currentValue, 70)
+        XCTAssertEqual(mainOnlySnapshot.series(for: .deepSleep).currentValue, 60)
+        XCTAssertEqual(mainOnlySnapshot.series(for: .lightSleep).currentValue, 230)
+        XCTAssertEqual(mainOnlySnapshot.series(for: .sleepEfficiency).currentValue, 86)
+        XCTAssertEqual(mainOnlySnapshot.series(for: .sleepLatency).currentValue, 10)
     }
 
     func testSnapshotCarriesLatestSleepSyncedSummary() throws {

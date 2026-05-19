@@ -333,6 +333,7 @@ struct MetricTrendView: View {
                 sleep: sleep,
                 readiness: [],
                 activity: [],
+                sleepAggregationMode: settings.sleepAggregationMode,
                 enabledMetrics: enabledMetrics)
         case .readiness, .hrvBalance, .sleepBalance, .sleepRegularity, .bodyTemperatureDeviation:
             let readiness = try await client.dailyReadiness(startDate: startDate, endDate: endDate).data

@@ -42,6 +42,22 @@ enum IconStyle: String, CaseIterable, Identifiable {
     var id: String { rawValue }
 }
 
+enum SleepAggregationMode: String, CaseIterable, Identifiable {
+    case includeNaps
+    case mainSleepOnly
+
+    var id: String { rawValue }
+
+    var label: String {
+        switch self {
+        case .includeNaps:
+            return "Include naps"
+        case .mainSleepOnly:
+            return "Main sleep only"
+        }
+    }
+}
+
 enum SleepTarget: Int, CaseIterable, Identifiable {
     case six = 360
     case sixFifteen = 375
@@ -157,6 +173,12 @@ final class SettingsStore: ObservableObject {
         }
     }
 
+    @Published var sleepAggregationMode: SleepAggregationMode {
+        didSet {
+            userDefaults.set(sleepAggregationMode.rawValue, forKey: Keys.sleepAggregationMode)
+        }
+    }
+
     @Published var selectedMetric: BarMetric? {
         didSet {
             guard let selectedMetric else {
@@ -268,6 +290,8 @@ final class SettingsStore: ObservableObject {
         self.iconStyle = IconStyle(rawValue: rawIconStyle) ?? .color
         let rawSleepTarget = userDefaults.integer(forKey: Keys.sleepTarget)
         self.sleepTarget = SleepTarget(rawValue: rawSleepTarget) ?? .eight
+        let rawSleepAggregationMode = userDefaults.string(forKey: Keys.sleepAggregationMode) ?? SleepAggregationMode.includeNaps.rawValue
+        self.sleepAggregationMode = SleepAggregationMode(rawValue: rawSleepAggregationMode) ?? .includeNaps
         let rawMetric = userDefaults.string(forKey: Keys.selectedMetric) ?? BarMetric.sleepScore.rawValue
         if rawMetric == Self.iconOnlyMenuBarMetricRawValue {
             self.selectedMetric = nil
@@ -408,6 +432,7 @@ final class SettingsStore: ObservableObject {
         static let temperatureUnit = "temperatureUnit"
         static let iconStyle = "iconStyle"
         static let sleepTarget = "sleepTarget"
+        static let sleepAggregationMode = "sleepAggregationMode"
         static let knownUnavailableMetrics = "knownUnavailableMetrics"
         static let thresholdOverrides = "thresholdOverrides"
         static let customPresetMetrics = "customPresetMetrics"
@@ -522,6 +547,7 @@ final class SettingsStore: ObservableObject {
             Keys.temperatureUnit,
             Keys.iconStyle,
             Keys.sleepTarget,
+            Keys.sleepAggregationMode,
             Keys.knownUnavailableMetrics,
             Keys.customPresetMetrics,
         ].contains { userDefaults.object(forKey: $0) != nil }

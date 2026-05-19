@@ -87,6 +87,15 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
                 }
             }
             .store(in: &cancellables)
+        settings.$sleepAggregationMode
+            .dropFirst()
+            .receive(on: RunLoop.main)
+            .sink { [weak refreshCoordinator] _ in
+                Task { @MainActor in
+                    refreshCoordinator?.refresh()
+                }
+            }
+            .store(in: &cancellables)
         NotificationCenter.default.addObserver(
             self,
             selector: #selector(tokenDidChange),

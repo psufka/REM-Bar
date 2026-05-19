@@ -32,7 +32,12 @@ enum SleepDebtTrendCalculator {
     static let lookbackDays = 14
     static let debtHalfLifeDays = 6.5
 
-    static func points(from sleep: [Sleep], sleepTargetMinutes: Int) -> [SleepDebtTrendPoint] {
+    static func points(
+        from sleep: [Sleep],
+        sleepTargetMinutes: Int,
+        sleepAggregationMode: SleepAggregationMode = .includeNaps)
+        -> [SleepDebtTrendPoint]
+    {
         let sleepByDay = Dictionary(grouping: sleep, by: \.day)
         let datedDays = sleepByDay.keys.sorted().compactMap { day -> (day: String, date: Date)? in
             guard let date = dayFormatter.date(from: day) else { return nil }
@@ -40,14 +45,19 @@ enum SleepDebtTrendCalculator {
         }
 
         return datedDays.compactMap { currentDay, currentDate in
-            guard DashboardSnapshotBuilder.totalSleepMinutesForDebt(from: sleepByDay[currentDay] ?? []) != nil,
+            guard DashboardSnapshotBuilder.totalSleepMinutesForDebt(
+                from: sleepByDay[currentDay] ?? [],
+                aggregation: sleepAggregationMode) != nil,
                   let startDate = Calendar.current.date(byAdding: .day, value: -(lookbackDays - 1), to: currentDate)
             else { return nil }
 
             var debt = 0.0
             var previousDate: Date?
             for (day, date) in datedDays where date >= startDate && date <= currentDate {
-                guard let sleepMinutes = DashboardSnapshotBuilder.totalSleepMinutesForDebt(from: sleepByDay[day] ?? []) else { continue }
+                guard let sleepMinutes = DashboardSnapshotBuilder.totalSleepMinutesForDebt(
+                    from: sleepByDay[day] ?? [],
+                    aggregation: sleepAggregationMode)
+                else { continue }
                 if let previousDate {
                     debt *= debtDecay(daysBetween: daysBetween(previousDate, date))
                 }
@@ -304,7 +314,10 @@ struct SleepDebtTrendView: View {
     }
 
     private var points: [SleepDebtTrendPoint] {
-        SleepDebtTrendCalculator.points(from: sleepRecords, sleepTargetMinutes: settings.sleepTarget.minutes)
+        SleepDebtTrendCalculator.points(
+            from: sleepRecords,
+            sleepTargetMinutes: settings.sleepTarget.minutes,
+            sleepAggregationMode: settings.sleepAggregationMode)
     }
 
     private var stats: SleepDebtTrendStats {
