@@ -268,8 +268,10 @@ struct MetricTrendView: View {
                                     VStack(spacing: 1) {
                                         Text("\(Int(averageScore.rounded()))")
                                             .font(.caption2.weight(.semibold))
-                                        Text(scoreRangeLabel(for: bucket))
-                                            .font(.caption2)
+                                        if let scoreRange = scoreRangeLabel(for: bucket) {
+                                            Text(scoreRange)
+                                                .font(.caption2)
+                                        }
                                     }
                                     .foregroundStyle(.secondary)
                                     .monospacedDigit()
@@ -501,13 +503,19 @@ struct MetricTrendView: View {
         "\(compactClockMinute(startMinute))-\(compactClockMinute((startMinute + 30) % (24 * 60)))"
     }
 
-    private func scoreRangeLabel(for bucket: BestSleepWindowChartBucket) -> String {
-        guard let lowScore = bucket.lowScore,
+    private func scoreRangeLabel(for bucket: BestSleepWindowChartBucket) -> String? {
+        guard bucket.nights > 1,
+              let lowScore = bucket.lowScore,
               let highScore = bucket.highScore
         else {
-            return ""
+            return nil
         }
-        return "(\(Int(lowScore.rounded()))-\(Int(highScore.rounded())))"
+        let low = Int(lowScore.rounded())
+        let high = Int(highScore.rounded())
+        guard low != high else {
+            return nil
+        }
+        return "(\(low)-\(high))"
     }
 
     private func compactClockMinute(_ minuteOfDay: Int) -> String {

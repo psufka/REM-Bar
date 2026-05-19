@@ -6,6 +6,7 @@
 
 - Stopped trend windows from resetting the selected range back to 14 days after data finishes loading.
 - Avoided fetching Oura Personal Info during dashboard refreshes unless the Cardio Age card is enabled.
+- Hid redundant Best Sleep Window score ranges when a chart bucket only has one night.
 
 ### Changed
 
