@@ -5,6 +5,8 @@ struct BestSleepWindowBucket: Identifiable, Equatable {
     let startMinute: Int
     let label: String
     let averageScore: Double
+    let lowScore: Double
+    let highScore: Double
     let nights: Int
 
     var id: Int { startMinute }
@@ -49,6 +51,8 @@ enum BestSleepWindowCalculator {
                     startMinute: bucket,
                     label: formattedClockRange(startMinute: bucket),
                     averageScore: scores.reduce(0, +) / Double(scores.count),
+                    lowScore: scores.min() ?? 0,
+                    highScore: scores.max() ?? 0,
                     nights: scores.count)
             }
             .sorted { $0.displayOrder < $1.displayOrder }

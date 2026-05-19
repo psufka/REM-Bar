@@ -88,6 +88,10 @@ actor OuraDataCache {
         endpoint: String,
         startDate: String,
         endDate: String,
+        forceRecentRefresh: Bool = false,
+        minimumRefreshInterval: TimeInterval = 10 * 60,
+        recentDayRefreshCount: Int = 2,
+        now: Date = Date(),
         fetch: (String, String) async throws -> [Record])
         async throws -> [Record]
     {
@@ -95,17 +99,26 @@ actor OuraDataCache {
         var envelope = readEnvelope(endpoint: endpoint, as: Record.self)
         let coveredDays = Set(envelope.coveredDays)
         let missingDays = requestedDays.filter { !coveredDays.contains($0) }
+        let recentRefreshDays = Self.recentRefreshDays(
+            requestedDays: requestedDays,
+            coveredDays: coveredDays,
+            updatedAt: envelope.updatedAt,
+            forceRefresh: forceRecentRefresh,
+            minimumRefreshInterval: minimumRefreshInterval,
+            recentDayRefreshCount: recentDayRefreshCount,
+            now: now)
+        let daysToFetch = Array(Set(missingDays).union(recentRefreshDays)).sorted()
 
-        guard !missingDays.isEmpty else {
+        guard !daysToFetch.isEmpty else {
             return filter(envelope.records, startDate: startDate, endDate: endDate)
         }
 
         do {
-            for range in Self.contiguousRanges(from: missingDays) {
+            for range in Self.contiguousRanges(from: daysToFetch) {
                 let fetched = try await fetch(range.start, range.end)
                 envelope.records = merge(existing: envelope.records, fetched: fetched)
                 envelope.coveredDays = Array(Set(envelope.coveredDays).union(range.days)).sorted()
-                envelope.updatedAt = Date()
+                envelope.updatedAt = now
             }
             writeEnvelope(envelope, endpoint: endpoint)
         } catch OuraError.missingToken {
@@ -226,6 +239,28 @@ actor OuraDataCache {
             date = nextDate
         }
         return days
+    }
+
+    private static func recentRefreshDays(
+        requestedDays: [String],
+        coveredDays: Set<String>,
+        updatedAt: Date?,
+        forceRefresh: Bool,
+        minimumRefreshInterval: TimeInterval,
+        recentDayRefreshCount: Int,
+        now: Date)
+        -> [String]
+    {
+        guard recentDayRefreshCount > 0 else { return [] }
+        if !forceRefresh,
+           let updatedAt,
+           now.timeIntervalSince(updatedAt) < minimumRefreshInterval
+        {
+            return []
+        }
+        return requestedDays
+            .filter { coveredDays.contains($0) }
+            .suffix(recentDayRefreshCount)
     }
 
     private static let dayFormatter: DateFormatter = {

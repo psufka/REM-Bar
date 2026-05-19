@@ -695,9 +695,6 @@ struct SettingsView: View {
         {
             lines.append("Packaged \(formattedTimestamp)")
         }
-        if let bundleIdentifier = Bundle.main.bundleIdentifier {
-            lines.append(bundleIdentifier)
-        }
         return lines.joined(separator: "\n")
     }
 

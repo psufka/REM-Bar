@@ -92,7 +92,7 @@ final class StatusItemController: NSObject, NSWindowDelegate {
     }
 
     @objc private func refreshNow() {
-        refreshCoordinator.refresh()
+        refreshCoordinator.refresh(forceRecentRefresh: true)
     }
 
     private func popoverLayout(for visibleMetricCount: Int, relativeTo button: NSStatusBarButton) -> PopoverLayout {

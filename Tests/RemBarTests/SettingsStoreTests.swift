@@ -279,6 +279,9 @@ final class SettingsStoreTests: XCTestCase {
         XCTAssertTrue(window.contains("10:00"))
         XCTAssertTrue(window.contains("10:30"))
         XCTAssertEqual(series.baselineValue ?? 0, 90, accuracy: 0.1)
+        let bestBucket = try XCTUnwrap(BestSleepWindowCalculator.bestBucket(sleep: sleep, dailySleep: dailySleep))
+        XCTAssertEqual(bestBucket.lowScore, 89, accuracy: 0.1)
+        XCTAssertEqual(bestBucket.highScore, 91, accuracy: 0.1)
         XCTAssertFalse(BestSleepWindowCalculator.buckets(sleep: sleep, dailySleep: dailySleep).contains { $0.startMinute == 13 * 60 })
 
         let shortWindowSnapshot = DashboardSnapshotBuilder.make(

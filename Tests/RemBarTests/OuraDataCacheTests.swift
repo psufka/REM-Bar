@@ -52,6 +52,93 @@ final class OuraDataCacheTests: XCTestCase {
         XCTAssertEqual(offline.map(\.day), ["2026-05-01", "2026-05-02", "2026-05-03", "2026-05-04"])
     }
 
+    func testCacheRefreshesOnlyRecentCoveredDaysWhenStale() async throws {
+        let rootURL = FileManager.default.temporaryDirectory
+            .appendingPathComponent(UUID().uuidString, isDirectory: true)
+        defer {
+            try? FileManager.default.removeItem(at: rootURL)
+        }
+
+        let cache = OuraDataCache(rootURL: rootURL)
+        var requestedRanges: [(String, String)] = []
+        let firstNow = try date("2026-05-03T08:00:00Z")
+
+        _ = try await cache.values(
+            endpoint: "daily_sleep",
+            startDate: "2026-05-01",
+            endDate: "2026-05-03",
+            minimumRefreshInterval: 3600,
+            now: firstNow)
+        { startDate, endDate in
+            requestedRanges.append((startDate, endDate))
+            return try dailySleepRecords(from: startDate, through: endDate)
+        }
+
+        _ = try await cache.values(
+            endpoint: "daily_sleep",
+            startDate: "2026-05-01",
+            endDate: "2026-05-03",
+            minimumRefreshInterval: 3600,
+            now: try date("2026-05-03T08:20:00Z"))
+        { startDate, endDate in
+            requestedRanges.append((startDate, endDate))
+            return try dailySleepRecords(from: startDate, through: endDate)
+        }
+
+        _ = try await cache.values(
+            endpoint: "daily_sleep",
+            startDate: "2026-05-01",
+            endDate: "2026-05-03",
+            minimumRefreshInterval: 3600,
+            recentDayRefreshCount: 2,
+            now: try date("2026-05-03T10:30:00Z"))
+        { startDate, endDate in
+            requestedRanges.append((startDate, endDate))
+            return try dailySleepRecords(from: startDate, through: endDate)
+        }
+
+        XCTAssertEqual(requestedRanges.map { "\($0.0)...\($0.1)" }, [
+            "2026-05-01...2026-05-03",
+            "2026-05-02...2026-05-03",
+        ])
+    }
+
+    func testCacheForceRefreshChecksRecentCoveredDaysWithoutRefetchingWholeRange() async throws {
+        let rootURL = FileManager.default.temporaryDirectory
+            .appendingPathComponent(UUID().uuidString, isDirectory: true)
+        defer {
+            try? FileManager.default.removeItem(at: rootURL)
+        }
+
+        let cache = OuraDataCache(rootURL: rootURL)
+        var requestedRanges: [(String, String)] = []
+
+        _ = try await cache.values(
+            endpoint: "daily_sleep",
+            startDate: "2026-05-01",
+            endDate: "2026-05-04")
+        { startDate, endDate in
+            requestedRanges.append((startDate, endDate))
+            return try dailySleepRecords(from: startDate, through: endDate)
+        }
+
+        _ = try await cache.values(
+            endpoint: "daily_sleep",
+            startDate: "2026-05-01",
+            endDate: "2026-05-04",
+            forceRecentRefresh: true,
+            recentDayRefreshCount: 2)
+        { startDate, endDate in
+            requestedRanges.append((startDate, endDate))
+            return try dailySleepRecords(from: startDate, through: endDate)
+        }
+
+        XCTAssertEqual(requestedRanges.map { "\($0.0)...\($0.1)" }, [
+            "2026-05-01...2026-05-04",
+            "2026-05-03...2026-05-04",
+        ])
+    }
+
     private func dailySleepRecords(from startDate: String, through endDate: String) throws -> [DailySleep] {
         let days = dayStrings(from: startDate, through: endDate)
         let records = days.enumerated().map { index, day in
@@ -82,5 +169,10 @@ final class OuraDataCacheTests: XCTestCase {
             date = next
         }
         return days
+    }
+
+    private func date(_ value: String) throws -> Date {
+        let formatter = ISO8601DateFormatter()
+        return try XCTUnwrap(formatter.date(from: value))
     }
 }

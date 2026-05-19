@@ -15,6 +15,8 @@ private struct BestSleepWindowChartBucket: Identifiable {
     let displayOrder: Int
     let label: String
     let averageScore: Double?
+    let lowScore: Double?
+    let highScore: Double?
     let nights: Int
 
     var id: Int { displayOrder }
@@ -267,7 +269,7 @@ struct MetricTrendView: View {
                                     VStack(spacing: 1) {
                                         Text("\(Int(averageScore.rounded()))")
                                             .font(.caption2.weight(.semibold))
-                                        Text("(\(bucket.label))")
+                                        Text(scoreRangeLabel(for: bucket))
                                             .font(.caption2)
                                     }
                                     .foregroundStyle(.secondary)
@@ -302,12 +304,16 @@ struct MetricTrendView: View {
                             if let order = value.as(Double.self),
                                let bucket = bestSleepChartBucket(displayOrder: order)
                             {
-                                Text("n=\(bucket.nights)")
-                                    .font(.caption2.weight(.semibold))
-                                    .foregroundStyle(.secondary)
-                                    .monospacedDigit()
-                                    .lineLimit(1)
-                                    .minimumScaleFactor(0.72)
+                                VStack(spacing: 1) {
+                                    Text(compactWindowLabel(startMinute: bucket.startMinute))
+                                        .font(.caption2.weight(.medium))
+                                    Text("n=\(bucket.nights)")
+                                        .font(.caption2)
+                                }
+                                .foregroundStyle(.secondary)
+                                .monospacedDigit()
+                                .lineLimit(1)
+                                .minimumScaleFactor(0.72)
                             }
                         }
                     }
@@ -355,6 +361,8 @@ struct MetricTrendView: View {
                     displayOrder: bucket.displayOrder,
                     label: bucket.label,
                     averageScore: bucket.averageScore,
+                    lowScore: bucket.lowScore,
+                    highScore: bucket.highScore,
                     nights: bucket.nights)
             }
             return BestSleepWindowChartBucket(
@@ -362,6 +370,8 @@ struct MetricTrendView: View {
                 displayOrder: displayOrder,
                 label: compactWindowLabel(startMinute: startMinute),
                 averageScore: nil,
+                lowScore: nil,
+                highScore: nil,
                 nights: 0)
         }
     }
@@ -490,6 +500,15 @@ struct MetricTrendView: View {
 
     private func compactWindowLabel(startMinute: Int) -> String {
         "\(compactClockMinute(startMinute))-\(compactClockMinute((startMinute + 30) % (24 * 60)))"
+    }
+
+    private func scoreRangeLabel(for bucket: BestSleepWindowChartBucket) -> String {
+        guard let lowScore = bucket.lowScore,
+              let highScore = bucket.highScore
+        else {
+            return ""
+        }
+        return "(\(Int(lowScore.rounded()))-\(Int(highScore.rounded())))"
     }
 
     private func compactClockMinute(_ minuteOfDay: Int) -> String {
