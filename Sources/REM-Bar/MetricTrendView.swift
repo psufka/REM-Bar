@@ -264,12 +264,16 @@ struct MetricTrendView: View {
                                 width: .fixed(30))
                                 .foregroundStyle(Color(nsColor: ColorThresholds.color(for: averageScore, metric: .sleepScore)))
                                 .annotation(position: .top, alignment: .center, spacing: 2) {
-                                    Text("\(Int(averageScore.rounded()))")
-                                        .font(.caption2.weight(.semibold))
-                                        .foregroundStyle(.secondary)
-                                        .monospacedDigit()
-                                        .lineLimit(1)
-                                        .minimumScaleFactor(0.75)
+                                    VStack(spacing: 1) {
+                                        Text("\(Int(averageScore.rounded()))")
+                                            .font(.caption2.weight(.semibold))
+                                        Text("(\(bucket.label))")
+                                            .font(.caption2)
+                                    }
+                                    .foregroundStyle(.secondary)
+                                    .monospacedDigit()
+                                    .lineLimit(1)
+                                    .minimumScaleFactor(0.72)
                                 }
                         } else {
                             BarMark(
@@ -298,17 +302,12 @@ struct MetricTrendView: View {
                             if let order = value.as(Double.self),
                                let bucket = bestSleepChartBucket(displayOrder: order)
                             {
-                                VStack(spacing: 1) {
-                                    Text("n=\(bucket.nights)")
-                                        .font(.caption2.weight(.semibold))
-                                        .lineLimit(1)
-                                    Text(compactWindowLabel(startMinute: bucket.startMinute))
-                                        .font(.caption2)
-                                        .lineLimit(1)
-                                }
-                                .foregroundStyle(.secondary)
-                                .monospacedDigit()
-                                .minimumScaleFactor(0.72)
+                                Text("n=\(bucket.nights)")
+                                    .font(.caption2.weight(.semibold))
+                                    .foregroundStyle(.secondary)
+                                    .monospacedDigit()
+                                    .lineLimit(1)
+                                    .minimumScaleFactor(0.72)
                             }
                         }
                     }
@@ -414,7 +413,7 @@ struct MetricTrendView: View {
         guard let low = values.min(), let high = values.max() else {
             return 0...100
         }
-        return max(0, low - 5)...min(100, high + 5)
+        return max(0, low - 5)...min(100, high + 8)
     }
 
     private var bestSleepXDomain: ClosedRange<Double> {
