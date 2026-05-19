@@ -70,7 +70,9 @@ final class RefreshCoordinator: ObservableObject {
                 byAdding: .day,
                 value: -(requestWindowDays - 1),
                 to: Date()) ?? Date())
-            let personalInfo = await self.personalInfoForRefresh()
+            let personalInfo = enabledMetrics.contains(.cardiovascularAge)
+                ? await self.personalInfoForRefresh()
+                : nil
             do {
                 async let dailySleep = fetchIfNeeded("daily_sleep", startDate: startDate, endDate: endDate, enabledMetrics: enabledMetrics, requiredMetrics: [.sleepScore, .bestSleepWindow], forceRecentRefresh: forceRecentRefresh) { startDate, endDate in
                     (try await self.client.dailySleep(startDate: startDate, endDate: endDate)).data

@@ -544,7 +544,6 @@ struct MetricTrendView: View {
             } else {
                 series = try await fetchSeries(startDate: startDate, endDate: endDate)
             }
-            selectedRange = .fourteen
         } catch OuraError.badStatus(403, _), OuraError.badStatus(404, _) {
             series = MetricSeries(metric: metric, points: [], availabilityMessage: "Not available on your ring")
         } catch {

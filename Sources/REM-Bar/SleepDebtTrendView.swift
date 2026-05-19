@@ -398,7 +398,6 @@ struct SleepDebtTrendView: View {
                 try await client.sleep(startDate: startDate, endDate: endDate).data
             }
             sleepRecords = sleep
-            selectedRange = .fourteen
         } catch {
             errorMessage = error.localizedDescription
         }

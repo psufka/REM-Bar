@@ -2,6 +2,11 @@
 
 ## Unreleased
 
+### Fixed
+
+- Stopped trend windows from resetting the selected range back to 14 days after data finishes loading.
+- Avoided fetching Oura Personal Info during dashboard refreshes unless the Cardio Age card is enabled.
+
 ### Changed
 
 - Clarified the popover footer sleep-sync label so it shows the wake-date sleep before the bedtime range.
