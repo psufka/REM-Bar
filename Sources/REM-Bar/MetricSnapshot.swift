@@ -249,12 +249,12 @@ enum DashboardSnapshotBuilder {
                     availabilityMessage: unavailableMessage))
             }
             if metric == .optimalBedtime {
-                let window = sleepTime.sorted { $0.day < $1.day }.last?.optimalBedtime
+                let guidance = latestSleepTimeGuidance(from: sleepTime)
                 return (metric, MetricSeries(
                     metric: metric,
                     points: [],
-                    categoryValue: bedtimeWindowString(from: window),
-                    availabilityMessage: unavailableMessage))
+                    categoryValue: guidance,
+                    availabilityMessage: guidance == nil ? unavailableMessage ?? "No Oura bedtime guidance" : unavailableMessage))
             }
             if metric == .sleepTimeRecommendation {
                 let recommendation = sleepTime.sorted { $0.day < $1.day }.last?.recommendation
@@ -474,6 +474,18 @@ enum DashboardSnapshotBuilder {
             return nil
         }
         return "\(clockTime(from: startOffset))-\(clockTime(from: endOffset))"
+    }
+
+    private static func latestSleepTimeGuidance(from sleepTime: [SleepTime]) -> String? {
+        for value in sleepTime.sorted(by: { $0.day > $1.day }) {
+            if let bedtimeWindow = bedtimeWindowString(from: value.optimalBedtime) {
+                return bedtimeWindow
+            }
+            if let recommendation = value.recommendation, !recommendation.isEmpty {
+                return recommendation
+            }
+        }
+        return nil
     }
 
     private static func clockTime(from offset: Int) -> String {

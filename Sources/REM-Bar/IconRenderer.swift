@@ -94,7 +94,7 @@ enum BarMetric: String, CaseIterable, Codable, Identifiable {
         case .vo2Max:
             return "VO2 Max"
         case .optimalBedtime:
-            return "Optimal Bedtime"
+            return "Oura Bedtime Guidance"
         case .sleepTimeRecommendation:
             return "Sleep Time"
         case .bestSleepWindow:
@@ -204,7 +204,7 @@ enum BarMetric: String, CaseIterable, Codable, Identifiable {
         case .dailyStress:
             return "Daily stress summary"
         case .optimalBedtime:
-            return "Recommended bedtime window"
+            return "Oura bedtime guidance"
         case .sleepTimeRecommendation:
             return "Oura sleep-time guidance"
         case .bestSleepWindow:
@@ -258,12 +258,14 @@ enum BarMetric: String, CaseIterable, Codable, Identifiable {
                 .joined(separator: " ")
         case .resilience:
             return category.capitalized
-        case .sleepTimeRecommendation:
+        case .optimalBedtime where category.contains(":"):
+            return category
+        case .optimalBedtime, .sleepTimeRecommendation:
             return category
                 .split { $0 == "_" || $0 == "-" }
                 .map { $0.capitalized }
                 .joined(separator: " ")
-        case .sleepScore, .rem, .remPercentage, .deepSleep, .deepSleepPercentage, .totalSleep, .sleepDebt, .lightSleep, .lightSleepPercentage, .awakeTime, .timeInBed, .sleepLatency, .averageBreath, .hrv, .rhr, .readiness, .activity, .hrvBalance, .sleepBalance, .sleepRegularity, .bodyTemperatureDeviation, .sleepEfficiency, .cardiovascularAge, .averageSpO2, .breathingDisturbance, .vo2Max, .optimalBedtime, .bestSleepWindow:
+        case .sleepScore, .rem, .remPercentage, .deepSleep, .deepSleepPercentage, .totalSleep, .sleepDebt, .lightSleep, .lightSleepPercentage, .awakeTime, .timeInBed, .sleepLatency, .averageBreath, .hrv, .rhr, .readiness, .activity, .hrvBalance, .sleepBalance, .sleepRegularity, .bodyTemperatureDeviation, .sleepEfficiency, .cardiovascularAge, .averageSpO2, .breathingDisturbance, .vo2Max, .bestSleepWindow:
             return category
         }
     }

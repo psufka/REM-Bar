@@ -59,6 +59,7 @@ final class ColorThresholdsTests: XCTestCase {
         XCTAssertEqual(ColorThresholds.color(forCategory: "adequate", metric: .resilience), .systemOrange)
         XCTAssertEqual(ColorThresholds.color(forCategory: "solid", metric: .resilience), .systemGreen)
         XCTAssertEqual(ColorThresholds.color(forCategory: "22:30-23:30", metric: .optimalBedtime), .systemGreen)
+        XCTAssertEqual(ColorThresholds.color(forCategory: "earlier_bedtime", metric: .optimalBedtime), .systemOrange)
         XCTAssertEqual(ColorThresholds.color(forCategory: "follow_optimal_bedtime", metric: .sleepTimeRecommendation), .systemGreen)
     }
 }

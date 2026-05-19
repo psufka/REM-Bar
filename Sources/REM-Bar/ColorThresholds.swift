@@ -164,7 +164,9 @@ enum ColorThresholds {
             default:
                 return .systemRed
             }
-        case .sleepTimeRecommendation:
+        case .optimalBedtime where category.contains(":"):
+            return .systemGreen
+        case .optimalBedtime, .sleepTimeRecommendation:
             switch category {
             case "follow_optimal_bedtime":
                 return .systemGreen
@@ -173,7 +175,7 @@ enum ColorThresholds {
             default:
                 return .systemOrange
             }
-        case .optimalBedtime, .bestSleepWindow:
+        case .bestSleepWindow:
             return .systemGreen
         case .sleepScore, .rem, .remPercentage, .deepSleep, .deepSleepPercentage, .totalSleep, .sleepDebt, .lightSleep, .lightSleepPercentage, .awakeTime, .timeInBed, .sleepLatency, .averageBreath, .hrv, .rhr, .readiness, .activity, .hrvBalance, .sleepBalance, .sleepRegularity, .bodyTemperatureDeviation, .sleepEfficiency, .cardiovascularAge, .averageSpO2, .breathingDisturbance, .vo2Max:
             return .systemRed

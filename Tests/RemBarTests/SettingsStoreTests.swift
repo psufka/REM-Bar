@@ -118,6 +118,37 @@ final class SettingsStoreTests: XCTestCase {
         XCTAssertEqual(BarMetric.totalSleep.formattedDelta(-32), "-0:32")
     }
 
+    func testOuraBedtimeGuidanceUsesRecommendationWhenWindowIsMissing() throws {
+        XCTAssertEqual(BarMetric.optimalBedtime.label, "Oura Bedtime Guidance")
+        XCTAssertEqual(BarMetric.optimalBedtime.formattedCategory("earlier_bedtime"), "Earlier Bedtime")
+
+        let sleepTime = try JSONDecoder().decode(OuraCollection<SleepTime>.self, from: Data("""
+        {
+          "data": [
+            {
+              "id": "sleep-time-2026-05-16",
+              "day": "2026-05-16",
+              "recommendation": "earlier_bedtime",
+              "status": "only_recommended_found"
+            }
+          ]
+        }
+        """.utf8)).data
+
+        let snapshot = DashboardSnapshotBuilder.make(
+            dailySleep: [],
+            sleep: [],
+            readiness: [],
+            activity: [],
+            sleepTime: sleepTime,
+            enabledMetrics: [.optimalBedtime])
+        let series = snapshot.series(for: .optimalBedtime)
+
+        XCTAssertEqual(series.categoryValue, "earlier_bedtime")
+        XCTAssertEqual(series.formattedCurrentValue, "Earlier Bedtime")
+        XCTAssertNil(series.availabilityMessage)
+    }
+
     func testSleepAggregationIncludesNapsByDefaultAndCanUseMainSleepOnly() throws {
         let sleep = try JSONDecoder().decode(OuraCollection<Sleep>.self, from: Data("""
         {

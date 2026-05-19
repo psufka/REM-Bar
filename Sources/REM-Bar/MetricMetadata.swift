@@ -224,7 +224,7 @@ extension BarMetric {
         case .vo2Max:
             return MetricExplanation(summary: "Oura's estimated VO2 max, an age-adjusted cardiorespiratory fitness measure.", source: "Oura VO2 Max vo2_max", interpretation: "Higher is better. Oura says VO2 max reflects how well your heart, blood vessels, and muscles deliver oxygen during activity.", learnMoreURL: OuraHelpLink.cardioCapacity)
         case .optimalBedtime:
-            return MetricExplanation(summary: "Oura's recommended bedtime window based on sleep patterns that have worked well for you.", source: "Oura Sleep Time optimal_bedtime", interpretation: "Use it as guidance, not a strict rule. Oura says missing the window does not directly affect Sleep or Readiness Scores.", learnMoreURL: OuraHelpLink.bedtimeGuidance)
+            return MetricExplanation(summary: "Oura's Bedtime Guidance from the Sleep Time endpoint. It may be an exact optimal bedtime window, or a recommendation to shift earlier or later when Oura has no exact window.", source: "Oura Sleep Time optimal_bedtime / recommendation", interpretation: "Use it as guidance, not a strict rule. Oura says missing the window does not directly affect Sleep or Readiness Scores.", learnMoreURL: OuraHelpLink.bedtimeGuidance)
         case .sleepTimeRecommendation:
             return MetricExplanation(summary: "Oura's sleep-time recommendation category for whether to follow, move earlier, or move later than your current pattern.", source: "Oura Sleep Time recommendation", interpretation: "Oura's Bedtime Guidance is dynamic and uses recent sleep patterns and body signals rather than a manually edited target.", learnMoreURL: OuraHelpLink.bedtimeGuidance)
         case .bestSleepWindow:
