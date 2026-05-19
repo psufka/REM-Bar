@@ -3,7 +3,7 @@ import AppKit
 enum TrendWindowPlacement {
     @MainActor
     static func configure(_ window: NSWindow, autosaveName: String) {
-        window.level = .floating
+        window.level = .modalPanel
         window.collectionBehavior.insert(.moveToActiveSpace)
 
         if let savedFrame = savedFrame(for: autosaveName), isFrameUsable(savedFrame) {

@@ -234,7 +234,8 @@ struct MetricTrendView: View {
                     ForEach(displayedBestSleepBuckets) { bucket in
                         BarMark(
                             x: .value("Window", bucket.displayOrder),
-                            y: .value("Avg Sleep Score", bucket.averageScore),
+                            yStart: .value("Axis Label Clearance", bestSleepBarBaseline),
+                            yEnd: .value("Avg Sleep Score", bucket.averageScore),
                             width: .fixed(30))
                             .foregroundStyle(Color(nsColor: ColorThresholds.color(for: bucket.averageScore, metric: .sleepScore)))
                             .annotation(position: .top, alignment: .center, spacing: 2) {
@@ -357,6 +358,11 @@ struct MetricTrendView: View {
             return 0...1
         }
         return Double(first - 30)...Double(last + 30)
+    }
+
+    private var bestSleepBarBaseline: Double {
+        let range = bestSleepYDomain.upperBound - bestSleepYDomain.lowerBound
+        return bestSleepYDomain.lowerBound + max(range * 0.08, 1.5)
     }
 
     private var bestSleepChartWidth: CGFloat {
