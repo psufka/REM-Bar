@@ -192,7 +192,6 @@ struct MetricTrendView: View {
         HStack(spacing: 10) {
             trendStat("Best window", bestSleepBestBucket?.label ?? "?")
             trendStat("Avg Sleep Score", bestSleepBestBucket.map { "\(Int($0.averageScore.rounded()))" } ?? "?")
-            trendStat("Nights", bestSleepBestBucket.map { "\($0.nights)" } ?? "0")
         }
     }
 
