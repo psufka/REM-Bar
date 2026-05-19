@@ -12,6 +12,7 @@
 - Added a Best Sleep Window derived card with its average Sleep Score and a bucketed trend window.
 - Added a local Oura response cache so repeated refreshes reuse cached history and cached cards can render offline.
 - Added 180-day and 365-day trend lookback ranges.
+- Added 90-day, 180-day, and 365-day average windows in Settings, and made Best Sleep Window respect the selected average window.
 
 ## 0.1.5 - 2026-05-16
 

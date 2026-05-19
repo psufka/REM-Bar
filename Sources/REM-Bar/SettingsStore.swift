@@ -121,6 +121,9 @@ final class SettingsStore: ObservableObject {
         case seven = 7
         case fourteen = 14
         case thirty = 30
+        case ninety = 90
+        case oneEighty = 180
+        case year = 365
 
         var id: Int { rawValue }
         var dayCount: Int { rawValue }
@@ -135,6 +138,12 @@ final class SettingsStore: ObservableObject {
                 return "14 days"
             case .thirty:
                 return "30 days"
+            case .ninety:
+                return "90 days"
+            case .oneEighty:
+                return "180 days"
+            case .year:
+                return "365 days"
             }
         }
 

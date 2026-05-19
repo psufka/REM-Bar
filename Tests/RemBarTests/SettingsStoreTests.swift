@@ -90,6 +90,9 @@ final class SettingsStoreTests: XCTestCase {
         XCTAssertEqual(SettingsStore.AverageWindow.seven.averageLabel, "7-day avg")
         XCTAssertEqual(SettingsStore.AverageWindow.fourteen.averageLabel, "14-day avg")
         XCTAssertEqual(SettingsStore.AverageWindow.thirty.averageLabel, "30-day avg")
+        XCTAssertEqual(SettingsStore.AverageWindow.ninety.averageLabel, "90-day avg")
+        XCTAssertEqual(SettingsStore.AverageWindow.oneEighty.averageLabel, "180-day avg")
+        XCTAssertEqual(SettingsStore.AverageWindow.year.averageLabel, "365-day avg")
         XCTAssertEqual(SleepTarget.eight.label, "8:00")
         XCTAssertEqual(SleepTarget.eightFifteen.label, "8:15")
         XCTAssertEqual(SleepTarget.eightThirty.label, "8:30")
@@ -277,6 +280,15 @@ final class SettingsStoreTests: XCTestCase {
         XCTAssertTrue(window.contains("10:30"))
         XCTAssertEqual(series.baselineValue ?? 0, 90, accuracy: 0.1)
         XCTAssertFalse(BestSleepWindowCalculator.buckets(sleep: sleep, dailySleep: dailySleep).contains { $0.startMinute == 13 * 60 })
+
+        let shortWindowSnapshot = DashboardSnapshotBuilder.make(
+            dailySleep: dailySleep,
+            sleep: sleep,
+            readiness: [],
+            activity: [],
+            enabledMetrics: [.bestSleepWindow],
+            displayWindowDays: 3)
+        XCTAssertNil(shortWindowSnapshot.series(for: .bestSleepWindow).categoryValue)
     }
 
     func testSnapshotCarriesLatestSleepSyncedSummary() throws {

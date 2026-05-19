@@ -175,9 +175,6 @@ final class RefreshCoordinator: ObservableObject {
         if enabledMetrics.contains(.sleepDebt) {
             dayCount = max(dayCount, SleepDebtTrendCalculator.lookbackDays)
         }
-        if enabledMetrics.contains(.bestSleepWindow) {
-            dayCount = max(dayCount, 90)
-        }
         return dayCount
     }
 

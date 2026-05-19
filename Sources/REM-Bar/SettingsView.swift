@@ -183,7 +183,7 @@ struct SettingsView: View {
                             }
                             .labelsHidden()
                             .pickerStyle(.segmented)
-                            .frame(width: 300)
+                            .frame(width: 580)
                             Spacer(minLength: 0)
                         }
 

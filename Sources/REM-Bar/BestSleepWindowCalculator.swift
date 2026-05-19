@@ -20,15 +20,17 @@ enum BestSleepWindowCalculator {
     static func buckets(
         sleep: [Sleep],
         dailySleep: [DailySleep],
+        dayCount: Int? = nil,
         range: SleepDebtTrendRange? = nil,
         now: Date = Date())
         -> [BestSleepWindowBucket]
     {
         let sleepByDay = Dictionary(grouping: sleep, by: \.day)
         let dailySleepByDay = latestDailySleepByDay(dailySleep)
+        let includedDays = includedDays(from: sleepByDay.keys, dayCount: dayCount, range: range, now: now)
         var bucketScores: [Int: [Double]] = [:]
 
-        for day in sleepByDay.keys.sorted() where isDay(day, in: range, now: now) {
+        for day in sleepByDay.keys.sorted() where includedDays.contains(day) {
             guard let detail = preferredMainSleep(from: sleepByDay[day] ?? []),
                   let bedtimeStart = isoDate(from: detail.bedtimeStart),
                   let score = dailySleepByDay[day]?.score
@@ -56,11 +58,12 @@ enum BestSleepWindowCalculator {
         sleep: [Sleep],
         dailySleep: [DailySleep],
         minimumNights: Int = minimumNightsForCard,
+        dayCount: Int? = nil,
         range: SleepDebtTrendRange? = nil,
         now: Date = Date())
         -> BestSleepWindowBucket?
     {
-        buckets(sleep: sleep, dailySleep: dailySleep, range: range, now: now)
+        buckets(sleep: sleep, dailySleep: dailySleep, dayCount: dayCount, range: range, now: now)
             .filter { $0.nights >= minimumNights }
             .max {
                 if $0.averageScore == $1.averageScore {
@@ -95,6 +98,26 @@ enum BestSleepWindowCalculator {
             return true
         }
         return date >= startDate && date <= Calendar.current.startOfDay(for: now)
+    }
+
+    private static func includedDays(
+        from days: Dictionary<String, [Sleep]>.Keys,
+        dayCount: Int?,
+        range: SleepDebtTrendRange?,
+        now: Date)
+        -> Set<String>
+    {
+        if let dayCount,
+           let latestDate = days.compactMap({ dayFormatter.date(from: $0) }).max(),
+           let startDate = Calendar.current.date(byAdding: .day, value: -(dayCount - 1), to: latestDate)
+        {
+            return Set(days.filter { day in
+                guard let date = dayFormatter.date(from: day) else { return false }
+                return date >= startDate && date <= latestDate
+            })
+        }
+
+        return Set(days.filter { isDay($0, in: range, now: now) })
     }
 
     private static func bedtimeBucket(for date: Date) -> Int {

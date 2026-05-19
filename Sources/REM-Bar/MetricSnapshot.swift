@@ -267,7 +267,8 @@ enum DashboardSnapshotBuilder {
             if metric == .bestSleepWindow {
                 let bucket = BestSleepWindowCalculator.bestBucket(
                     sleep: sleep,
-                    dailySleep: dailySleep)
+                    dailySleep: dailySleep,
+                    dayCount: displayWindowDays)
                 return (metric, MetricSeries(
                     metric: metric,
                     points: [],
