@@ -162,6 +162,7 @@ struct MetricCardView: View {
 
 struct CategoricalMetricCardView: View {
     let series: MetricSeries
+    let averageWindow: SettingsStore.AverageWindow
     let iconStyle: IconStyle
     @State private var showingExplanation = false
 
@@ -246,7 +247,7 @@ struct CategoricalMetricCardView: View {
 
     private var detailText: String {
         if series.metric == .bestSleepWindow, let score = series.baselineValue {
-            let countText = series.sampleCount.map { " over \($0) night\($0 == 1 ? "" : "s")" } ?? ""
+            let countText = series.sampleCount.map { " from \($0) of last \(averageWindow.dayCount) night\(averageWindow.dayCount == 1 ? "" : "s")" } ?? ""
             return "Avg Sleep Score \(Int(score.rounded()))\(countText)"
         }
         return series.availabilityMessage ?? series.metric.categoricalDescription

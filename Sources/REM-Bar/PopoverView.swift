@@ -27,7 +27,10 @@ struct PopoverView: View {
                         ForEach(visibleMetrics) { metric in
                             let series = snapshot.series(for: metric)
                             if metric.isCategorical {
-                                CategoricalMetricCardView(series: series, iconStyle: iconStyle)
+                                CategoricalMetricCardView(
+                                    series: series,
+                                    averageWindow: averageWindow,
+                                    iconStyle: iconStyle)
                             } else {
                                 MetricCardView(
                                     series: series,
