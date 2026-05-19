@@ -275,6 +275,10 @@ struct MetricTrendView: View {
                 }
                 .chartYScale(domain: bestSleepYDomain)
                 .chartXScale(domain: bestSleepXDomain)
+                .chartPlotStyle { plotArea in
+                    plotArea
+                        .padding(.bottom, 24)
+                }
                 .frame(width: bestSleepChartWidth, height: 300)
             }
         }

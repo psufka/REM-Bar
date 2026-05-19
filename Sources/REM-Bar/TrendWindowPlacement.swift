@@ -18,9 +18,15 @@ enum TrendWindowPlacement {
     @MainActor
     static func bringToFront(_ window: NSWindow) {
         window.setFrame(visibleFrame(for: window.frame), display: false)
-        window.orderFrontRegardless()
-        window.makeKeyAndOrderFront(nil)
         NSApp.activate(ignoringOtherApps: true)
+        window.makeKeyAndOrderFront(nil)
+        window.orderFrontRegardless()
+
+        DispatchQueue.main.async {
+            NSApp.activate(ignoringOtherApps: true)
+            window.makeKeyAndOrderFront(nil)
+            window.orderFrontRegardless()
+        }
     }
 
     private static func center(_ window: NSWindow) {

@@ -246,7 +246,8 @@ struct CategoricalMetricCardView: View {
 
     private var detailText: String {
         if series.metric == .bestSleepWindow, let score = series.baselineValue {
-            return "Avg Sleep Score \(Int(score.rounded()))"
+            let countText = series.sampleCount.map { " over \($0) night\($0 == 1 ? "" : "s")" } ?? ""
+            return "Avg Sleep Score \(Int(score.rounded()))\(countText)"
         }
         return series.availabilityMessage ?? series.metric.categoricalDescription
     }

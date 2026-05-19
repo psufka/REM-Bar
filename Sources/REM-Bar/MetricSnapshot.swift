@@ -13,19 +13,22 @@ struct MetricSeries: Identifiable, Equatable {
     let categoryValue: String?
     let availabilityMessage: String?
     let baselineValue: Double?
+    let sampleCount: Int?
 
     init(
         metric: BarMetric,
         points: [MetricPoint],
         categoryValue: String? = nil,
         availabilityMessage: String? = nil,
-        baselineValue: Double? = nil)
+        baselineValue: Double? = nil,
+        sampleCount: Int? = nil)
     {
         self.metric = metric
         self.points = points
         self.categoryValue = categoryValue
         self.availabilityMessage = availabilityMessage
         self.baselineValue = baselineValue
+        self.sampleCount = sampleCount
     }
 
     var id: BarMetric { metric }
@@ -270,7 +273,8 @@ enum DashboardSnapshotBuilder {
                     points: [],
                     categoryValue: bucket?.label,
                     availabilityMessage: bucket == nil ? "Not enough sleep history" : unavailableMessage,
-                    baselineValue: bucket?.averageScore))
+                    baselineValue: bucket?.averageScore,
+                    sampleCount: bucket?.nights))
             }
             let baseline = metric == .cardiovascularAge ? personalInfo?.age.map(Double.init) : nil
             return (metric, MetricSeries(
