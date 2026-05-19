@@ -7,7 +7,13 @@
 [![MCP](https://img.shields.io/badge/MCP-bundled-16d3b4?style=flat-square)](#mcp-server)
 [![License: MIT](https://img.shields.io/badge/license-MIT-6e5aff?style=flat-square)](LICENSE)
 
-<img src="docs/rem-bar-screenshot.png" alt="REM-Bar menu-bar popover showing Oura metric cards" width="520" />
+<p>
+  <img src="docs/rem-bar-popover.png" alt="REM-Bar menu-bar popover showing configurable Oura Ring metric cards" width="520" />
+</p>
+
+<p>
+  <img src="docs/rem-bar-best-sleep-window-trend.png" alt="REM-Bar Best Sleep Window trend chart with selectable lookback ranges" width="760" />
+</p>
 
 Tiny native macOS 14+ menu-bar app for Oura Ring data. REM-Bar shows sleep, readiness, activity, recovery, SpO2, VO2 max, bedtime guidance, and related trends as configurable menu-bar cards. It also ships a small read-only MCP server so Claude Code, Codex, or any other MCP-capable LLM client can query the same Oura data locally.
 
@@ -146,7 +152,7 @@ open dist/REM-Bar.app
 Generate the signed Sparkle appcast for a release zip:
 
 ```bash
-./Scripts/make_appcast.sh dist/REM-Bar-v0.1.4.zip
+./Scripts/make_appcast.sh dist/REM-Bar-v0.1.6.zip
 ```
 
 The Sparkle private key is intentionally not stored in this repo. Release maintainers need it at `~/.rem-bar/sparkle-ed25519-private-key.txt`.
