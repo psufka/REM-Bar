@@ -280,7 +280,6 @@ struct MetricTrendView: View {
                 }
                 .chartXAxis {
                     AxisMarks(values: bestSleepChartBuckets.map { Double($0.displayOrder) }) { value in
-                        AxisGridLine()
                         AxisTick()
                         AxisValueLabel(anchor: .top) {
                             if let order = value.as(Double.self),
