@@ -14,18 +14,16 @@ struct MetricTrendStats: Equatable {
 final class MetricTrendWindowController {
     static let shared = MetricTrendWindowController()
 
+    private let autosaveName = "metric-trend"
     private var window: NSWindow?
 
     func show(metric: BarMetric) {
-        let sourceWindow = TrendWindowPlacement.currentSourceWindow(excluding: window)
         let content = MetricTrendView(metric: metric)
 
         if let window {
             window.title = "\(metric.label) Trend"
             window.contentViewController = NSHostingController(rootView: content)
-            TrendWindowPlacement.place(window, beside: sourceWindow)
-            window.makeKeyAndOrderFront(nil)
-            NSApp.activate(ignoringOtherApps: true)
+            TrendWindowPlacement.bringToFront(window)
             return
         }
 
@@ -37,9 +35,8 @@ final class MetricTrendWindowController {
         window.title = "\(metric.label) Trend"
         window.contentViewController = NSHostingController(rootView: content)
         window.isReleasedWhenClosed = false
-        TrendWindowPlacement.place(window, beside: sourceWindow)
-        window.makeKeyAndOrderFront(nil)
-        NSApp.activate(ignoringOtherApps: true)
+        TrendWindowPlacement.configure(window, autosaveName: autosaveName)
+        TrendWindowPlacement.bringToFront(window)
         self.window = window
     }
 }
@@ -54,7 +51,6 @@ struct MetricTrendView: View {
     @State private var hoveredPoint: MetricPoint?
     @State private var bestSleepRecords: [Sleep] = []
     @State private var bestSleepDailyScores: [DailySleep] = []
-    @State private var hoveredBestSleepBucket: BestSleepWindowBucket?
     @State private var isLoading = false
     @State private var errorMessage: String?
 
@@ -233,12 +229,6 @@ struct MetricTrendView: View {
 
     private var bestSleepWindowChart: some View {
         VStack(alignment: .leading, spacing: 8) {
-            Text(bestSleepHoverText)
-                .font(.caption.weight(.semibold))
-                .foregroundStyle(hoveredBestSleepBucket == nil ? .secondary : .primary)
-                .monospacedDigit()
-                .frame(height: 18, alignment: .leading)
-
             ScrollView(.horizontal) {
                 Chart {
                     ForEach(displayedBestSleepBuckets) { bucket in
@@ -246,7 +236,15 @@ struct MetricTrendView: View {
                             x: .value("Window", bucket.displayOrder),
                             y: .value("Avg Sleep Score", bucket.averageScore),
                             width: .fixed(30))
-                            .foregroundStyle(bestSleepBarColor(for: bucket))
+                            .foregroundStyle(Color(nsColor: ColorThresholds.color(for: bucket.averageScore, metric: .sleepScore)))
+                            .annotation(position: .top, alignment: .center, spacing: 2) {
+                                Text("\(Int(bucket.averageScore.rounded()))")
+                                    .font(.caption2.weight(.semibold))
+                                    .foregroundStyle(.secondary)
+                                    .monospacedDigit()
+                                    .lineLimit(1)
+                                    .minimumScaleFactor(0.75)
+                            }
                     }
                 }
                 .chartYAxis {
@@ -277,16 +275,6 @@ struct MetricTrendView: View {
                 }
                 .chartYScale(domain: bestSleepYDomain)
                 .chartXScale(domain: bestSleepXDomain)
-                .chartOverlay { proxy in
-                    GeometryReader { geometry in
-                        Rectangle()
-                            .fill(.clear)
-                            .contentShape(Rectangle())
-                            .onContinuousHover { phase in
-                                updateHoveredBestSleepBucket(phase: phase, proxy: proxy, geometry: geometry)
-                            }
-                    }
-                }
                 .frame(width: bestSleepChartWidth, height: 300)
             }
         }
@@ -371,13 +359,6 @@ struct MetricTrendView: View {
         max(640, CGFloat(displayedBestSleepBuckets.count) * 62)
     }
 
-    private var bestSleepHoverText: String {
-        guard let bucket = hoveredBestSleepBucket else {
-            return "Hover over a bedtime window for its average Sleep Score."
-        }
-        return "\(bucket.label): avg Sleep Score \(Int(bucket.averageScore.rounded())) from \(bucket.nights) night\(bucket.nights == 1 ? "" : "s")"
-    }
-
     private func hoverAnnotation(for point: MetricPoint) -> some View {
         VStack(spacing: 1) {
             Text(shortDateString(point.date))
@@ -414,43 +395,9 @@ struct MetricTrendView: View {
         hoveredPoint = nearestPoint(to: date)
     }
 
-    private func updateHoveredBestSleepBucket(phase: HoverPhase, proxy: ChartProxy, geometry: GeometryProxy) {
-        guard case let .active(location) = phase,
-              let plotFrame = proxy.plotFrame
-        else {
-            hoveredBestSleepBucket = nil
-            return
-        }
-
-        let frame = geometry[plotFrame]
-        guard frame.contains(location) else {
-            hoveredBestSleepBucket = nil
-            return
-        }
-
-        let x = location.x - frame.origin.x
-        guard let order: Double = proxy.value(atX: x) else {
-            hoveredBestSleepBucket = nil
-            return
-        }
-        hoveredBestSleepBucket = nearestBestSleepBucket(displayOrder: order)
-    }
-
-    private func bestSleepBarColor(for bucket: BestSleepWindowBucket) -> Color {
-        let baseColor = Color(nsColor: ColorThresholds.color(for: bucket.averageScore, metric: .sleepScore))
-        guard let hoveredBestSleepBucket else { return baseColor }
-        return hoveredBestSleepBucket.id == bucket.id ? baseColor : baseColor.opacity(0.38)
-    }
-
     private func bestSleepBucket(displayOrder: Double) -> BestSleepWindowBucket? {
         let roundedOrder = Int(displayOrder.rounded())
         return displayedBestSleepBuckets.first { $0.displayOrder == roundedOrder }
-    }
-
-    private func nearestBestSleepBucket(displayOrder: Double) -> BestSleepWindowBucket? {
-        displayedBestSleepBuckets.min {
-            abs(Double($0.displayOrder) - displayOrder) < abs(Double($1.displayOrder) - displayOrder)
-        }
     }
 
     private func compactWindowLabel(for bucket: BestSleepWindowBucket) -> String {

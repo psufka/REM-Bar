@@ -37,6 +37,7 @@ enum BestSleepWindowCalculator {
             }
 
             let bucket = bedtimeBucket(for: bedtimeStart)
+            guard isPlausibleBedtimeBucket(bucket) else { continue }
             bucketScores[bucket, default: []].append(Double(score))
         }
 
@@ -100,6 +101,10 @@ enum BestSleepWindowCalculator {
         let components = Calendar.current.dateComponents([.hour, .minute], from: date)
         let minuteOfDay = (components.hour ?? 0) * 60 + (components.minute ?? 0)
         return (minuteOfDay / 30) * 30
+    }
+
+    private static func isPlausibleBedtimeBucket(_ minuteOfDay: Int) -> Bool {
+        minuteOfDay >= 18 * 60 || minuteOfDay <= 6 * 60
     }
 
     private static func formattedClockRange(startMinute: Int) -> String {

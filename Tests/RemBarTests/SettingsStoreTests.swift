@@ -246,7 +246,8 @@ final class SettingsStoreTests: XCTestCase {
             { "id": "sleep-3", "day": "2026-05-12", "type": "long_sleep", "bedtime_start": "2026-05-11T22:25:00-05:00", "bedtime_end": "2026-05-12T06:15:00-05:00", "total_sleep_duration": 27000 },
             { "id": "sleep-4", "day": "2026-05-13", "type": "long_sleep", "bedtime_start": "2026-05-12T23:10:00-05:00", "bedtime_end": "2026-05-13T06:20:00-05:00", "total_sleep_duration": 25200 },
             { "id": "sleep-5", "day": "2026-05-14", "type": "long_sleep", "bedtime_start": "2026-05-13T23:12:00-05:00", "bedtime_end": "2026-05-14T06:10:00-05:00", "total_sleep_duration": 25200 },
-            { "id": "sleep-6", "day": "2026-05-15", "type": "long_sleep", "bedtime_start": "2026-05-14T23:18:00-05:00", "bedtime_end": "2026-05-15T06:00:00-05:00", "total_sleep_duration": 25200 }
+            { "id": "sleep-6", "day": "2026-05-15", "type": "long_sleep", "bedtime_start": "2026-05-14T23:18:00-05:00", "bedtime_end": "2026-05-15T06:00:00-05:00", "total_sleep_duration": 25200 },
+            { "id": "sleep-7", "day": "2026-05-16", "type": "long_sleep", "bedtime_start": "2026-05-15T13:00:00-05:00", "bedtime_end": "2026-05-15T19:00:00-05:00", "total_sleep_duration": 21600 }
           ]
         }
         """.utf8)).data
@@ -258,7 +259,8 @@ final class SettingsStoreTests: XCTestCase {
             { "id": "daily-sleep-3", "day": "2026-05-12", "score": 89 },
             { "id": "daily-sleep-4", "day": "2026-05-13", "score": 76 },
             { "id": "daily-sleep-5", "day": "2026-05-14", "score": 78 },
-            { "id": "daily-sleep-6", "day": "2026-05-15", "score": 77 }
+            { "id": "daily-sleep-6", "day": "2026-05-15", "score": 77 },
+            { "id": "daily-sleep-7", "day": "2026-05-16", "score": 100 }
           ]
         }
         """.utf8)).data
@@ -274,6 +276,7 @@ final class SettingsStoreTests: XCTestCase {
         XCTAssertTrue(window.contains("10:00"))
         XCTAssertTrue(window.contains("10:30"))
         XCTAssertEqual(series.baselineValue ?? 0, 90, accuracy: 0.1)
+        XCTAssertFalse(BestSleepWindowCalculator.buckets(sleep: sleep, dailySleep: dailySleep).contains { $0.startMinute == 13 * 60 })
     }
 
     func testSnapshotCarriesLatestSleepSyncedSummary() throws {

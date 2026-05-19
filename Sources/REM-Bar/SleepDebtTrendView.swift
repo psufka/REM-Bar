@@ -119,17 +119,15 @@ enum SleepDebtTrendCalculator {
 final class SleepDebtTrendWindowController {
     static let shared = SleepDebtTrendWindowController()
 
+    private let autosaveName = "sleep-debt-trend"
     private var window: NSWindow?
 
     func show(sleepTarget: SleepTarget) {
-        let sourceWindow = TrendWindowPlacement.currentSourceWindow(excluding: window)
         let content = SleepDebtTrendView(sleepTarget: sleepTarget)
 
         if let window {
             window.contentViewController = NSHostingController(rootView: content)
-            TrendWindowPlacement.place(window, beside: sourceWindow)
-            window.makeKeyAndOrderFront(nil)
-            NSApp.activate(ignoringOtherApps: true)
+            TrendWindowPlacement.bringToFront(window)
             return
         }
 
@@ -141,9 +139,8 @@ final class SleepDebtTrendWindowController {
         window.title = "Sleep Debt Trend"
         window.contentViewController = NSHostingController(rootView: content)
         window.isReleasedWhenClosed = false
-        TrendWindowPlacement.place(window, beside: sourceWindow)
-        window.makeKeyAndOrderFront(nil)
-        NSApp.activate(ignoringOtherApps: true)
+        TrendWindowPlacement.configure(window, autosaveName: autosaveName)
+        TrendWindowPlacement.bringToFront(window)
         self.window = window
     }
 }
