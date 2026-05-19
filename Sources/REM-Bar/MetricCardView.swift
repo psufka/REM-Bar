@@ -49,7 +49,7 @@ struct MetricCardView: View {
     private var deltaColor: Color {
         guard let delta = series.delta else { return .secondary }
         if delta == 0 { return .secondary }
-        if series.metric == .rhr || series.metric == .sleepDebt {
+        if series.metric == .rhr || series.metric == .sleepDebt || series.metric == .recoveryCost {
             return delta < 0 ? .green : .red
         }
         return delta > 0 ? .green : .red

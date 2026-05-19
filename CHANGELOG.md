@@ -8,6 +8,8 @@
 - Expanded metric info popovers with Oura-aligned explanations and Oura Help links.
 - Added a Naps display setting, defaulting to Oura-like nap inclusion for sleep totals, stages, efficiency, and sleep debt.
 - Bumped the local development version to 0.1.6.
+- Added REM %, Deep %, and Light % cards derived from Oura sleep-stage durations.
+- Added Recovery Cost and Best Sleep Window derived cards.
 
 ## 0.1.5 - 2026-05-16
 

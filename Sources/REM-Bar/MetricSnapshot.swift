@@ -144,6 +144,11 @@ enum DashboardSnapshotBuilder {
         let sleepDebtByDay = Dictionary(uniqueKeysWithValues: SleepDebtTrendCalculator
             .points(from: sleep, sleepTargetMinutes: sleepTargetMinutes, sleepAggregationMode: sleepAggregationMode)
             .map { ($0.id, $0.minutes) })
+        let recoveryCostByDay = recoveryCostByDay(
+            sleepByDay: sleepByDay,
+            readinessByDay: readinessByDay,
+            sleepTargetMinutes: sleepTargetMinutes,
+            sleepAggregationMode: sleepAggregationMode)
 
         func point(day: String, value: Double?) -> MetricPoint? {
             guard let value, let date = dateFormatter.date(from: day) else { return nil }
@@ -161,14 +166,20 @@ enum DashboardSnapshotBuilder {
                     return point(day: day, value: dailySleepByDay[day]?.score.map(Double.init))
                 case .rem:
                     return point(day: day, value: sleepDurationMinutes(from: details, aggregation: sleepAggregationMode, value: \.remSleepDuration))
+                case .remPercentage:
+                    return point(day: day, value: sleepStagePercentage(from: details, aggregation: sleepAggregationMode, value: \.remSleepDuration))
                 case .deepSleep:
                     return point(day: day, value: sleepDurationMinutes(from: details, aggregation: sleepAggregationMode, value: \.deepSleepDuration))
+                case .deepSleepPercentage:
+                    return point(day: day, value: sleepStagePercentage(from: details, aggregation: sleepAggregationMode, value: \.deepSleepDuration))
                 case .totalSleep:
                     return point(day: day, value: totalSleepMinutes(from: details, aggregation: sleepAggregationMode))
                 case .sleepDebt:
                     return point(day: day, value: sleepDebtByDay[day])
                 case .lightSleep:
                     return point(day: day, value: sleepDurationMinutes(from: details, aggregation: sleepAggregationMode, value: \.lightSleepDuration))
+                case .lightSleepPercentage:
+                    return point(day: day, value: sleepStagePercentage(from: details, aggregation: sleepAggregationMode, value: \.lightSleepDuration))
                 case .awakeTime:
                     return point(day: day, value: sleepDurationMinutes(from: details, aggregation: sleepAggregationMode, value: \.awakeTime))
                 case .timeInBed:
@@ -198,6 +209,8 @@ enum DashboardSnapshotBuilder {
                     return point(day: day, value: readinessByDay[day]?.temperatureDeviation)
                 case .sleepEfficiency:
                     return point(day: day, value: sleepEfficiency(from: details, aggregation: sleepAggregationMode))
+                case .recoveryCost:
+                    return point(day: day, value: recoveryCostByDay[day])
                 case .dailyStress:
                     return nil
                 case .resilience:
@@ -210,7 +223,7 @@ enum DashboardSnapshotBuilder {
                     return point(day: day, value: spo2ByDay[day]?.breathingDisturbanceIndex.map(Double.init))
                 case .vo2Max:
                     return point(day: day, value: vo2MaxByDay[day]?.vo2Max)
-                case .optimalBedtime, .sleepTimeRecommendation:
+                case .optimalBedtime, .sleepTimeRecommendation, .bestSleepWindow:
                     return nil
                 }
             }
@@ -255,11 +268,25 @@ enum DashboardSnapshotBuilder {
                     categoryValue: recommendation,
                     availabilityMessage: unavailableMessage))
             }
+            if metric == .bestSleepWindow {
+                let window = bestSleepWindow(
+                    sleepByDay: sleepByDay,
+                    dailySleepByDay: dailySleepByDay,
+                    readinessByDay: readinessByDay)
+                return (metric, MetricSeries(
+                    metric: metric,
+                    points: [],
+                    categoryValue: window,
+                    availabilityMessage: window == nil ? "Not enough sleep history" : unavailableMessage))
+            }
             let baseline = metric == .cardiovascularAge ? personalInfo?.age.map(Double.init) : nil
+            let derivedAvailability = metric == .recoveryCost && sorted.isEmpty
+                ? "Not enough short-sleep data"
+                : unavailableMessage
             return (metric, MetricSeries(
                 metric: metric,
                 points: sorted,
-                availabilityMessage: unavailableMessage,
+                availabilityMessage: derivedAvailability,
                 baselineValue: baseline))
         }
 
@@ -305,7 +332,7 @@ enum DashboardSnapshotBuilder {
              .optimalBedtime where sleepTime.isEmpty,
              .sleepTimeRecommendation where sleepTime.isEmpty:
             return "Not available on your ring"
-        case .sleepScore, .rem, .deepSleep, .totalSleep, .sleepDebt, .lightSleep, .awakeTime, .timeInBed, .sleepLatency, .averageBreath, .hrv, .rhr, .readiness, .activity, .hrvBalance, .sleepBalance, .sleepRegularity, .bodyTemperatureDeviation, .sleepEfficiency, .dailyStress, .resilience, .cardiovascularAge, .averageSpO2, .breathingDisturbance, .vo2Max, .optimalBedtime, .sleepTimeRecommendation:
+        case .sleepScore, .rem, .remPercentage, .deepSleep, .deepSleepPercentage, .totalSleep, .sleepDebt, .lightSleep, .lightSleepPercentage, .awakeTime, .timeInBed, .sleepLatency, .averageBreath, .hrv, .rhr, .readiness, .activity, .hrvBalance, .sleepBalance, .sleepRegularity, .bodyTemperatureDeviation, .sleepEfficiency, .recoveryCost, .dailyStress, .resilience, .cardiovascularAge, .averageSpO2, .breathingDisturbance, .vo2Max, .optimalBedtime, .sleepTimeRecommendation, .bestSleepWindow:
             return nil
         }
     }
@@ -345,6 +372,21 @@ enum DashboardSnapshotBuilder {
         sleepDurationMinutes(from: details, aggregation: aggregation, value: \.totalSleepDuration)
     }
 
+    private static func sleepStagePercentage(
+        from details: [Sleep],
+        aggregation: SleepAggregationMode,
+        value keyPath: KeyPath<Sleep, Int?>)
+        -> Double?
+    {
+        guard let stageMinutes = sleepDurationMinutes(from: details, aggregation: aggregation, value: keyPath),
+              let totalMinutes = totalSleepMinutes(from: details, aggregation: aggregation),
+              totalMinutes > 0
+        else {
+            return nil
+        }
+        return stageMinutes / totalMinutes * 100.0
+    }
+
     private static func sleepEfficiency(from details: [Sleep], aggregation: SleepAggregationMode) -> Double? {
         switch aggregation {
         case .includeNaps:
@@ -358,6 +400,69 @@ enum DashboardSnapshotBuilder {
         case .mainSleepOnly:
             return preferredSleepDetail(from: details)?.efficiency.map(Double.init)
         }
+    }
+
+    private static func recoveryCostByDay(
+        sleepByDay: [String: [Sleep]],
+        readinessByDay: [String: DailyReadiness],
+        sleepTargetMinutes: Int,
+        sleepAggregationMode: SleepAggregationMode)
+        -> [String: Double]
+    {
+        let shortSleepCutoff = Double(sleepTargetMinutes - 45)
+        let records = sleepByDay.keys.sorted().compactMap { day -> (day: String, sleepMinutes: Double, readiness: Double)? in
+            guard let sleepMinutes = totalSleepMinutes(from: sleepByDay[day] ?? [], aggregation: sleepAggregationMode),
+                  let readiness = readinessByDay[day]?.score.map(Double.init)
+            else {
+                return nil
+            }
+            return (day, sleepMinutes, readiness)
+        }
+        let baselineScores = records
+            .filter { $0.sleepMinutes >= shortSleepCutoff }
+            .map(\.readiness)
+        guard !baselineScores.isEmpty else { return [:] }
+        let baseline = baselineScores.reduce(0, +) / Double(baselineScores.count)
+        return Dictionary(uniqueKeysWithValues: records.compactMap { record in
+            guard record.sleepMinutes < shortSleepCutoff else { return nil }
+            return (record.day, max(0, baseline - record.readiness))
+        })
+    }
+
+    private static func bestSleepWindow(
+        sleepByDay: [String: [Sleep]],
+        dailySleepByDay: [String: DailySleep],
+        readinessByDay: [String: DailyReadiness])
+        -> String?
+    {
+        var bucketScores: [Int: [Double]] = [:]
+        for day in sleepByDay.keys.sorted() {
+            guard let detail = preferredSleepDetail(from: sleepByDay[day] ?? []),
+                  detail.type?.lowercased() == "long_sleep",
+                  let bedtimeStart = isoDate(from: detail.bedtimeStart),
+                  let score = combinedOutcomeScore(
+                    sleepScore: dailySleepByDay[day]?.score,
+                    readinessScore: readinessByDay[day]?.score)
+            else {
+                continue
+            }
+            let bucket = bedtimeBucket(for: bedtimeStart)
+            bucketScores[bucket, default: []].append(score)
+        }
+        let candidates = bucketScores
+            .filter { $0.value.count >= 3 }
+            .map { bucket, scores in
+                (bucket: bucket, average: scores.reduce(0, +) / Double(scores.count), count: scores.count)
+            }
+        guard let best = candidates.max(by: { lhs, rhs in
+            if lhs.average == rhs.average {
+                return lhs.count < rhs.count
+            }
+            return lhs.average < rhs.average
+        }) else {
+            return nil
+        }
+        return formattedClockRange(startMinute: best.bucket)
     }
 
     private static func latestSleepSummary(from sleep: [Sleep]) -> LatestSleepSummary? {
@@ -400,6 +505,38 @@ enum DashboardSnapshotBuilder {
         dateFormatter.locale = Locale(identifier: "en_US_POSIX")
         dateFormatter.dateFormat = "yyyy-MM-dd"
         return dateFormatter.date(from: day)
+    }
+
+    private static func combinedOutcomeScore(sleepScore: Int?, readinessScore: Int?) -> Double? {
+        let scores = [sleepScore, readinessScore].compactMap { $0.map(Double.init) }
+        guard !scores.isEmpty else { return nil }
+        return scores.reduce(0, +) / Double(scores.count)
+    }
+
+    private static func bedtimeBucket(for date: Date) -> Int {
+        let components = Calendar.current.dateComponents([.hour, .minute], from: date)
+        let minuteOfDay = (components.hour ?? 0) * 60 + (components.minute ?? 0)
+        return (minuteOfDay / 30) * 30
+    }
+
+    private static func formattedClockRange(startMinute: Int) -> String {
+        let endMinute = (startMinute + 30) % (24 * 60)
+        return "\(formattedClockMinute(startMinute))-\(formattedClockMinute(endMinute))"
+    }
+
+    private static func formattedClockMinute(_ minuteOfDay: Int) -> String {
+        var components = DateComponents()
+        components.calendar = Calendar(identifier: .gregorian)
+        components.year = 2000
+        components.month = 1
+        components.day = 1
+        components.hour = minuteOfDay / 60
+        components.minute = minuteOfDay % 60
+        let date = components.date ?? Date(timeIntervalSince1970: 0)
+        let formatter = DateFormatter()
+        formatter.locale = .current
+        formatter.setLocalizedDateFormatFromTemplate("h:mm a")
+        return formatter.string(from: date)
     }
 
     private static func isoDate(from string: String?) -> Date? {

@@ -326,13 +326,24 @@ struct MetricTrendView: View {
                 readiness: [],
                 activity: [],
                 enabledMetrics: enabledMetrics)
-        case .rem, .deepSleep, .totalSleep, .lightSleep, .awakeTime, .timeInBed, .sleepLatency, .averageBreath, .hrv, .rhr, .sleepEfficiency:
+        case .rem, .remPercentage, .deepSleep, .deepSleepPercentage, .totalSleep, .lightSleep, .lightSleepPercentage, .awakeTime, .timeInBed, .sleepLatency, .averageBreath, .hrv, .rhr, .sleepEfficiency:
             let sleep = try await client.sleep(startDate: startDate, endDate: endDate).data
             snapshot = DashboardSnapshotBuilder.make(
                 dailySleep: [],
                 sleep: sleep,
                 readiness: [],
                 activity: [],
+                sleepAggregationMode: settings.sleepAggregationMode,
+                enabledMetrics: enabledMetrics)
+        case .recoveryCost:
+            async let sleep = client.sleep(startDate: startDate, endDate: endDate).data
+            async let readiness = client.dailyReadiness(startDate: startDate, endDate: endDate).data
+            snapshot = DashboardSnapshotBuilder.make(
+                dailySleep: [],
+                sleep: try await sleep,
+                readiness: try await readiness,
+                activity: [],
+                sleepTargetMinutes: settings.sleepTarget.minutes,
                 sleepAggregationMode: settings.sleepAggregationMode,
                 enabledMetrics: enabledMetrics)
         case .readiness, .hrvBalance, .sleepBalance, .sleepRegularity, .bodyTemperatureDeviation:
@@ -380,7 +391,7 @@ struct MetricTrendView: View {
                 activity: [],
                 vo2Max: vo2Max,
                 enabledMetrics: enabledMetrics)
-        case .sleepDebt, .dailyStress, .resilience, .optimalBedtime, .sleepTimeRecommendation:
+        case .sleepDebt, .dailyStress, .resilience, .optimalBedtime, .sleepTimeRecommendation, .bestSleepWindow:
             return MetricSeries(metric: metric, points: [], availabilityMessage: "Trend not available for this card")
         }
         return snapshot.series(for: metric)

@@ -36,9 +36,17 @@ enum ColorThresholds {
             if value >= 90 { return .systemGreen }
             if value >= 60 { return .systemOrange }
             return .systemRed
+        case .remPercentage:
+            if value >= 20 { return .systemGreen }
+            if value >= 15 { return .systemOrange }
+            return .systemRed
         case .deepSleep:
             if value >= 90 { return .systemGreen }
             if value >= 60 { return .systemOrange }
+            return .systemRed
+        case .deepSleepPercentage:
+            if value >= 15 { return .systemGreen }
+            if value >= 10 { return .systemOrange }
             return .systemRed
         case .totalSleep:
             if value >= 420 { return .systemGreen }
@@ -51,6 +59,10 @@ enum ColorThresholds {
         case .lightSleep:
             if value >= 180 { return .systemGreen }
             if value >= 120 { return .systemOrange }
+            return .systemRed
+        case .lightSleepPercentage:
+            if value >= 45 && value <= 60 { return .systemGreen }
+            if value >= 35 && value <= 70 { return .systemOrange }
             return .systemRed
         case .awakeTime:
             if value <= 45 { return .systemGreen }
@@ -85,6 +97,10 @@ enum ColorThresholds {
             if value >= 85 { return .systemGreen }
             if value >= 75 { return .systemOrange }
             return .systemRed
+        case .recoveryCost:
+            if value <= 3 { return .systemGreen }
+            if value <= 8 { return .systemOrange }
+            return .systemRed
         case .hrvBalance, .sleepBalance, .sleepRegularity:
             return color(for: value)
         case .resilience:
@@ -109,7 +125,7 @@ enum ColorThresholds {
             if value >= 40 { return .systemGreen }
             if value >= 30 { return .systemOrange }
             return .systemRed
-        case .dailyStress, .optimalBedtime, .sleepTimeRecommendation:
+        case .dailyStress, .optimalBedtime, .sleepTimeRecommendation, .bestSleepWindow:
             return .systemOrange
         }
     }
@@ -161,9 +177,9 @@ enum ColorThresholds {
             default:
                 return .systemOrange
             }
-        case .optimalBedtime:
+        case .optimalBedtime, .bestSleepWindow:
             return .systemGreen
-        case .sleepScore, .rem, .deepSleep, .totalSleep, .sleepDebt, .lightSleep, .awakeTime, .timeInBed, .sleepLatency, .averageBreath, .hrv, .rhr, .readiness, .activity, .hrvBalance, .sleepBalance, .sleepRegularity, .bodyTemperatureDeviation, .sleepEfficiency, .cardiovascularAge, .averageSpO2, .breathingDisturbance, .vo2Max:
+        case .sleepScore, .rem, .remPercentage, .deepSleep, .deepSleepPercentage, .totalSleep, .sleepDebt, .lightSleep, .lightSleepPercentage, .awakeTime, .timeInBed, .sleepLatency, .averageBreath, .hrv, .rhr, .readiness, .activity, .hrvBalance, .sleepBalance, .sleepRegularity, .bodyTemperatureDeviation, .sleepEfficiency, .recoveryCost, .cardiovascularAge, .averageSpO2, .breathingDisturbance, .vo2Max:
             return .systemRed
         }
     }

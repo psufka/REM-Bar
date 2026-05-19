@@ -111,6 +111,8 @@ final class SettingsStoreTests: XCTestCase {
         XCTAssertEqual(BarMetric.rem.formattedValue(94), "1:34")
         XCTAssertEqual(BarMetric.sleepDebt.formattedValue(73), "1:13")
         XCTAssertEqual(BarMetric.sleepLatency.formattedValue(9), "0:09")
+        XCTAssertEqual(BarMetric.remPercentage.formattedValue(23), "23%")
+        XCTAssertEqual(BarMetric.recoveryCost.formattedValue(7), "7pts")
         XCTAssertEqual(BarMetric.totalSleep.formattedDelta(-32), "-0:32")
     }
 
@@ -185,6 +187,153 @@ final class SettingsStoreTests: XCTestCase {
         XCTAssertEqual(mainOnlySnapshot.series(for: .lightSleep).currentValue, 230)
         XCTAssertEqual(mainOnlySnapshot.series(for: .sleepEfficiency).currentValue, 86)
         XCTAssertEqual(mainOnlySnapshot.series(for: .sleepLatency).currentValue, 10)
+    }
+
+    func testDerivedSleepPercentageCardsUseSelectedNapMode() throws {
+        let sleep = try JSONDecoder().decode(OuraCollection<Sleep>.self, from: Data("""
+        {
+          "data": [
+            {
+              "id": "sleep-detail-2026-05-12",
+              "day": "2026-05-12",
+              "type": "long_sleep",
+              "total_sleep_duration": 21600,
+              "rem_sleep_duration": 4320,
+              "deep_sleep_duration": 3240,
+              "light_sleep_duration": 14040
+            },
+            {
+              "id": "nap-2026-05-12",
+              "day": "2026-05-12",
+              "type": "sleep",
+              "total_sleep_duration": 3600,
+              "rem_sleep_duration": 1440,
+              "deep_sleep_duration": 360,
+              "light_sleep_duration": 1800
+            }
+          ]
+        }
+        """.utf8)).data
+
+        let includeNaps = DashboardSnapshotBuilder.make(
+            dailySleep: [],
+            sleep: sleep,
+            readiness: [],
+            activity: [],
+            enabledMetrics: [.remPercentage, .deepSleepPercentage, .lightSleepPercentage])
+        let mainSleepOnly = DashboardSnapshotBuilder.make(
+            dailySleep: [],
+            sleep: sleep,
+            readiness: [],
+            activity: [],
+            sleepAggregationMode: .mainSleepOnly,
+            enabledMetrics: [.remPercentage, .deepSleepPercentage, .lightSleepPercentage])
+
+        XCTAssertEqual(includeNaps.series(for: .remPercentage).currentValue ?? 0, 22.9, accuracy: 0.1)
+        XCTAssertEqual(includeNaps.series(for: .deepSleepPercentage).currentValue ?? 0, 14.3, accuracy: 0.1)
+        XCTAssertEqual(includeNaps.series(for: .lightSleepPercentage).currentValue ?? 0, 62.9, accuracy: 0.1)
+
+        XCTAssertEqual(mainSleepOnly.series(for: .remPercentage).currentValue ?? 0, 20, accuracy: 0.1)
+        XCTAssertEqual(mainSleepOnly.series(for: .deepSleepPercentage).currentValue ?? 0, 15, accuracy: 0.1)
+        XCTAssertEqual(mainSleepOnly.series(for: .lightSleepPercentage).currentValue ?? 0, 65, accuracy: 0.1)
+    }
+
+    func testRecoveryCostUsesReadinessDeficitAfterShortSleep() throws {
+        let sleep = try JSONDecoder().decode(OuraCollection<Sleep>.self, from: Data("""
+        {
+          "data": [
+            {
+              "id": "sleep-detail-2026-05-10",
+              "day": "2026-05-10",
+              "type": "long_sleep",
+              "total_sleep_duration": 28800
+            },
+            {
+              "id": "sleep-detail-2026-05-11",
+              "day": "2026-05-11",
+              "type": "long_sleep",
+              "total_sleep_duration": 27300
+            },
+            {
+              "id": "sleep-detail-2026-05-12",
+              "day": "2026-05-12",
+              "type": "long_sleep",
+              "total_sleep_duration": 23400
+            }
+          ]
+        }
+        """.utf8)).data
+        let readiness = try JSONDecoder().decode(OuraCollection<DailyReadiness>.self, from: Data("""
+        {
+          "data": [
+            { "id": "readiness-2026-05-10", "day": "2026-05-10", "score": 86 },
+            { "id": "readiness-2026-05-11", "day": "2026-05-11", "score": 84 },
+            { "id": "readiness-2026-05-12", "day": "2026-05-12", "score": 74 }
+          ]
+        }
+        """.utf8)).data
+
+        let snapshot = DashboardSnapshotBuilder.make(
+            dailySleep: [],
+            sleep: sleep,
+            readiness: readiness,
+            activity: [],
+            sleepTargetMinutes: 480,
+            enabledMetrics: [.recoveryCost])
+
+        let series = snapshot.series(for: .recoveryCost)
+        XCTAssertEqual(series.points.map(\.id), ["2026-05-12"])
+        XCTAssertEqual(series.currentValue ?? 0, 11, accuracy: 0.1)
+    }
+
+    func testBestSleepWindowUsesBestRecentBedtimeBucket() throws {
+        let sleep = try JSONDecoder().decode(OuraCollection<Sleep>.self, from: Data("""
+        {
+          "data": [
+            { "id": "sleep-1", "day": "2026-05-10", "type": "long_sleep", "bedtime_start": "2026-05-09T22:05:00-05:00", "bedtime_end": "2026-05-10T06:00:00-05:00", "total_sleep_duration": 27000 },
+            { "id": "sleep-2", "day": "2026-05-11", "type": "long_sleep", "bedtime_start": "2026-05-10T22:12:00-05:00", "bedtime_end": "2026-05-11T06:05:00-05:00", "total_sleep_duration": 27000 },
+            { "id": "sleep-3", "day": "2026-05-12", "type": "long_sleep", "bedtime_start": "2026-05-11T22:25:00-05:00", "bedtime_end": "2026-05-12T06:15:00-05:00", "total_sleep_duration": 27000 },
+            { "id": "sleep-4", "day": "2026-05-13", "type": "long_sleep", "bedtime_start": "2026-05-12T23:10:00-05:00", "bedtime_end": "2026-05-13T06:20:00-05:00", "total_sleep_duration": 25200 },
+            { "id": "sleep-5", "day": "2026-05-14", "type": "long_sleep", "bedtime_start": "2026-05-13T23:12:00-05:00", "bedtime_end": "2026-05-14T06:10:00-05:00", "total_sleep_duration": 25200 },
+            { "id": "sleep-6", "day": "2026-05-15", "type": "long_sleep", "bedtime_start": "2026-05-14T23:18:00-05:00", "bedtime_end": "2026-05-15T06:00:00-05:00", "total_sleep_duration": 25200 }
+          ]
+        }
+        """.utf8)).data
+        let dailySleep = try JSONDecoder().decode(OuraCollection<DailySleep>.self, from: Data("""
+        {
+          "data": [
+            { "id": "daily-sleep-1", "day": "2026-05-10", "score": 91 },
+            { "id": "daily-sleep-2", "day": "2026-05-11", "score": 90 },
+            { "id": "daily-sleep-3", "day": "2026-05-12", "score": 89 },
+            { "id": "daily-sleep-4", "day": "2026-05-13", "score": 76 },
+            { "id": "daily-sleep-5", "day": "2026-05-14", "score": 78 },
+            { "id": "daily-sleep-6", "day": "2026-05-15", "score": 77 }
+          ]
+        }
+        """.utf8)).data
+        let readiness = try JSONDecoder().decode(OuraCollection<DailyReadiness>.self, from: Data("""
+        {
+          "data": [
+            { "id": "readiness-1", "day": "2026-05-10", "score": 88 },
+            { "id": "readiness-2", "day": "2026-05-11", "score": 87 },
+            { "id": "readiness-3", "day": "2026-05-12", "score": 89 },
+            { "id": "readiness-4", "day": "2026-05-13", "score": 74 },
+            { "id": "readiness-5", "day": "2026-05-14", "score": 76 },
+            { "id": "readiness-6", "day": "2026-05-15", "score": 75 }
+          ]
+        }
+        """.utf8)).data
+
+        let snapshot = DashboardSnapshotBuilder.make(
+            dailySleep: dailySleep,
+            sleep: sleep,
+            readiness: readiness,
+            activity: [],
+            enabledMetrics: [.bestSleepWindow])
+
+        let window = try XCTUnwrap(snapshot.series(for: .bestSleepWindow).categoryValue)
+        XCTAssertTrue(window.contains("10:00"))
+        XCTAssertTrue(window.contains("10:30"))
     }
 
     func testSnapshotCarriesLatestSleepSyncedSummary() throws {
@@ -322,7 +471,9 @@ final class SettingsStoreTests: XCTestCase {
 
         XCTAssertFalse(store.enabledMetrics.contains(.readiness))
         XCTAssertEqual(store.orderedEnabledMetrics, SettingsStore.defaultMetricOrder.filter { $0 != .readiness })
-        XCTAssertEqual(Array(store.orderedInactiveMetrics.prefix(3)), [.activity, .readiness, .lightSleep])
+        XCTAssertLessThan(
+            try XCTUnwrap(store.orderedInactiveMetrics.firstIndex(of: .readiness)),
+            try XCTUnwrap(store.orderedInactiveMetrics.firstIndex(of: .lightSleep)))
     }
 
     func testCannotMoveOnlyActiveMetricToInactive() {

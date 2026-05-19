@@ -101,7 +101,7 @@ oura_enhanced_tag
 
 - Native SwiftUI menu-bar app with no Dock icon.
 - Configurable menu-bar metric and refresh cadence.
-- Twenty-seven Oura metric cards with persisted Active/Inactive state and drag ordering.
+- Thirty-two Oura and REM-Bar metric cards with persisted Active/Inactive state and drag ordering.
 - Celsius/Fahrenheit display setting for temperature deviation metrics.
 - Menu-bar icon-only mode, colored/black-and-white icon mode, and trend arrows for numeric metrics.
 - Sleep duration metrics formatted as hours and minutes.

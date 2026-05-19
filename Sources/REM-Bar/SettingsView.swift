@@ -603,6 +603,10 @@ struct SettingsView: View {
             return 0...3
         case .averageSpO2:
             return 70...100
+        case .remPercentage, .deepSleepPercentage:
+            return 0...60
+        case .recoveryCost:
+            return 0...30
         case .vo2Max:
             return 10...80
         case .rem, .deepSleep, .totalSleep, .sleepDebt, .lightSleep, .awakeTime, .sleepLatency:
@@ -613,7 +617,7 @@ struct SettingsView: View {
             return 0...200
         case .sleepScore, .readiness, .activity, .hrvBalance, .sleepBalance, .sleepRegularity, .sleepEfficiency, .breathingDisturbance:
             return 0...100
-        case .timeInBed, .averageBreath, .dailyStress, .resilience, .cardiovascularAge, .optimalBedtime, .sleepTimeRecommendation:
+        case .lightSleepPercentage, .timeInBed, .averageBreath, .dailyStress, .resilience, .cardiovascularAge, .optimalBedtime, .sleepTimeRecommendation, .bestSleepWindow:
             return 0...100
         }
     }
@@ -633,6 +637,8 @@ struct SettingsView: View {
         switch metric {
         case .bodyTemperatureDeviation, .averageSpO2:
             return String(format: "%.1f", value)
+        case .remPercentage, .deepSleepPercentage, .recoveryCost:
+            return "\(Int(value.rounded()))"
         case .rem, .deepSleep, .totalSleep, .sleepDebt, .lightSleep, .awakeTime, .sleepLatency:
             return BarMetric.totalSleep.formattedValue(value)
         default:

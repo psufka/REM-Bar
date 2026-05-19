@@ -63,22 +63,20 @@ final class RefreshCoordinator: ObservableObject {
                 self.refreshTask = nil
             }
             let endDate = Self.localDateString(Date())
-            let requestWindowDays = enabledMetrics.contains(.sleepDebt)
-                ? max(averageWindow.dayCount, SleepDebtTrendCalculator.lookbackDays)
-                : averageWindow.dayCount
+            let requestWindowDays = Self.requestWindowDays(for: enabledMetrics, averageWindow: averageWindow)
             let startDate = Self.localDateString(Calendar.current.date(
                 byAdding: .day,
                 value: -(requestWindowDays - 1),
                 to: Date()) ?? Date())
             let personalInfo = await self.personalInfoForRefresh()
             do {
-                async let dailySleep = fetchIfNeeded("daily_sleep", enabledMetrics: enabledMetrics, requiredMetrics: [.sleepScore]) {
+                async let dailySleep = fetchIfNeeded("daily_sleep", enabledMetrics: enabledMetrics, requiredMetrics: [.sleepScore, .bestSleepWindow]) {
                     (try await self.client.dailySleep(startDate: startDate, endDate: endDate)).data
                 }
-                async let sleep = fetchIfNeeded("sleep", enabledMetrics: enabledMetrics, requiredMetrics: [.rem, .deepSleep, .totalSleep, .sleepDebt, .lightSleep, .awakeTime, .timeInBed, .sleepLatency, .averageBreath, .hrv, .rhr, .sleepEfficiency]) {
+                async let sleep = fetchIfNeeded("sleep", enabledMetrics: enabledMetrics, requiredMetrics: [.rem, .remPercentage, .deepSleep, .deepSleepPercentage, .totalSleep, .sleepDebt, .lightSleep, .lightSleepPercentage, .awakeTime, .timeInBed, .sleepLatency, .averageBreath, .hrv, .rhr, .sleepEfficiency, .recoveryCost, .bestSleepWindow]) {
                     (try await self.client.sleep(startDate: startDate, endDate: endDate)).data
                 }
-                async let readiness = fetchIfNeeded("daily_readiness", enabledMetrics: enabledMetrics, requiredMetrics: [.readiness, .hrvBalance, .sleepBalance, .sleepRegularity, .bodyTemperatureDeviation]) {
+                async let readiness = fetchIfNeeded("daily_readiness", enabledMetrics: enabledMetrics, requiredMetrics: [.readiness, .hrvBalance, .sleepBalance, .sleepRegularity, .bodyTemperatureDeviation, .recoveryCost, .bestSleepWindow]) {
                     (try await self.client.dailyReadiness(startDate: startDate, endDate: endDate)).data
                 }
                 async let activity = fetchIfNeeded("daily_activity", enabledMetrics: enabledMetrics, requiredMetrics: [.activity]) {
@@ -164,6 +162,24 @@ final class RefreshCoordinator: ObservableObject {
                 }
             }
         }
+    }
+
+    private static func requestWindowDays(
+        for enabledMetrics: Set<BarMetric>,
+        averageWindow: SettingsStore.AverageWindow)
+        -> Int
+    {
+        var dayCount = averageWindow.dayCount
+        if enabledMetrics.contains(.sleepDebt) {
+            dayCount = max(dayCount, SleepDebtTrendCalculator.lookbackDays)
+        }
+        if enabledMetrics.contains(.recoveryCost) {
+            dayCount = max(dayCount, 30)
+        }
+        if enabledMetrics.contains(.bestSleepWindow) {
+            dayCount = max(dayCount, 90)
+        }
+        return dayCount
     }
 
     private func fetchIfNeeded<Element>(

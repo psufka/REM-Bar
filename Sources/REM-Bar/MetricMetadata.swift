@@ -104,9 +104,9 @@ enum MetricPreset: String, CaseIterable, Identifiable {
     var metrics: [BarMetric] {
         switch self {
         case .sleepFocus:
-            return [.sleepScore, .totalSleep, .sleepDebt, .deepSleep, .rem, .sleepEfficiency, .sleepLatency, .averageBreath]
+            return [.sleepScore, .totalSleep, .sleepDebt, .deepSleep, .deepSleepPercentage, .rem, .remPercentage, .lightSleepPercentage, .sleepEfficiency, .sleepLatency, .averageBreath, .bestSleepWindow]
         case .recovery:
-            return [.readiness, .hrv, .rhr, .hrvBalance, .sleepBalance, .bodyTemperatureDeviation, .resilience, .dailyStress]
+            return [.readiness, .hrv, .rhr, .hrvBalance, .sleepBalance, .bodyTemperatureDeviation, .recoveryCost, .resilience, .dailyStress]
         case .cardio:
             return [.cardiovascularAge, .vo2Max, .rhr, .hrv, .averageSpO2, .breathingDisturbance, .activity]
         case .minimal:
@@ -152,15 +152,15 @@ private enum OuraHelpLink {
 extension BarMetric {
     var displayGroup: MetricDisplayGroup {
         switch self {
-        case .sleepScore, .rem, .deepSleep, .totalSleep, .sleepDebt, .lightSleep, .awakeTime, .timeInBed, .sleepLatency, .averageBreath, .sleepEfficiency:
+        case .sleepScore, .rem, .remPercentage, .deepSleep, .deepSleepPercentage, .totalSleep, .sleepDebt, .lightSleep, .lightSleepPercentage, .awakeTime, .timeInBed, .sleepLatency, .averageBreath, .sleepEfficiency:
             return .sleep
-        case .readiness, .hrv, .rhr, .hrvBalance, .sleepBalance, .sleepRegularity, .bodyTemperatureDeviation, .dailyStress, .resilience:
+        case .readiness, .hrv, .rhr, .hrvBalance, .sleepBalance, .sleepRegularity, .bodyTemperatureDeviation, .recoveryCost, .dailyStress, .resilience:
             return .recovery
         case .activity:
             return .activity
         case .cardiovascularAge, .averageSpO2, .breathingDisturbance, .vo2Max:
             return .cardiovascular
-        case .optimalBedtime, .sleepTimeRecommendation:
+        case .optimalBedtime, .sleepTimeRecommendation, .bestSleepWindow:
             return .guidance
         }
     }
@@ -171,14 +171,20 @@ extension BarMetric {
             return MetricExplanation(summary: "Oura's 0-100 score for overall sleep quality and quantity, based on contributors such as total sleep, efficiency, restfulness, REM, deep sleep, latency, and timing.", source: "Oura Daily Sleep score", interpretation: "Higher is better. Oura rates 85-100 as Optimal, 70-84 as Good, 60-69 as Fair, and 0-59 as Pay Attention.", learnMoreURL: OuraHelpLink.sleepScore)
         case .rem:
             return MetricExplanation(summary: "Time spent in REM sleep. Oura describes REM as associated with dreaming, memory consolidation, creativity, and mental recovery.", source: "Oura Sleep detail rem_sleep_duration", interpretation: "Most healthy adults average around 1.5 hours. With naps enabled, REM-Bar follows Oura by including nap REM.", learnMoreURL: OuraHelpLink.sleepContributors)
+        case .remPercentage:
+            return MetricExplanation(summary: "REM sleep as a share of total sleep.", source: "REM-Bar calculation from Oura rem_sleep_duration and total_sleep_duration", interpretation: "Useful when total sleep changes a lot. With naps enabled, REM-Bar includes nap REM and total sleep.", learnMoreURL: OuraHelpLink.sleepContributors)
         case .deepSleep:
             return MetricExplanation(summary: "Time spent in deep sleep, the most physically restorative sleep stage.", source: "Oura Sleep detail deep_sleep_duration", interpretation: "Oura notes adults often spend about 15-20% of total sleep in deep sleep. With naps enabled, REM-Bar includes nap deep sleep.", learnMoreURL: OuraHelpLink.sleepContributors)
+        case .deepSleepPercentage:
+            return MetricExplanation(summary: "Deep sleep as a share of total sleep.", source: "REM-Bar calculation from Oura deep_sleep_duration and total_sleep_duration", interpretation: "Oura notes many adults spend about 15-20% of total sleep in deep sleep, though personal baseline matters.", learnMoreURL: OuraHelpLink.sleepContributors)
         case .totalSleep:
             return MetricExplanation(summary: "Total time asleep, including light, REM, and deep sleep. Awake time is not included.", source: "Oura Sleep detail total_sleep_duration", interpretation: "Oura includes all sleep, including naps. REM-Bar uses the same default, with a setting for main sleep only.", learnMoreURL: OuraHelpLink.sleepContributors)
         case .sleepDebt:
             return MetricExplanation(summary: "REM-Bar's running estimate of sleep missed versus your selected sleep target.", source: "REM-Bar calculation from Oura Sleep detail total_sleep_duration", interpretation: "Lower is better. It uses a decaying 14-day balance and follows your Naps setting, defaulting to Oura-like nap inclusion.", learnMoreURL: OuraHelpLink.sleepContributors)
         case .lightSleep:
             return MetricExplanation(summary: "Time spent in light sleep, one of the sleep stages that contributes to total sleep.", source: "Oura Sleep detail light_sleep_duration", interpretation: "Light sleep often makes up much of sleep. With naps enabled, REM-Bar includes nap light sleep.", learnMoreURL: OuraHelpLink.sleepContributors)
+        case .lightSleepPercentage:
+            return MetricExplanation(summary: "Light sleep as a share of total sleep.", source: "REM-Bar calculation from Oura light_sleep_duration and total_sleep_duration", interpretation: "Light sleep often makes up the largest share of sleep. Interpret this with REM %, Deep %, and total sleep.", learnMoreURL: OuraHelpLink.sleepContributors)
         case .awakeTime:
             return MetricExplanation(summary: "Time awake during the detected sleep period.", source: "Oura Sleep detail awake_time", interpretation: "Lower is generally better. More wake time can reduce Sleep Score through efficiency and restfulness.", learnMoreURL: OuraHelpLink.sleepContributors)
         case .timeInBed:
@@ -205,6 +211,8 @@ extension BarMetric {
             return MetricExplanation(summary: "Overnight skin temperature deviation from your personal baseline.", source: "Oura Daily Readiness temperature_deviation", interpretation: "Closer to zero is usually better. Oura measures during sleep to reduce daytime noise; larger deviations can occur with illness or cycle changes.", learnMoreURL: OuraHelpLink.bodyTemperature)
         case .sleepEfficiency:
             return MetricExplanation(summary: "Percentage of time in bed that was spent asleep.", source: "Oura Sleep detail efficiency", interpretation: "Higher is better. Oura includes naps for efficiency; REM-Bar mirrors that when naps are enabled.", learnMoreURL: OuraHelpLink.sleepContributors)
+        case .recoveryCost:
+            return MetricExplanation(summary: "Estimated readiness-point deficit after nights that were at least 45 minutes short of your selected sleep target.", source: "REM-Bar calculation from Oura Sleep detail and Daily Readiness", interpretation: "Lower is better. It compares short-sleep days with your recent non-short-sleep readiness baseline; this is an association, not causation.", learnMoreURL: OuraHelpLink.readinessScore)
         case .dailyStress:
             return MetricExplanation(summary: "Oura's daily physiological stress summary, based on daytime stress zones such as Stressed, Engaged, Relaxed, and Restored.", source: "Oura Daily Stress day_summary", interpretation: "This reflects biometrics, not emotions. Oura calculates stress from heart rate, HRV, motion, and average body temperature.", learnMoreURL: OuraHelpLink.daytimeStress)
         case .resilience:
@@ -221,6 +229,8 @@ extension BarMetric {
             return MetricExplanation(summary: "Oura's recommended bedtime window based on sleep patterns that have worked well for you.", source: "Oura Sleep Time optimal_bedtime", interpretation: "Use it as guidance, not a strict rule. Oura says missing the window does not directly affect Sleep or Readiness Scores.", learnMoreURL: OuraHelpLink.bedtimeGuidance)
         case .sleepTimeRecommendation:
             return MetricExplanation(summary: "Oura's sleep-time recommendation category for whether to follow, move earlier, or move later than your current pattern.", source: "Oura Sleep Time recommendation", interpretation: "Oura's Bedtime Guidance is dynamic and uses recent sleep patterns and body signals rather than a manually edited target.", learnMoreURL: OuraHelpLink.bedtimeGuidance)
+        case .bestSleepWindow:
+            return MetricExplanation(summary: "The 30-minute bedtime bucket associated with your best recent combined Sleep Score and Readiness outcomes.", source: "REM-Bar calculation from Oura Sleep, Daily Sleep, and Daily Readiness", interpretation: "Use it as a transparent retrospective pattern. It requires at least three main sleeps in a bucket and does not include naps.", learnMoreURL: OuraHelpLink.bedtimeGuidance)
         }
     }
 
@@ -234,6 +244,10 @@ extension BarMetric {
             return MetricThresholdOverride(direction: .higherIsBetter, green: 420, orange: 360)
         case .sleepDebt:
             return MetricThresholdOverride(direction: .lowerIsBetter, green: 30, orange: 90)
+        case .remPercentage:
+            return MetricThresholdOverride(direction: .higherIsBetter, green: 20, orange: 15)
+        case .deepSleepPercentage:
+            return MetricThresholdOverride(direction: .higherIsBetter, green: 15, orange: 10)
         case .lightSleep:
             return MetricThresholdOverride(direction: .higherIsBetter, green: 180, orange: 120)
         case .awakeTime:
@@ -248,13 +262,15 @@ extension BarMetric {
             return MetricThresholdOverride(direction: .closerToZeroIsBetter, green: 0.2, orange: 0.5)
         case .sleepEfficiency:
             return MetricThresholdOverride(direction: .higherIsBetter, green: 85, orange: 75)
+        case .recoveryCost:
+            return MetricThresholdOverride(direction: .lowerIsBetter, green: 3, orange: 8)
         case .averageSpO2:
             return MetricThresholdOverride(direction: .higherIsBetter, green: 95, orange: 90)
         case .breathingDisturbance:
             return MetricThresholdOverride(direction: .lowerIsBetter, green: 5, orange: 15)
         case .vo2Max:
             return MetricThresholdOverride(direction: .higherIsBetter, green: 40, orange: 30)
-        case .timeInBed, .averageBreath, .cardiovascularAge, .dailyStress, .resilience, .optimalBedtime, .sleepTimeRecommendation:
+        case .lightSleepPercentage, .timeInBed, .averageBreath, .cardiovascularAge, .dailyStress, .resilience, .optimalBedtime, .sleepTimeRecommendation, .bestSleepWindow:
             return nil
         }
     }
@@ -265,9 +281,9 @@ extension BarMetric {
 
     var supportsTrendWindow: Bool {
         switch self {
-        case .dailyStress, .resilience, .optimalBedtime, .sleepTimeRecommendation:
+        case .dailyStress, .resilience, .optimalBedtime, .sleepTimeRecommendation, .bestSleepWindow:
             return false
-        case .sleepScore, .rem, .deepSleep, .totalSleep, .sleepDebt, .lightSleep, .awakeTime, .timeInBed, .sleepLatency, .averageBreath, .hrv, .rhr, .readiness, .activity, .hrvBalance, .sleepBalance, .sleepRegularity, .bodyTemperatureDeviation, .sleepEfficiency, .cardiovascularAge, .averageSpO2, .breathingDisturbance, .vo2Max:
+        case .sleepScore, .rem, .remPercentage, .deepSleep, .deepSleepPercentage, .totalSleep, .sleepDebt, .lightSleep, .lightSleepPercentage, .awakeTime, .timeInBed, .sleepLatency, .averageBreath, .hrv, .rhr, .readiness, .activity, .hrvBalance, .sleepBalance, .sleepRegularity, .bodyTemperatureDeviation, .sleepEfficiency, .recoveryCost, .cardiovascularAge, .averageSpO2, .breathingDisturbance, .vo2Max:
             return true
         }
     }
